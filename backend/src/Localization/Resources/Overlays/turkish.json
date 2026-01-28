@@ -17,6 +17,14 @@
   "label_squad_value": "Müfreze değeri",
   "label_ability_tier": "Yetenek rütbesi: {0}",
   "label_ability_cost": "Yetenek maliyeti: {0}",
+  "label_chance": "şans",
+  "label_rewards": "Ödüller",
+  "label_option": "Seçenek",
+
+  "label_common_rarity": "Sıradan",
+  "label_rare_rarity": "Nadir",
+  "label_epic_rarity": "Destansı",
+  "label_legendary_rarity": "Efsanevi",
 
   "app_title": "Olden Era Explorer",
 

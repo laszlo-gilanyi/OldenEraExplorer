@@ -17,6 +17,14 @@
   "label_squad_value": "Squad value",
   "label_ability_tier": "Ability tier: {0}",
   "label_ability_cost": "Ability cost: {0}",
+  "label_chance": "chance",
+  "label_rewards": "Rewards",
+  "label_option": "Option",
+
+  "label_common_rarity": "Common",
+  "label_rare_rarity": "Rare",
+  "label_epic_rarity": "Epic",
+  "label_legendary_rarity": "Legendary",
 
   "app_title": "Olden Era Explorer",
 

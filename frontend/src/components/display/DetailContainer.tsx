@@ -9,11 +9,14 @@ interface DetailContainerProps {
 export default function DetailContainer({ children, className }: DetailContainerProps) {
   return (
     <div className="h-full overflow-auto">
-      <div className={cn(
-        "w-full max-w-170 mx-auto px-5 py-5",
-        "lg:px-0",
-        className
-      )}>
+      <div
+        data-detail-container
+        className={cn(
+          "w-full max-w-170 mx-auto px-5 py-5",
+          "lg:px-0",
+          className
+        )}
+      >
         {children}
       </div>
     </div>

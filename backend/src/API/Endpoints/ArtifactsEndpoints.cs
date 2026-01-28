@@ -2,7 +2,10 @@ using GameData.Indexing;
 using Localization.Resolution;
 using Localization.Services;
 using API.Contracts;
+using API.Helpers;
 using API.Services;
+using static API.Helpers.LocalizationHelper;
+using static API.Helpers.IconPaths;
 
 namespace API.Endpoints;
 
@@ -14,7 +17,6 @@ public static class ArtifactsEndpoints
             .WithTags("Artifacts")
             ;
 
-        // GET /api/artifacts - List all artifacts
         group.MapGet("/", GetArtifacts)
             .WithName("GetArtifacts")
             .WithSummary("List all artifacts")
@@ -22,7 +24,6 @@ public static class ArtifactsEndpoints
             .Produces<List<ArtifactListItemDto>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/artifacts/{id} - Get artifact details
         group.MapGet("/{id}", GetArtifactById)
             .WithName("GetArtifactById")
             .WithSummary("Get artifact details")
@@ -67,7 +68,7 @@ public static class ArtifactsEndpoints
         }
 
         var artifactsList = artifacts
-            .Select(a => MapToListItem(a, lang))
+            .Select(a => ArtifactDtoBuilder.BuildListItem(a, lang, GetRaritySlotText))
             .ToList();
 
         return Results.Ok(artifactsList);
@@ -106,23 +107,6 @@ public static class ArtifactsEndpoints
         return Results.Ok(dto);
     }
 
-    private static ArtifactListItemDto MapToListItem(
-        ArtifactsIndex.ArtifactRecord artifact,
-        Localization.Indexing.LangIndex lang)
-    {
-        var localizedName = lang.ResolveText(artifact.NameSid);
-        var raritySlotText = GetRaritySlotText(lang, artifact.Rarity, artifact.Slot);
-
-        return new ArtifactListItemDto(
-            Id: artifact.Id,
-            Name: localizedName ?? artifact.Id,
-            Rarity: string.IsNullOrEmpty(artifact.Rarity) ? null : artifact.Rarity,
-            Slot: string.IsNullOrEmpty(artifact.Slot) ? null : artifact.Slot,
-            RaritySlotText: raritySlotText,
-            Icon: string.IsNullOrEmpty(artifact.Icon) ? null : $"icons/artifacts/{artifact.Icon}"
-        );
-    }
-
     private static ArtifactDetailDto MapToDetail(
         ArtifactsIndex.ArtifactRecord artifact,
         Localization.Indexing.LangIndex lang,
@@ -134,7 +118,7 @@ public static class ArtifactsEndpoints
         var ctx = new ResolutionContext(locale)
         {
             ItemId = artifact.Id,
-            ItemLevel = 1  // Default level 1 for base stats
+            ItemLevel = 1
         };
 
         var localizedName = lang.ResolveText(artifact.NameSid);
@@ -163,7 +147,7 @@ public static class ArtifactsEndpoints
             Id: artifact.Id,
             Name: artifact.NameSid,
             LocalizedName: localizedName,
-            Icon: string.IsNullOrEmpty(artifact.Icon) ? null : $"icons/artifacts/{artifact.Icon}",
+            Icon: string.IsNullOrEmpty(artifact.Icon) ? null : Artifact(artifact.Icon),
             Rarity: string.IsNullOrEmpty(artifact.Rarity) ? null : artifact.Rarity,
             Slot: string.IsNullOrEmpty(artifact.Slot) ? null : artifact.Slot,
             SlotIcon: slotIcon,
@@ -221,7 +205,7 @@ public static class ArtifactsEndpoints
                 setItems.Add(new SetItemEntryDto(
                     ArtifactId: itemId,
                     Name: itemName,
-                    Icon: string.IsNullOrEmpty(artifact.Icon) ? null : $"icons/artifacts/{artifact.Icon}",
+                    Icon: string.IsNullOrEmpty(artifact.Icon) ? null : Artifact(artifact.Icon),
                     Slot: artifact.Slot
                 ));
             }
@@ -263,25 +247,6 @@ public static class ArtifactsEndpoints
         return (upgradeCost, costNote);
     }
 
-    private static string? TryResolveText(ITextResolver resolver, string sid, ResolutionContext ctx)
-    {
-        if (string.IsNullOrWhiteSpace(sid))
-            return null;
-
-        try
-        {
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
-                return result;
-        }
-        catch
-        {
-        }
-
-        return null;
-    }
-
     private static string NormalizeSlotForSid(string slot)
     {
         return slot.ToLowerInvariant().Replace(" ", "_") switch
@@ -294,8 +259,8 @@ public static class ArtifactsEndpoints
             "left_hand" or "main_hand" => "LEFT_HAND",
             "right_hand" or "off_hand" => "RIGHT_HAND",
             "ring" => "RING",
-            "unique_slot" or "unic_slot" => "UNIQUE_SLOT",  // Fix typo in game data
-            _ => slot.ToUpperInvariant().Replace(" ", "_")  // Fallback: uppercase with underscores
+            "unique_slot" or "unic_slot" => "UNIQUE_SLOT",  // "unic_slot" is a typo in game data
+            _ => slot.ToUpperInvariant().Replace(" ", "_")
         };
     }
 
@@ -314,7 +279,7 @@ public static class ArtifactsEndpoints
             "ring" or "finger" => "RING",
             "unique_slot" or "unic_slot" or "trinket" or "relic" or "accessory" => "UNIQUE_SLOT",
             "item" or "item_slot" or "misc" or "consumable" => "ITEM_SLOT",
-            _ => "ITEM_SLOT"  // Default to item slot
+            _ => "ITEM_SLOT"
         };
         return $"icons/item_slots/{iconName}";
     }

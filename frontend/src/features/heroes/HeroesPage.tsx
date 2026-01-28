@@ -13,12 +13,9 @@ import ClassBadge from '@/components/display/ClassBadge';
 import RichText from '@/components/display/RichText';
 import SortableColumnHeader, { type SortDirection } from '@/components/display/SortableColumnHeader';
 import DetailContainer from '@/components/display/DetailContainer';
-import HexagonFrame from '@/components/display/HexagonFrame';
+import UnitHexCard from '@/components/display/UnitHexCard';
 import { cn } from '@/lib/utils';
 
-/**
- * Faction uses multi-level cascading sort. Name/Class/ID use single-level sort.
- */
 function compareHeroes(
   a: HeroListItemDto,
   b: HeroListItemDto,
@@ -36,19 +33,15 @@ function compareHeroes(
 
   switch (primaryField) {
     case 'faction':
-      // Faction (direction) -> ID (asc)
       return compareFaction() * dir || compareId();
 
     case 'name':
-      // Name only (single-level)
       return compareName() * dir;
 
     case 'class':
-      // Class only (single-level)
       return compareClass() * dir;
 
     case 'id':
-      // ID only (single-level)
       return compareId() * dir;
 
     default:
@@ -286,28 +279,14 @@ function HeroDetailPanel({
             </h3>
             <div className="flex justify-center flex-wrap gap-1">
               {hero.startingArmy.map((unit, index) => (
-                <div
+                <UnitHexCard
                   key={index}
-                  className="w-26 m-1 flex flex-col items-center"
-                >
-                  <HexagonFrame size={104} className="mb-1.5">
-                    <ProgressiveIcon
-                      iconPath={unit.icon}
-                      alt={unit.unitName}
-                      size={104}
-                      imgClassName="object-cover"
-                    />
-                  </HexagonFrame>
-                  <div className="text-[0.95rem] font-semibold text-foreground text-center">
-                    {unit.countInterval}
-                  </div>
-                  <button
-                    onClick={() => navigate(`/units/${unit.unitId}`)}
-                    className="text-sm text-semantic-gold hover:text-semantic-gold/80 text-center bg-transparent border-none p-0 cursor-pointer font-semibold"
-                  >
-                    {unit.unitName}
-                  </button>
-                </div>
+                  unitId={unit.unitId}
+                  unitName={unit.unitName}
+                  icon={unit.icon}
+                  amount={unit.countInterval}
+                  size="lg"
+                />
               ))}
             </div>
           </div>
@@ -461,11 +440,8 @@ export default function HeroesPage() {
 
   return (
     <div className="h-full overflow-hidden">
-      {/* Left sidebar - Hero list */}
       <aside className="absolute left-0 top-0 bottom-0 w-80 lg:w-105 z-10 border-r border-border flex flex-col bg-card">
-        {/* Sort controls + Search (combined) */}
         <div className="px-2 h-[47px] border-b border-border flex items-center gap-0.5 relative">
-          {/* Sort buttons */}
           <SortableColumnHeader
             label={columnLabels.name}
             field="name"

@@ -3,9 +3,12 @@ import { useEffect, type RefObject } from 'react';
 export function useOnClickOutside(
   ref: RefObject<HTMLElement | null>,
   handler: (event: MouseEvent | TouchEvent) => void,
-  ignoreRefs?: readonly RefObject<HTMLElement | null>[]
+  ignoreRefs?: readonly RefObject<HTMLElement | null>[],
+  enabled: boolean = true
 ) {
   useEffect(() => {
+    if (!enabled) return;
+
     const listener = (event: MouseEvent | TouchEvent) => {
       const el = ref?.current;
       const target = event.target as Node;
@@ -28,5 +31,5 @@ export function useOnClickOutside(
       document.removeEventListener('mousedown', listener);
       document.removeEventListener('touchstart', listener);
     };
-  }, [ref, handler, ignoreRefs]);
+  }, [ref, handler, ignoreRefs, enabled]);
 }

@@ -17,6 +17,14 @@
   "label_squad_value": "Цінність загону",
   "label_ability_tier": "Ранг здібності: {0}",
   "label_ability_cost": "Вартість здібності: {0}",
+  "label_chance": "шанс",
+  "label_rewards": "Нагороди",
+  "label_option": "Варіант",
+
+  "label_common_rarity": "Звичайна",
+  "label_rare_rarity": "Рідкісна",
+  "label_epic_rarity": "Епічна",
+  "label_legendary_rarity": "Легендарна",
 
   "app_title": "Olden Era Explorer",
 

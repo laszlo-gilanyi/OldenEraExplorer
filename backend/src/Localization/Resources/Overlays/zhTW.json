@@ -17,6 +17,14 @@
   "label_squad_value": "部隊價值",
   "label_ability_tier": "能力階級：{0}",
   "label_ability_cost": "能力花費：{0}",
+  "label_chance": "機率",
+  "label_rewards": "獎勵",
+  "label_option": "選項",
+
+  "label_common_rarity": "一般",
+  "label_rare_rarity": "稀有",
+  "label_epic_rarity": "史詩",
+  "label_legendary_rarity": "傳奇",
 
   "app_title": "Olden Era Explorer",
 

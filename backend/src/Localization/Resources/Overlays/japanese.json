@@ -17,6 +17,14 @@
   "label_squad_value": "部隊価値",
   "label_ability_tier": "アビリティランク: {0}",
   "label_ability_cost": "アビリティコスト: {0}",
+  "label_chance": "確率",
+  "label_rewards": "報酬",
+  "label_option": "オプション",
+
+  "label_common_rarity": "コモン",
+  "label_rare_rarity": "レア",
+  "label_epic_rarity": "エピック",
+  "label_legendary_rarity": "レジェンダリー",
 
   "app_title": "Olden Era Explorer",
 

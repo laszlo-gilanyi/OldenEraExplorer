@@ -17,6 +17,14 @@
   "label_squad_value": "Valor de la escuadra",
   "label_ability_tier": "Nivel de aptitud: {0}",
   "label_ability_cost": "Coste de aptitud: {0}",
+  "label_chance": "probabilidad",
+  "label_rewards": "Recompensas",
+  "label_option": "Opción",
+
+  "label_common_rarity": "Común",
+  "label_rare_rarity": "Rara",
+  "label_epic_rarity": "Épica",
+  "label_legendary_rarity": "Legendaria",
 
   "app_title": "Olden Era Explorer",
 

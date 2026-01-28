@@ -3,22 +3,16 @@ using GameData.Services;
 using Localization.Indexing;
 using Localization.Resolution;
 using API.Contracts;
+using API.Helpers;
 using API.Services;
+using static API.Helpers.IconPaths;
 
 namespace API.Endpoints;
 
-/// <summary>
-/// Model catalog endpoints for listing and serving 3D models (units and map objects).
-/// GLB files are served from the ExtractedAssets directory.
-/// </summary>
 public static class ModelsEndpoints
 {
-    // Orphan GLB suffix - used when orphan GLB filename collides with existing unit ID
     private const string OrphanGlbSuffix = "_glb";
 
-    /// <summary>
-    /// Map all model-related endpoints.
-    /// </summary>
     public static IEndpointRouteBuilder MapModelsEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/models")
@@ -48,7 +42,6 @@ public static class ModelsEndpoints
             .WithSummary("List all models that have been extracted")
             .Produces<List<ExtractedModelDto>>(200);
 
-        // GLB serving endpoints
         group.MapGet("/unit/{id}/glb", GetUnitModelGlb)
             .WithName("GetUnitModelGlb")
             .WithSummary("Get a unit's GLB file")
@@ -56,7 +49,6 @@ public static class ModelsEndpoints
             .Produces<ErrorDto>(404)
             .Produces<ErrorDto>(503);
 
-        // Map object endpoints use category/name as separate path segments
         group.MapGet("/map-object/{category}/{name}/glb", GetMapObjectModelGlb)
             .WithName("GetMapObjectModelGlb")
             .WithSummary("Get a map object's GLB file")
@@ -64,7 +56,6 @@ public static class ModelsEndpoints
             .Produces<ErrorDto>(404)
             .Produces<ErrorDto>(503);
 
-        // Status endpoints
         group.MapGet("/unit/{id}/status", GetUnitModelStatus)
             .WithName("GetUnitModelStatus")
             .WithSummary("Check if a unit's GLB file exists")
@@ -78,9 +69,6 @@ public static class ModelsEndpoints
         return endpoints;
     }
 
-    /// <summary>
-    /// List all available unit models (from DB + orphan GLBs).
-    /// </summary>
     private static IResult ListUnitModels(
         IGameDataService dataService,
         IAssetServingService assetService,
@@ -132,7 +120,6 @@ public static class ModelsEndpoints
                 });
             }
 
-            // Mesh-based deduplication (Viewer is a GLB browser)
             var dedupedUnits = DeduplicateByMesh(
                 units,
                 u => u.Mesh,
@@ -144,7 +131,7 @@ public static class ModelsEndpoints
                 string.IsNullOrEmpty(u.Fraction) ? null : u.Fraction,
                 factionMapper.MapFactionDisplay(u.Fraction),
                 u.Tier > 0 ? u.Tier : null,
-                $"icons/units/hex_portraits/{u.Id}",
+                UnitHexPortrait(u.Id),
                 IsOrphan: false,
                 Scale: u.Scale,
                 PrefabPath: u.Mesh)));
@@ -174,7 +161,6 @@ public static class ModelsEndpoints
                 }
             }
 
-            // Pre-build icon suffix lookup for performance
             var versionDirs = Directory.GetDirectories(extractedDir, "Assets-*");
             var oldIconVariants = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var versionDir in versionDirs)
@@ -209,7 +195,6 @@ public static class ModelsEndpoints
                     if (knownModelNames.Contains(glbFileName))
                         continue;
 
-                    // Generate unique orphan ID (avoid collisions with unit IDs)
                     var orphanId = glbFileName;
                     var suffixCounter = 1;
                     while (existingUnitIds.Contains(orphanId))
@@ -268,7 +253,6 @@ public static class ModelsEndpoints
             }
         }
 
-        // DB units first, then orphans, both alphabetically by faction and name
         items = items
             .OrderBy(x => x.IsOrphan)
             .ThenBy(x => x.Faction)
@@ -278,11 +262,6 @@ public static class ModelsEndpoints
         return Results.Ok(items);
     }
 
-    /// <summary>
-    /// List all available map object models for the 3D viewer.
-    /// Returns unique GLB meshes only - multiple JSON items sharing the same mesh show once.
-    /// Includes orphan GLBs (exist on disk but not in DB).
-    /// </summary>
     private static IResult ListMapObjectModels(
         IGameDataService dataService,
         IAssetServingService assetService,
@@ -301,20 +280,18 @@ public static class ModelsEndpoints
         var resolver = data.ResolverFacade;
         var locale = gamePathService.CurrentLocale;
 
-        // EXCLUDE artifacts - they have separate endpoint
         IEnumerable<MapObjectsIndex.MapObjectRecord> mapObjects =
             data.MapObjectsIndex.MapObjects.Values
                 .Where(mo => mo.IsInteractable)
                 .Where(mo => !string.Equals(mo.Tag, "Artifact", StringComparison.OrdinalIgnoreCase));
 
-        // 2. Build expected GLB names BEFORE search filter (for orphan detection)
-        //    Use FULL list to avoid false orphans when search returns no results
+        // Full list needed for orphan detection (before search filter narrows results)
         var expectedGlbNames = data.MapObjectsIndex.MapObjects.Values
             .Where(mo => mo.IsInteractable)
             .Where(mo => !string.Equals(mo.Tag, "Artifact", StringComparison.OrdinalIgnoreCase))
             .Select(mo => mo.PrefabPath)
             .Where(p => !string.IsNullOrEmpty(p))
-            .Select(path => Path.GetFileName(path)) // NO .glb extension
+            .Select(path => Path.GetFileName(path))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -331,7 +308,6 @@ public static class ModelsEndpoints
                 GetMapObjectLocalizedName(mo, lang, resolver, locale)?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true);
         }
 
-        // Mesh-based deduplication (viewer GLB browser)
         var dedupedMapObjects = DeduplicateByMesh(
             mapObjects,
             mo => mo.PrefabPath,
@@ -362,10 +338,8 @@ public static class ModelsEndpoints
                         var name = Path.GetFileNameWithoutExtension(file);
                         var relativePath = Path.GetRelativePath(glbDir, file);
 
-                        if (relativePath.Contains("debug_objects", StringComparison.OrdinalIgnoreCase))
-                            continue;
-
-                        if (name.Equals("magic_portal_hex", StringComparison.OrdinalIgnoreCase))
+                        if (relativePath.Contains("debug_objects", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals("magic_portal_hex", StringComparison.OrdinalIgnoreCase))
                             continue;
 
                         actualGlbFiles.Add(name);
@@ -375,7 +349,6 @@ public static class ModelsEndpoints
                 }
             }
 
-            // Orphans = Actual GLBs MINUS Expected GLBs (from JSON PrefabPaths)
             var orphanGlbs = actualGlbFiles.Except(expectedGlbNames, StringComparer.OrdinalIgnoreCase).ToList();
 
             foreach (var orphanName in orphanGlbs)
@@ -383,17 +356,13 @@ public static class ModelsEndpoints
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var searchTerm = search.Trim();
-
-                    // Special case: "orphan"/"unused" search shows all orphan GLBs regardless of name
                     var isOrphanSearch = searchTerm.Equals("orphan", StringComparison.OrdinalIgnoreCase) ||
                                          searchTerm.Equals("unused", StringComparison.OrdinalIgnoreCase);
-
                     if (!isOrphanSearch && !orphanName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                         continue;
                 }
 
                 var prefabPath = glbPathMap.TryGetValue(orphanName, out var path) ? path : null;
-
                 var orphanCategory = prefabPath?.Split('/')[0] ?? "Unknown";
 
                 if (!string.IsNullOrWhiteSpace(category))
@@ -415,10 +384,6 @@ public static class ModelsEndpoints
         return Results.Ok(items);
     }
 
-    /// <summary>
-    /// List all available artifact models for the 3D viewer.
-    /// Returns unique PrefabPath-based artifacts - magic scrolls are deduplicated by mesh.
-    /// </summary>
     private static IResult ListArtifactModels(
         IGameDataService dataService,
         IAssetServingService assetService,
@@ -437,7 +402,6 @@ public static class ModelsEndpoints
         var mapObjectsIndex = data.MapObjectsIndex;
         var items = new List<ArtifactListItemDto>();
 
-        // JOIN: ArtifactsIndex (metadata) + MapObjectsIndex (PrefabPath)
         var artifactsWithPath = artifactsIndex.Artifacts.Values
             .Where(a => HasArtifactLocalization(a, lang))
             .Select(a =>
@@ -448,7 +412,7 @@ public static class ModelsEndpoints
                 {
                     mapObject = mo;
                 }
-                // Special case: scroll boxes (artifact ID contains scroll, but MapObject ID is different)
+                // Scroll boxes use different MapObject IDs than artifact IDs
                 else if (a.Id.Contains("scroll_artifact", StringComparison.OrdinalIgnoreCase))
                 {
                     string? scrollBoxId = null;
@@ -474,7 +438,6 @@ public static class ModelsEndpoints
             .Where(x => x.MapObject != null)
             .ToList();
 
-        // Use FULL list to avoid false orphans when search returns no results
         var existingPrefabPaths = new HashSet<string>(
             artifactsWithPath
                 .Select(x => x.MapObject?.PrefabPath)
@@ -493,7 +456,6 @@ public static class ModelsEndpoints
                 .ToList();
         }
 
-        // Viewer is a GLB browser - deduplicate by PrefabPath to show unique 3D models
         var dedupedArtifacts = DeduplicateByMesh(
             artifactsWithPath,
             item => item.MapObject?.PrefabPath,
@@ -504,8 +466,6 @@ public static class ModelsEndpoints
             var localizedName = lang.ResolveText(item.Artifact.NameSid);
             var raritySlotText = GetArtifactRaritySlotText(lang, item.Artifact.Rarity, item.Artifact.Slot);
             var prefabPath = item.MapObject?.PrefabPath ?? $"artifact/{item.Artifact.Id}";
-
-            // Clean ID: strip "artifact/" prefix for cleaner URLs
             var cleanId = prefabPath.StartsWith("artifact/", StringComparison.OrdinalIgnoreCase)
                 ? prefabPath.Substring("artifact/".Length)
                 : prefabPath;
@@ -518,7 +478,7 @@ public static class ModelsEndpoints
                 raritySlotText,
                 $"icons/artifacts/{item.Artifact.Icon}",
                 IsOrphan: false,
-                PrefabPath: prefabPath)); // Full path for GLB serving
+                PrefabPath: prefabPath));
         }
 
         var extractedDir = assetService.ExtractedAssetsDirectory;
@@ -552,16 +512,12 @@ public static class ModelsEndpoints
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var searchTerm = search.Trim();
-
-                    // Special case: "orphan"/"unused" search shows all orphan GLBs regardless of name
                     var isOrphanSearch = searchTerm.Equals("orphan", StringComparison.OrdinalIgnoreCase) ||
                                          searchTerm.Equals("unused", StringComparison.OrdinalIgnoreCase);
-
                     if (!isOrphanSearch && !glbFileName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                         continue;
                 }
 
-                // Clean ID: strip "artifact/" prefix for cleaner URLs
                 var cleanId = prefabPath.StartsWith("artifact/", StringComparison.OrdinalIgnoreCase)
                     ? prefabPath.Substring("artifact/".Length)
                     : glbFileName;
@@ -574,7 +530,7 @@ public static class ModelsEndpoints
                     null,
                     $"icons/artifacts/{glbFileName}",
                     IsOrphan: true,
-                    PrefabPath: prefabPath)); // Full path for GLB serving
+                    PrefabPath: prefabPath));
             }
         }
 
@@ -586,9 +542,6 @@ public static class ModelsEndpoints
         return Results.Ok(result);
     }
 
-    /// <summary>
-    /// Maps a MapObjectRecord to a MapObjectListItemDto with localized data.
-    /// </summary>
     private static MapObjectListItemDto MapToMapObjectModelItem(
         MapObjectsIndex.MapObjectRecord mapObject,
         LangIndex lang,
@@ -602,20 +555,15 @@ public static class ModelsEndpoints
         var name = GetMapObjectLocalizedName(mapObject, lang, resolver, locale) ?? prefabName;
         var icon = BuildMapObjectIconPath(prefabPath);
 
-        // Clean ID: use just the name without category prefix for cleaner URLs
         return new MapObjectListItemDto(
             prefabName,
             name,
             prefabCategory,
             icon,
             IsOrphan: false,
-            PrefabPath: prefabPath); // Full path for GLB serving
+            PrefabPath: prefabPath);
     }
 
-    /// <summary>
-    /// Gets the localized name for a map object.
-    /// Uses the same fallback logic as MapObjectsEndpoints.GetLocalizedName.
-    /// </summary>
     private static string? GetMapObjectLocalizedName(
         MapObjectsIndex.MapObjectRecord mapObject,
         LangIndex lang,
@@ -629,12 +577,10 @@ public static class ModelsEndpoints
                 return result;
 
             var langResult = lang.ResolveText(mapObject.NameSid);
-            // Check that the result is not the same as the SID (means lookup failed)
             if (!string.IsNullOrWhiteSpace(langResult) && langResult != mapObject.NameSid)
                 return langResult;
         }
 
-        // Fallback to pattern-based SIDs (same logic as MapObjectsEndpoints)
         var patterns = new[]
         {
             $"{mapObject.Id}_name",
@@ -656,21 +602,14 @@ public static class ModelsEndpoints
         return null;
     }
 
-    /// <summary>
-    /// Builds the icon path from a prefab path for map objects.
-    /// </summary>
     private static string? BuildMapObjectIconPath(string? prefabPath)
     {
         if (string.IsNullOrWhiteSpace(prefabPath))
             return null;
 
-        // Map objects use Resources/objects/ folder for icons
         return $"objects/{prefabPath.Replace('\\', '/')}";
     }
 
-    /// <summary>
-    /// List all extracted GLB models from the ExtractedAssets directory.
-    /// </summary>
     private static IResult ListExtractedModels(IAssetServingService assetService)
     {
         var extractedDir = assetService.ExtractedAssetsDirectory;
@@ -717,7 +656,7 @@ public static class ModelsEndpoints
             }
             else
             {
-                continue; // Skip unknown GLB files
+                continue;
             }
 
             extractedModels.Add(new ExtractedModelDto(
@@ -736,9 +675,6 @@ public static class ModelsEndpoints
         return Results.Ok(result);
     }
 
-    /// <summary>
-    /// Get a unit's GLB file.
-    /// </summary>
     private static IResult GetUnitModelGlb(
         string id,
         IAssetServingService assetService,
@@ -768,9 +704,6 @@ public static class ModelsEndpoints
         return Results.File(fileBytes, "model/gltf-binary", $"{id}.glb");
     }
 
-    /// <summary>
-    /// Get a map object's GLB file.
-    /// </summary>
     private static IResult GetMapObjectModelGlb(
         string category,
         string name,
@@ -792,9 +725,6 @@ public static class ModelsEndpoints
         return Results.File(fileBytes, "model/gltf-binary", filename);
     }
 
-    /// <summary>
-    /// Check if a unit's GLB file exists.
-    /// </summary>
     private static IResult GetUnitModelStatus(
         string id,
         IAssetServingService assetService,
@@ -826,9 +756,6 @@ public static class ModelsEndpoints
         return Results.Ok(new ModelStatusDto(false, null, null));
     }
 
-    /// <summary>
-    /// Check if a map object's GLB file exists.
-    /// </summary>
     private static IResult GetMapObjectModelStatus(
         string category,
         string name,
@@ -849,12 +776,7 @@ public static class ModelsEndpoints
         return Results.Ok(new ModelStatusDto(false, null, null));
     }
 
-    /// <summary>
-    /// Resolves a unit GLB path by searching through ExtractedAssets directories.
-    /// Path pattern: Assets-{version}/Assets/Resources/units/{faction}/{model_name}.glb
-    /// Uses mesh (prefab path) if available, otherwise falls back to unitId.
-    /// Search order: current version -> shared -> other versions (fallback).
-    /// </summary>
+    // Search order: current version -> shared -> other versions
     private static string? ResolveUnitGlbPath(
         string extractedDir,
         string? currentVersion,
@@ -867,7 +789,6 @@ public static class ModelsEndpoints
 
         var modelName = unitId;
 
-        // Handle orphan GLBs with suffix (collision avoidance)
         if (unitId.EndsWith(OrphanGlbSuffix, StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(mesh))
         {
             modelName = unitId.Substring(0, unitId.Length - OrphanGlbSuffix.Length);
@@ -885,7 +806,6 @@ public static class ModelsEndpoints
             }
         }
 
-        // Priority 1: Current version directory
         if (!string.IsNullOrEmpty(currentVersion))
         {
             var currentVersionDir = Path.Combine(extractedDir, $"Assets-{currentVersion}");
@@ -913,15 +833,11 @@ public static class ModelsEndpoints
         return null;
     }
 
-    /// <summary>
-    /// Searches for a unit GLB file in a specific version directory.
-    /// </summary>
     private static string? SearchForUnitGlb(string versionDir, string modelName, string unitId, string? faction)
     {
         if (!Directory.Exists(versionDir))
             return null;
 
-        // If we know the faction, try the specific path first with model name from mesh
         if (!string.IsNullOrEmpty(faction))
         {
             var specificPath = Path.Combine(versionDir, "Assets", "Resources", "units",
@@ -933,7 +849,6 @@ public static class ModelsEndpoints
         var unitsDir = Path.Combine(versionDir, "Assets", "Resources", "units");
         if (Directory.Exists(unitsDir))
         {
-            // First try with mesh-derived model name
             var glbFiles = Directory.GetFiles(unitsDir, $"{modelName.ToLowerInvariant()}.glb", SearchOption.AllDirectories);
             if (glbFiles.Length > 0)
                 return glbFiles[0];
@@ -949,11 +864,6 @@ public static class ModelsEndpoints
         return null;
     }
 
-    /// <summary>
-    /// Resolves a map object GLB path by searching through ExtractedAssets directories.
-    /// Path pattern: Assets-{version}/Assets/Resources/objects/{category}/{name}.glb
-    /// Search order: current version -> shared -> other versions (fallback).
-    /// </summary>
     private static string? ResolveMapObjectGlbPath(
         string extractedDir,
         string? currentVersion,
@@ -963,7 +873,6 @@ public static class ModelsEndpoints
         if (!Directory.Exists(extractedDir))
             return null;
 
-        // Priority 1: Current version directory
         if (!string.IsNullOrEmpty(currentVersion))
         {
             var currentVersionDir = Path.Combine(extractedDir, $"Assets-{currentVersion}");
@@ -971,16 +880,14 @@ public static class ModelsEndpoints
             if (result != null) return result;
         }
 
-        // Priority 2: Shared directory
         var sharedDir = Path.Combine(extractedDir, "Assets-shared");
         var sharedResult = SearchForMapObjectGlb(sharedDir, category, name);
         if (sharedResult != null) return sharedResult;
 
-        // Priority 3: Other version directories (fallback)
         var versionDirs = Directory.GetDirectories(extractedDir, "Assets-*")
             .Where(d => !d.EndsWith("Assets-shared") &&
                         (string.IsNullOrEmpty(currentVersion) || !d.EndsWith($"Assets-{currentVersion}")))
-            .OrderByDescending(d => d); // Prefer newer versions
+            .OrderByDescending(d => d);
 
         foreach (var versionDir in versionDirs)
         {
@@ -991,9 +898,6 @@ public static class ModelsEndpoints
         return null;
     }
 
-    /// <summary>
-    /// Searches for a map object GLB file in a specific version directory.
-    /// </summary>
     private static string? SearchForMapObjectGlb(string versionDir, string category, string name)
     {
         if (!Directory.Exists(versionDir))
@@ -1004,38 +908,26 @@ public static class ModelsEndpoints
         return File.Exists(objectPath) ? objectPath : null;
     }
 
-    /// <summary>
-    /// Extracts the category from a map object ID (format: category/name).
-    /// </summary>
     private static string? GetCategory(string id)
     {
         var slashIndex = id.IndexOf('/');
         return slashIndex > 0 ? id.Substring(0, slashIndex) : null;
     }
 
-    /// <summary>
-    /// Extracts the name from a map object ID (format: category/name).
-    /// </summary>
     private static string GetName(string id)
     {
         var slashIndex = id.IndexOf('/');
         return slashIndex > 0 && slashIndex < id.Length - 1 ? id.Substring(slashIndex + 1) : id;
     }
 
-    /// <summary>
-    /// Gets the localized unit name from the resolver and lang index.
-    /// Returns the raw SID being searched if localization is not found (for debugging missing translations).
-    /// </summary>
     private static string? GetLocalizedUnitName(
         ITextResolver resolver,
         LangIndex lang,
         string unitId,
         string? locale)
     {
-        // Try to get localized name from the unit's name SID
         var nameSid = $"{unitId}_name";
 
-        // First try with resolver
         var name = TryResolveText(resolver, nameSid, locale);
         if (!string.IsNullOrWhiteSpace(name))
             return name;
@@ -1045,7 +937,6 @@ public static class ModelsEndpoints
         if (!string.IsNullOrWhiteSpace(name) && name != nameSid)
             return name;
 
-        // Try with just unitId
         name = TryResolveText(resolver, unitId, locale);
         if (!string.IsNullOrWhiteSpace(name))
             return name;
@@ -1054,13 +945,9 @@ public static class ModelsEndpoints
         if (!string.IsNullOrWhiteSpace(name) && name != unitId)
             return name;
 
-        // Return the raw SID that was searched for (helps identify missing localizations)
         return nameSid;
     }
 
-    /// <summary>
-    /// Safely resolves a text SID, returning null on failure.
-    /// </summary>
     private static string? TryResolveText(ITextResolver resolver, string sid, string? locale)
     {
         if (string.IsNullOrWhiteSpace(sid) || string.IsNullOrWhiteSpace(locale))
@@ -1081,9 +968,6 @@ public static class ModelsEndpoints
         return null;
     }
 
-    /// <summary>
-    /// Checks if an artifact has localization (name OR description in lang files).
-    /// </summary>
     private static bool HasArtifactLocalization(
         ArtifactsIndex.ArtifactRecord artifact,
         LangIndex lang)
@@ -1098,9 +982,6 @@ public static class ModelsEndpoints
         return nameInLang != null || descInLang != null;
     }
 
-    /// <summary>
-    /// Resolves the localized rarity + slot text for an artifact (e.g., "Legendary Armour").
-    /// </summary>
     private static string? GetArtifactRaritySlotText(
         LangIndex lang,
         string? rarity,
@@ -1124,9 +1005,6 @@ public static class ModelsEndpoints
         return raritySlotText ?? $"{rarity} {slot}";
     }
 
-    /// <summary>
-    /// Normalizes artifact slot names for SID lookup.
-    /// </summary>
     private static string NormalizeSlotForSid(string slot)
     {
         return slot.ToLowerInvariant().Replace(" ", "_") switch
@@ -1144,11 +1022,6 @@ public static class ModelsEndpoints
         };
     }
 
-    /// <summary>
-    /// Deduplicates items by mesh/prefab path, selecting one representative per unique mesh.
-    /// Prefers items whose ID matches the mesh name, then sorts alphabetically.
-    /// </summary>
-    /// <typeparam name="T">The type of items to deduplicate.</typeparam>
     private static List<T> DeduplicateByMesh<T>(
         IEnumerable<T> items,
         Func<T, string?> getMeshPath,

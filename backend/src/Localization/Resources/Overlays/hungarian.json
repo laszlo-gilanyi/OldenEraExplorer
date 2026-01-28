@@ -17,6 +17,14 @@
   "label_squad_value": "Sereg értéke",
   "label_ability_tier": "{0}. rangú képesség",
   "label_ability_cost": "Képesség költsége: {0}",
+  "label_chance": "esély",
+  "label_rewards": "Jutalmak",
+  "label_option": "Opció",
+
+  "label_common_rarity": "Közönséges",
+  "label_rare_rarity": "Ritka",
+  "label_epic_rarity": "Eposzi",
+  "label_legendary_rarity": "Legendás",
 
   "app_title": "Olden Era Explorer",
 

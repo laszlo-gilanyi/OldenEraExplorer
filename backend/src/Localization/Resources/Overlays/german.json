@@ -17,6 +17,14 @@
   "label_squad_value": "Truppenwert",
   "label_ability_tier": "Fähigkeitsklasse: {0}",
   "label_ability_cost": "Fähigkeitskosten: {0}",
+  "label_chance": "chance",
+  "label_rewards": "Belohnungen",
+  "label_option": "Wahl",
+
+  "label_common_rarity": "Gewöhnliche",
+  "label_rare_rarity": "Seltene",
+  "label_epic_rarity": "Epische",
+  "label_legendary_rarity": "Legendäre",
 
   "app_title": "Olden Era Explorer",
 

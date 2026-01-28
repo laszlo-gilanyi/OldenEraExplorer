@@ -64,8 +64,8 @@ export function useUpdateSettings() {
           await queryClient.refetchQueries({ queryKey: ['factionLaw'] });
           await queryClient.refetchQueries({ queryKey: ['subclasses'] });
           await queryClient.refetchQueries({ queryKey: ['subclass'] });
-          await queryClient.refetchQueries({ queryKey: ['mapObjects'] });
-          await queryClient.refetchQueries({ queryKey: ['mapObject'] });
+          await queryClient.refetchQueries({ queryKey: ['map-objects'] });
+          await queryClient.refetchQueries({ queryKey: ['map-object'] });
           await queryClient.refetchQueries({ queryKey: ['modSessionEntities'] });
           await queryClient.refetchQueries({ queryKey: ['modSessionEntity'] });
           await queryClient.refetchQueries({ queryKey: ['labels'] });

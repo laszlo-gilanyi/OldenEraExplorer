@@ -17,6 +17,14 @@
   "label_squad_value": "Hodnota oddílu",
   "label_ability_tier": "Úroveň schopnosti: {0}",
   "label_ability_cost": "Cena schopnosti: {0}",
+  "label_chance": "šance",
+  "label_rewards": "Odměny",
+  "label_option": "Možnost",
+
+  "label_common_rarity": "Běžná",
+  "label_rare_rarity": "Vzácná",
+  "label_epic_rarity": "Epická",
+  "label_legendary_rarity": "Legendární",
 
   "app_title": "Olden Era Explorer",
 

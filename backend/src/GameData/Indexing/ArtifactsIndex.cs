@@ -22,15 +22,27 @@ public sealed class ArtifactsIndex
         string UpgradeDescSid,
         int MaxLevel,
         int CostBase,
-        int CostPerLevel
+        int CostPerLevel,
+        bool IsSpecialItem
     );
 
     private readonly Dictionary<string, ArtifactRecord> _artifacts = new();
     public IReadOnlyDictionary<string, ArtifactRecord> Artifacts => _artifacts;
 
+    public IReadOnlyList<ArtifactRecord> GetByRarity(string rarity)
+    {
+        if (string.IsNullOrWhiteSpace(rarity))
+            return Array.Empty<ArtifactRecord>();
+
+        return _artifacts.Values
+            .Where(a => a.Rarity.Equals(rarity, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(a => a.Id)
+            .ToList();
+    }
+
     private static string NormalizeIcon(string artifactId, string icon)
     {
-        // Map scroll variants to their actual icon assets
+        // Scroll artifact IDs don't match their icon asset names
         if (artifactId.StartsWith("mythic_magic_scroll_artifact", StringComparison.OrdinalIgnoreCase))
             return "mythic_scroll_box_artifact";
         if (artifactId.StartsWith("enchanted_magic_scroll_artifact", StringComparison.OrdinalIgnoreCase))
@@ -75,10 +87,11 @@ public sealed class ArtifactsIndex
                     var maxLevel = el.TryGetProperty("maxLevel", out var maxLvlP) && maxLvlP.TryGetInt32(out var maxLvl) ? maxLvl : 0;
                     var costBase = el.TryGetProperty("costBase", out var costBaseP) && costBaseP.TryGetInt32(out var cBase) ? cBase : 0;
                     var costPerLevel = el.TryGetProperty("costPerLevel", out var costPerLvlP) && costPerLvlP.TryGetInt32(out var cPerLvl) ? cPerLvl : 0;
+                    var isSpecialItem = el.TryGetProperty("isSpecialItem", out var specialP) && specialP.GetBoolean();
                     icon = NormalizeIcon(id, icon);
 
                     if (!string.IsNullOrWhiteSpace(id) && !_artifacts.ContainsKey(id))
-                        _artifacts[id] = new ArtifactRecord(id, name, desc, rarity, slot, icon, itemSetId, narrativeDescSid, upgradeDescSid, maxLevel, costBase, costPerLevel);
+                        _artifacts[id] = new ArtifactRecord(id, name, desc, rarity, slot, icon, itemSetId, narrativeDescSid, upgradeDescSid, maxLevel, costBase, costPerLevel, isSpecialItem);
                 }
             }
             catch { }

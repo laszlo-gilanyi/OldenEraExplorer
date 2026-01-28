@@ -6,6 +6,7 @@ using Localization.Resolution;
 using API.Contracts;
 using API.Helpers;
 using API.Services;
+using static API.Helpers.IconPaths;
 
 namespace API.Endpoints;
 
@@ -17,7 +18,6 @@ public static class HeroesEndpoints
             .WithTags("Heroes")
             ;
 
-        // GET /api/heroes - List all heroes
         group.MapGet("/", GetHeroes)
             .WithName("GetHeroes")
             .WithSummary("List all heroes")
@@ -25,7 +25,6 @@ public static class HeroesEndpoints
             .Produces<List<HeroListItemDto>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/heroes/{id} - Get hero details
         group.MapGet("/{id}", GetHeroById)
             .WithName("GetHeroById")
             .WithSummary("Get hero details")
@@ -74,7 +73,6 @@ public static class HeroesEndpoints
             );
         }
 
-        // Materialize and sort
         var heroesList = heroes
             .OrderBy(h => h.Fraction)
             .ThenBy(h => h.HeroId)
@@ -138,7 +136,7 @@ public static class HeroesEndpoints
             FactionDisplay: factionDisplay,
             ClassType: string.IsNullOrEmpty(hero.ClassType) ? null : hero.ClassType,
             ClassDisplay: classDisplay,
-            IconPath: string.IsNullOrEmpty(hero.Icon) ? null : $"icons/hero_large_portraits/{hero.Icon}"
+            IconPath: string.IsNullOrEmpty(hero.Icon) ? null : HeroLargePortrait(hero.Icon)
         );
     }
 
@@ -171,7 +169,7 @@ public static class HeroesEndpoints
                 UnitId: unit.Sid,
                 UnitName: lang.ResolveText($"{unit.Sid}_name") ?? unit.Sid,
                 CountInterval: $"{unit.Min} - {unit.Max}",
-                Icon: $"icons/units/hex_portraits/{unit.Sid}"
+                Icon: UnitHexPortrait(unit.Sid)
             ))
             .ToList();
 
@@ -246,7 +244,7 @@ public static class HeroesEndpoints
             FactionDisplay: factionDisplay,
             ClassType: string.IsNullOrEmpty(hero.ClassType) ? null : hero.ClassType,
             ClassDisplay: classDisplay,
-            IconPath: string.IsNullOrEmpty(hero.Icon) ? null : $"icons/hero_large_portraits/{hero.Icon}",
+            IconPath: string.IsNullOrEmpty(hero.Icon) ? null : HeroLargePortrait(hero.Icon),
             ClassIcon: classMapper.GetClassIconPath(hero.ClassType, hero.Fraction),
             SpecializationIcon: string.IsNullOrEmpty(hero.SpecializationIcon) ? null : $"icons/hero_specializations/{hero.SpecializationIcon}",
             FactionIcon: factionMapper.GetFactionIconPath(hero.Fraction),

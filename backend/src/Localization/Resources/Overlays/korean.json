@@ -17,6 +17,14 @@
   "label_squad_value": "부대 가치",
   "label_ability_tier": "능력 등급: {0}",
   "label_ability_cost": "능력 비용: {0}",
+  "label_chance": "확률",
+  "label_rewards": "보상",
+  "label_option": "선택",
+
+  "label_common_rarity": "일반",
+  "label_rare_rarity": "희귀",
+  "label_epic_rarity": "에픽",
+  "label_legendary_rarity": "전설",
 
   "app_title": "Olden Era Explorer",
 

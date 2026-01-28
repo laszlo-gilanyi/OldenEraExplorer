@@ -1,12 +1,17 @@
 import { create } from 'zustand';
 
-function normalize(path: string | null | undefined): string {
+export function normalizeImagePath(path: string | null | undefined): string {
   if (!path) return '';
   let p = path.replace(/\\/g, '/').trim().toLowerCase();
   if (p.endsWith('.png')) p = p.slice(0, -4);
   const idx = p.lastIndexOf('/');
   return idx !== -1 ? p.slice(idx + 1) : p;
 }
+
+const normalize = normalizeImagePath;
+
+// Persists for app lifetime (outside React state) to avoid re-fetching already-loaded images
+export const globalImageCache = new Set<string>();
 
 interface ImageState {
   version: number;
@@ -38,9 +43,12 @@ export const useImageStore = create<ImageState>((set, get) => ({
 
   triggerRetry: () => set((s) => ({ retryCount: s.retryCount + 1 })),
 
-  reset: () => set((s) => ({
-    version: s.version + 1,
-    retryCount: s.retryCount + 1,
-    loadedImages: new Set(),
-  })),
+  reset: () => {
+    globalImageCache.clear();
+    return set((s) => ({
+      version: s.version + 1,
+      retryCount: s.retryCount + 1,
+      loadedImages: new Set(),
+    }));
+  },
 }));

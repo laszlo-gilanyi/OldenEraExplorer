@@ -17,6 +17,14 @@
   "label_squad_value": "Ценность отряда",
   "label_ability_tier": "Ранг способности: {0}",
   "label_ability_cost": "Стоимость способности: {0}",
+  "label_chance": "шанс",
+  "label_rewards": "Награды",
+  "label_option": "Вариант",
+
+  "label_common_rarity": "Обычные",
+  "label_rare_rarity": "Редкие",
+  "label_epic_rarity": "Эпические",
+  "label_legendary_rarity": "Легендарные",
 
   "app_title": "Olden Era Explorer",
 

@@ -17,6 +17,14 @@
   "label_squad_value": "Valeur de l'escouade",
   "label_ability_tier": "Rang de capacité : {0}",
   "label_ability_cost": "Coût de capacité : {0}",
+  "label_chance": "chance",
+  "label_rewards": "Récompenses",
+  "label_option": "Option",
+
+  "label_common_rarity": "Commune",
+  "label_rare_rarity": "Rare",
+  "label_epic_rarity": "Épique",
+  "label_legendary_rarity": "Légendaire",
 
   "app_title": "Olden Era Explorer",
 

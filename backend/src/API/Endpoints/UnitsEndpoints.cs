@@ -6,6 +6,8 @@ using API.Contracts;
 using API.Helpers;
 using API.Models;
 using API.Services;
+using static API.Helpers.LocalizationHelper;
+using static API.Helpers.IconPaths;
 
 namespace API.Endpoints;
 
@@ -17,7 +19,6 @@ public static class UnitsEndpoints
             .WithTags("Units")
             ;
 
-        // GET /api/units - List all units
         group.MapGet("/", GetUnits)
             .WithName("GetUnits")
             .WithSummary("List all units")
@@ -25,7 +26,6 @@ public static class UnitsEndpoints
             .Produces<List<UnitListItemDto>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/units/{id} - Get unit details
         group.MapGet("/{id}", GetUnitById)
             .WithName("GetUnitById")
             .WithSummary("Get unit details")
@@ -79,7 +79,7 @@ public static class UnitsEndpoints
         }
 
         var unitsList = units
-            .Select(u => MapToListItem(u, resolver, locale, lang, factionMapper))
+            .Select(u => UnitDtoBuilder.BuildListItem(u, resolver, locale, lang, factionMapper))
             .ToList();
 
         return Results.Ok(unitsList);
@@ -120,26 +120,6 @@ public static class UnitsEndpoints
         return Results.Ok(dto);
     }
 
-    private static UnitListItemDto MapToListItem(
-        GameData.Indexing.DbIndex.UnitRecord unit,
-        ITextResolver resolver,
-        string locale,
-        LangIndex lang,
-        FactionMapper factionMapper)
-    {
-        var localizedName = GetLocalizedUnitName(resolver, unit.Id, locale);
-
-        return new UnitListItemDto(
-            Id: unit.Id,
-            Name: localizedName ?? unit.Id,
-            Faction: string.IsNullOrEmpty(unit.Fraction) ? null : unit.Fraction,
-            FactionDisplay: factionMapper.MapFactionDisplay(unit.Fraction),
-            Tier: unit.Tier > 0 ? unit.Tier : null,
-            // Unit icons are named after the unit ID in icons/units/hex_portraits/
-            IconPath: $"icons/units/hex_portraits/{unit.Id}"
-        );
-    }
-
     private static UnitDetailDto MapToDetail(
         GameData.Indexing.DbIndex.UnitRecord unit,
         ITextResolver resolver,
@@ -157,7 +137,6 @@ public static class UnitsEndpoints
 
         var stats = unit.Stats;
 
-        // Map creature type (baseClass) using AbilityDtoBuilder
         AbilityDetailDto? creatureType = null;
         if (!string.IsNullOrWhiteSpace(unit.BaseClassNameSid))
         {
@@ -238,7 +217,6 @@ public static class UnitsEndpoints
             ))
             .ToList();
 
-        // Filter out tutorial/campaign heroes (matching HeroesEndpoints filtering)
         var usedByHeroes = referenceService
             .GetReferencedBy(unit.Id, EntityType.Unit)
             .Where(r => r.EntityType == EntityType.Hero)
@@ -252,7 +230,7 @@ public static class UnitsEndpoints
             .Select(r => new UsedByHeroDto(
                 HeroId: r.EntityId,
                 HeroName: r.DisplayName ?? r.EntityId,
-                IconPath: $"icons/hero_large_portraits/{r.EntityId}"
+                IconPath: HeroLargePortrait(r.EntityId)
             ))
             .ToList();
 
@@ -285,8 +263,7 @@ public static class UnitsEndpoints
             Faction: string.IsNullOrEmpty(unit.Fraction) ? null : unit.Fraction,
             FactionDisplay: factionDisplay,
             Tier: unit.Tier > 0 ? unit.Tier : null,
-            // Unit icons are named after the unit ID in icons/units/hex_portraits/
-            IconPath: $"icons/units/hex_portraits/{unit.Id}",
+            IconPath: UnitHexPortrait(unit.Id),
             FactionIcon: factionMapper.GetFactionIconPath(unit.Fraction),
             Attack: TryGetStatInt(stats, "attack"),
             Defense: TryGetStatInt(stats, "defence", "defense"),
@@ -311,28 +288,6 @@ public static class UnitsEndpoints
         );
     }
 
-    private static string? GetLocalizedUnitName(ITextResolver resolver, string unitId, string locale)
-    {
-        var patterns = new[]
-        {
-            $"unit.{unitId}.name",
-            $"unit_{unitId}_name",
-            $"{unitId}_name",
-            $"units.{unitId}.name"
-        };
-
-        foreach (var pattern in patterns)
-        {
-            var result = TryResolveText(resolver, pattern, locale);
-            if (!string.IsNullOrWhiteSpace(result) && !result.StartsWith("{") && result != pattern)
-            {
-                return result;
-            }
-        }
-
-        return $"{unitId}_name";
-    }
-
     private static string? GetLocalizedUnitDescription(ITextResolver resolver, string unitId, string locale)
     {
         var patterns = new[]
@@ -347,33 +302,7 @@ public static class UnitsEndpoints
         {
             var result = TryResolveText(resolver, pattern, locale);
             if (!string.IsNullOrWhiteSpace(result) && !result.StartsWith("{") && result != pattern)
-            {
                 return result;
-            }
-        }
-
-        return null;
-    }
-
-    private static string? TryResolveText(ITextResolver resolver, string sid, string locale)
-    {
-        if (string.IsNullOrWhiteSpace(sid))
-        {
-            return null;
-        }
-
-        try
-        {
-            var ctx = new ResolutionContext(locale);
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
-            {
-                return result;
-            }
-        }
-        catch
-        {
         }
 
         return null;

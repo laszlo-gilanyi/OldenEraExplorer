@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import { useImageStore } from '@/stores/imageStore';
+import { useImageStore, normalizeImagePath, globalImageCache } from '@/stores/imageStore';
 import { cn } from '@/lib/utils';
 
 interface ProgressiveIconProps {
@@ -22,17 +22,20 @@ export default function ProgressiveIcon({
 }: ProgressiveIconProps) {
   const version = useImageStore((s) => s.version);
   const retryCount = useImageStore((s) => s.retryCount);
-  const isLoaded = useImageStore((s) => s.isLoaded);
   const markLoaded = useImageStore((s) => s.markLoaded);
 
-  const wasLoaded = isLoaded(iconPath);
-  const [loaded, setLoaded] = useState(wasLoaded);
+  const normalizedPath = useMemo(() => normalizeImagePath(iconPath), [iconPath]);
+  const wasCached = normalizedPath ? globalImageCache.has(normalizedPath) : false;
+
+  const [loaded, setLoaded] = useState(wasCached);
   const [error, setError] = useState(false);
 
   const [trackedVersion, setTrackedVersion] = useState(version);
   if (version !== trackedVersion) {
     setTrackedVersion(version);
-    setLoaded(false);
+    if (!wasCached) {
+      setLoaded(false);
+    }
     setError(false);
   }
 
@@ -47,8 +50,8 @@ export default function ProgressiveIcon({
   const [trackedIconPath, setTrackedIconPath] = useState(iconPath);
   if (iconPath !== trackedIconPath) {
     setTrackedIconPath(iconPath);
-    const wasLoaded = isLoaded(iconPath);
-    setLoaded(wasLoaded);
+    const nowCached = normalizedPath ? globalImageCache.has(normalizedPath) : false;
+    setLoaded(nowCached);
     setError(false);
   }
 
@@ -56,7 +59,10 @@ export default function ProgressiveIcon({
     setLoaded(true);
     setError(false);
     markLoaded(iconPath);
-  }, [iconPath, markLoaded]);
+    if (normalizedPath) {
+      globalImageCache.add(normalizedPath);
+    }
+  }, [iconPath, normalizedPath, markLoaded]);
 
   const handleError = useCallback(() => {
     setError(true);
@@ -70,6 +76,22 @@ export default function ProgressiveIcon({
 
   if (error) {
     return <Placeholder size={size} className={className} style={style} />;
+  }
+
+  if (wasCached) {
+    return (
+      <div
+        className={cn('relative', className)}
+        style={{ width: size, height: size, ...style }}
+      >
+        <img
+          src={imageUrl}
+          alt={alt}
+          onError={handleError}
+          className={cn('w-full h-full object-contain', imgClassName)}
+        />
+      </div>
+    );
   }
 
   return (
