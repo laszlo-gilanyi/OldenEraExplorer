@@ -3,9 +3,9 @@ using GameData.Services;
 using Localization.Indexing;
 using Localization.Resolution;
 using API.Contracts;
-using API.Helpers;
 using API.Services;
 using static API.Helpers.IconPaths;
+using static API.Helpers.LocalizationHelper;
 
 namespace API.Endpoints;
 
@@ -946,26 +946,6 @@ public static class ModelsEndpoints
             return name;
 
         return nameSid;
-    }
-
-    private static string? TryResolveText(ITextResolver resolver, string sid, string? locale)
-    {
-        if (string.IsNullOrWhiteSpace(sid) || string.IsNullOrWhiteSpace(locale))
-            return null;
-
-        try
-        {
-            var ctx = new ResolutionContext(locale);
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
-                return result;
-        }
-        catch
-        {
-        }
-
-        return null;
     }
 
     private static bool HasArtifactLocalization(

@@ -14,6 +14,9 @@ interface MapObjectsState {
   sortField: MapObjectSortField;
   sortDirection: SortDirection;
   setSort: (field: MapObjectSortField, direction: SortDirection) => void;
+
+  selectedDifficultyIndex: number | null;
+  setSelectedDifficultyIndex: (index: number) => void;
 }
 
 export const useMapObjectsStore = create<MapObjectsState>()(
@@ -28,6 +31,9 @@ export const useMapObjectsStore = create<MapObjectsState>()(
       sortField: 'name',
       sortDirection: 'asc',
       setSort: (field, direction) => set({ sortField: field, sortDirection: direction }),
+
+      selectedDifficultyIndex: null,
+      setSelectedDifficultyIndex: (index) => set({ selectedDifficultyIndex: index }),
     }),
     {
       name: 'oe-mapobjects-store',

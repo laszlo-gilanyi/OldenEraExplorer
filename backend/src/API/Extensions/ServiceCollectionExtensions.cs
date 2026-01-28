@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReferenceIndexService, ReferenceIndexService>();
         services.AddSingleton<IAssetExtractionService, AssetExtractionService>();
         services.AddSingleton<SearchService>();
+        services.AddScoped<MapObjectDetailsService>();
 
         return services;
     }

@@ -185,6 +185,13 @@ public class GameDataLoader
             _indexService.CreateHeroesIndex();
         }, beginStageCallback, endStageCallback);
 
+        Report("Scanning difficulties index...");
+        MeasureStage(durations, "DifficultiesIndex", () =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _indexService.CreateDifficultiesIndex();
+        }, beginStageCallback, endStageCallback);
+
         List<GameData.Indexing.AbilityAggregateResult> aggregatedAbilities = new();
         Report("Aggregating abilities...");
         MeasureStage(durations, "AbilityAggregation", () =>
@@ -209,6 +216,7 @@ public class GameDataLoader
             AbilityIndex: _indexService.AbilityIndex ?? throw new InvalidOperationException("Ability index failed to load."),
             HeroSpecializationsIndex: _indexService.HeroSpecializationsIndex ?? throw new InvalidOperationException("Hero specializations index failed to load."),
             HeroesIndex: _indexService.HeroesIndex ?? throw new InvalidOperationException("Heroes index failed to load."),
+            DifficultiesIndex: _indexService.DifficultiesIndex ?? throw new InvalidOperationException("Difficulties index failed to load."),
             Units: units,
             AggregatedAbilities: aggregatedAbilities,
             Durations: durations
@@ -361,7 +369,6 @@ public class GameDataLoader
             var nameSid = orphanId.Replace("orphan__", "");
             var abilityId = orphanId;
 
-            // Use resolved description and descriptionSid from orphan processing (if available)
             orphanResult.AbilityDescriptions.TryGetValue(nameSid, out var resolvedDescription);
             orphanResult.AbilityDescriptionSids.TryGetValue(nameSid, out var descriptionSid);
 
@@ -399,6 +406,7 @@ public record GameDataLoadResult(
     AbilityIndex AbilityIndex,
     HeroSpecializationsIndex HeroSpecializationsIndex,
     HeroesIndex HeroesIndex,
+    DifficultiesIndex DifficultiesIndex,
     List<DbIndex.UnitRecord> Units,
     List<GameData.Indexing.AbilityAggregateResult> AggregatedAbilities,
     List<(string Name, double Ms)> Durations

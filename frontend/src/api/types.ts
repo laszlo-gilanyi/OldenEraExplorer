@@ -81,7 +81,6 @@ export interface UnitStatLabelsDto {
   cost: string;
   tier: string;
   faction: string;
-  // Section headers
   creatureStatsHeader: string;
   creatureTypeHeader: string;
   passiveAbilitiesHeader: string;
@@ -237,6 +236,10 @@ export interface MapObjectListItemDto {
   icon: string | null;
   isOrphan?: boolean;
   prefabPath?: string | null;
+  // Filter metadata for frontend filtering
+  bankType?: string | null;
+  hasGuards?: boolean | null;
+  rewardTypes?: string[] | null;
 }
 
 export interface MapObjectDetailDto {
@@ -245,6 +248,107 @@ export interface MapObjectDetailDto {
   description: string | null;
   narrativeDescription: string | null;
   icon: string | null;
+  creatureBankInfo: CreatureBankInfoDto | null;
+}
+
+export interface CreatureBankInfoDto {
+  hasGuards: boolean;
+  visitType: string;
+  variants: CreatureBankVariantInfoDto[];
+  isBarracks?: boolean;
+  difficultyLevels?: DifficultyLevelDto[] | null;
+  difficultyLabel?: string | null;
+  guardsLabel?: string | null;
+  bankType?: string | null;  // "Creature Bank", "Resource Bank", "Creature Dwelling", "Interactive"
+}
+
+export interface CreatureBankVariantInfoDto {
+  rollChance: number; // Relative probability (0-100%)
+  value: number;
+  customGuardValue: number | null;
+  guards: GuardUnitInfoDto[];
+  rewards: CategorizedRewardsDto;
+  rewardApplyType?: string | null;
+  rewardOptions?: CategorizedRewardsDto[] | null;
+}
+
+export interface GuardUnitInfoDto {
+  unitId: string;
+  unitName: string;
+  amount: number;
+  icon: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+}
+
+/**
+ * Pre-categorized rewards for a creature bank variant.
+ * All parsing is done server-side - frontend just displays.
+ */
+export interface CategorizedRewardsDto {
+  resources: ResourceRewardEntryDto[];
+  artifactPools: ArtifactRarityPoolDto[];
+  spellPools: SpellPoolOptionDto[];
+  units: GuardUnitInfoDto[];
+  experience: number | null;
+}
+
+export interface ResourceRewardEntryDto {
+  resourceKey: string;
+  displayName: string;
+  amount: number;
+}
+
+export interface ArtifactRarityPoolDto {
+  rarity: string;
+  rarityLabel: string;
+  draws: number;
+  groups: ArtifactPoolGroupDto[];
+}
+
+export interface ArtifactPoolGroupDto {
+  groupName: string;
+  rarity: string;
+  count: number;
+  percentage: number;
+  artifacts: ArtifactPoolItemDto[];
+}
+
+export interface ArtifactPoolItemDto {
+  id: string;
+  name: string;
+  rarity: string;
+  icon: string;
+}
+
+/**
+ * A spell pool option that the player can choose.
+ * Each option contains multiple tier groups with weighted chances.
+ */
+export interface SpellPoolOptionDto {
+  groups: SpellPoolGroupDto[];
+}
+
+export interface SpellPoolGroupDto {
+  tierName: string;
+  tier: number;
+  weight: number;
+  count: number;
+  spells: SpellPoolItemDto[];
+}
+
+export interface SpellPoolItemDto {
+  id: string;
+  name: string;
+  rank: number;
+  icon: string;
+}
+
+export interface DifficultyLevelDto {
+  name: string;
+  power: number;
+  icon: string;
+  tooltip?: string | null;
 }
 
 // Ability types

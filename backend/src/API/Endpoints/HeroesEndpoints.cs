@@ -4,9 +4,9 @@ using GameData.Services;
 using Localization.Indexing;
 using Localization.Resolution;
 using API.Contracts;
-using API.Helpers;
 using API.Services;
 using static API.Helpers.IconPaths;
+using static API.Helpers.LocalizationHelper;
 
 namespace API.Endpoints;
 
@@ -291,30 +291,6 @@ public static class HeroesEndpoints
         {
             var ctx = SearchService.CreateHeroResolutionContext(locale, specializationSid);
 
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
-            {
-                return result;
-            }
-        }
-        catch
-        {
-        }
-
-        return null;
-    }
-
-    private static string? TryResolveText(ITextResolver resolver, string sid, string locale)
-    {
-        if (string.IsNullOrWhiteSpace(sid))
-        {
-            return null;
-        }
-
-        try
-        {
-            var ctx = new ResolutionContext(locale);
             var result = resolver.Resolve(sid, ctx, out _);
 
             if (!string.IsNullOrWhiteSpace(result) && result != sid)

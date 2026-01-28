@@ -5,6 +5,7 @@ using API.Contracts;
 using API.Services;
 using Microsoft.Extensions.Logging;
 using GameData.Shared.Utils;
+using static API.Helpers.LocalizationHelper;
 
 namespace API.Endpoints;
 
@@ -408,27 +409,5 @@ public static class AbilitiesEndpoints
         }
 
         return lang.ResolveText(descriptionSid);
-    }
-
-    private static string? TryResolveText(ITextResolver resolver, string sid, string locale)
-    {
-        if (string.IsNullOrWhiteSpace(sid))
-            return null;
-
-        try
-        {
-            var ctx = new ResolutionContext(locale);
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
-            {
-                return result;
-            }
-        }
-        catch
-        {
-        }
-
-        return null;
     }
 }

@@ -4,6 +4,7 @@ using Localization.Resolution;
 using Localization.Services;
 using API.Contracts;
 using API.Services;
+using static API.Helpers.LocalizationHelper;
 
 namespace API.Endpoints;
 
@@ -404,30 +405,5 @@ public static class SpellsEndpoints
             return null;
 
         return TryResolveText(resolver, nameSid, locale);
-    }
-
-    private static string? TryResolveText(ITextResolver resolver, string sid, string locale)
-    {
-        if (string.IsNullOrWhiteSpace(sid))
-        {
-            return null;
-        }
-
-        try
-        {
-            var ctx = new ResolutionContext(locale);
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
-            {
-                return result;
-            }
-        }
-        catch
-        {
-            // Ignore resolution errors
-        }
-
-        return null;
     }
 }

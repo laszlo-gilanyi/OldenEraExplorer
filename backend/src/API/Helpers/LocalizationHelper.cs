@@ -5,9 +5,9 @@ namespace API.Helpers;
 
 public static class LocalizationHelper
 {
-    public static string? TryResolveText(ITextResolver resolver, string? sid, string locale)
+    public static string? TryResolveText(ITextResolver resolver, string? sid, string? locale)
     {
-        if (string.IsNullOrWhiteSpace(sid))
+        if (string.IsNullOrWhiteSpace(sid) || string.IsNullOrWhiteSpace(locale))
             return null;
 
         try

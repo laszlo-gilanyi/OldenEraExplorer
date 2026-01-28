@@ -21,6 +21,7 @@ public class IndexService
     public FactionLawIndex? FactionLawIndex { get; private set; }
     public AbilityIndex? AbilityIndex { get; private set; }
     public HeroSpecializationsIndex? HeroSpecializationsIndex { get; private set; }
+    public DifficultiesIndex? DifficultiesIndex { get; private set; }
     public DbAccessor? DbAccessor { get; private set; }
     public LangIndex? LangIndex => _langIndex;
     public string? StreamingAssetsRoot => _streamingAssetsRoot;
@@ -43,6 +44,7 @@ public class IndexService
         CreateFactionLawIndex();
         CreateAbilityIndex();
         CreateHeroSpecializationsIndex();
+        CreateDifficultiesIndex();
     }
 
     public void CreateSpellsIndex()
@@ -147,6 +149,14 @@ public class IndexService
         HeroSpecializationsIndex = heroSpecializationsIndex;
     }
 
+    public void CreateDifficultiesIndex()
+    {
+        if (string.IsNullOrEmpty(_streamingAssetsRoot)) return;
+        var difficultiesIndex = new DifficultiesIndex();
+        difficultiesIndex.Scan(_streamingAssetsRoot);
+        DifficultiesIndex = difficultiesIndex;
+    }
+
     public void SupplementHeroesFromLang()
     {
         if (HeroesIndex != null && _langIndex != null)
@@ -167,6 +177,7 @@ public class IndexService
         FactionLawIndex = null;
         AbilityIndex = null;
         HeroSpecializationsIndex = null;
+        DifficultiesIndex = null;
         _langIndex = null;
         _streamingAssetsRoot = null;
     }

@@ -2,8 +2,8 @@ using GameData.Indexing;
 using GameData.Services;
 using Localization.Resolution;
 using API.Contracts;
-using API.Helpers;
 using API.Services;
+using static API.Helpers.LocalizationHelper;
 
 namespace API.Endpoints;
 
@@ -206,28 +206,5 @@ public static class FactionLawsEndpoints
             Levels: levels.Count > 0 ? levels : null,
             StatLabels: statLabels
         );
-    }
-
-    private static string? TryResolveText(ITextResolver resolver, string sid, ResolutionContext ctx)
-    {
-        if (string.IsNullOrWhiteSpace(sid))
-        {
-            return null;
-        }
-
-        try
-        {
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
-            {
-                return result;
-            }
-        }
-        catch
-        {
-        }
-
-        return null;
     }
 }

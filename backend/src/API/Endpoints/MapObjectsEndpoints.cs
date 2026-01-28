@@ -2,6 +2,8 @@ using GameData.Indexing;
 using Localization.Resolution;
 using API.Contracts;
 using API.Services;
+using static API.Helpers.LocalizationHelper;
+using static API.Helpers.IconPaths;
 
 namespace API.Endpoints;
 
@@ -10,10 +12,8 @@ public static class MapObjectsEndpoints
     public static IEndpointRouteBuilder MapMapObjectsEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/map-objects")
-            .WithTags("MapObjects")
-            ;
+            .WithTags("MapObjects");
 
-        // GET /api/map-objects - List all map objects
         group.MapGet("/", GetMapObjects)
             .WithName("GetMapObjects")
             .WithSummary("List all map objects")
@@ -21,7 +21,6 @@ public static class MapObjectsEndpoints
             .Produces<List<MapObjectListItemDto>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/map-objects/categories - List all unique categories
         group.MapGet("/categories", GetCategories)
             .WithName("GetMapObjectCategories")
             .WithSummary("List all map object categories")
@@ -29,11 +28,10 @@ public static class MapObjectsEndpoints
             .Produces<IReadOnlyList<string>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/map-objects/{*id} - Get map object details (catch-all for slash IDs)
         group.MapGet("/{*id}", GetMapObjectById)
             .WithName("GetMapObjectById")
             .WithSummary("Get map object details")
-            .WithDescription("Returns detailed information about a specific map object. ID format is category/name (e.g., 'interactive/mine_gold').")
+            .WithDescription("Returns detailed information about a specific map object.")
             .Produces<MapObjectDetailDto>(200)
             .Produces<ErrorDto>(404)
             .Produces<ErrorDto>(503);
@@ -60,21 +58,15 @@ public static class MapObjectsEndpoints
         var lang = data.Lang;
         var locale = gamePathService.CurrentLocale;
 
-        IEnumerable<MapObjectsIndex.MapObjectRecord> mapObjects = data.MapObjectsIndex.MapObjects.Values;
+        IEnumerable<MapObjectsIndex.MapObjectRecord> mapObjects = FilterDisplayableMapObjects(data.MapObjectsIndex.MapObjects.Values);
 
-        // Filter out non-interactable objects
-        mapObjects = mapObjects.Where(mo => mo.IsInteractable);
-
-        // Filter out artifacts - they have their own dedicated tab
-        mapObjects = mapObjects.Where(mo => !string.Equals(mo.Tag, "Artifact", StringComparison.OrdinalIgnoreCase));
-
-        // Filter using AssetExtractor-consistent logic (matches texture extraction filtering)
-        mapObjects = mapObjects.Where(mo => IsAllowedMapObject(mo));
-
-        // Apply category filter
         if (!string.IsNullOrWhiteSpace(category))
         {
-            mapObjects = mapObjects.Where(mo => mo.Tag.Equals(category, StringComparison.OrdinalIgnoreCase));
+            mapObjects = mapObjects.Where(mo =>
+            {
+                var effectiveCategory = mo.BankData != null ? mo.Tag : "unused";
+                return effectiveCategory.Equals(category, StringComparison.OrdinalIgnoreCase);
+            });
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -82,7 +74,8 @@ public static class MapObjectsEndpoints
             var searchTerm = search.Trim();
             mapObjects = mapObjects.Where(mo =>
                 mo.Id.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                GetLocalizedName(resolver, lang, mo, locale)?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true
+                GetLocalizedText(resolver, lang, mo.NameSid, mo.Id, "name", locale)?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true ||
+                (!string.IsNullOrEmpty(mo.Tag) && mo.Tag.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
             );
         }
 
@@ -105,11 +98,8 @@ public static class MapObjectsEndpoints
         }
 
         var data = dataService.Data;
-        var categories = data.MapObjectsIndex.MapObjects.Values
-            .Where(mo => mo.IsInteractable)
-            .Where(mo => !string.Equals(mo.Tag, "Artifact", StringComparison.OrdinalIgnoreCase))
-            .Where(mo => IsAllowedMapObject(mo))
-            .Select(mo => mo.Tag)
+        var categories = FilterDisplayableMapObjects(data.MapObjectsIndex.MapObjects.Values)
+            .Select(mo => mo.BankData != null ? mo.Tag : "unused")
             .Where(t => !string.IsNullOrEmpty(t))
             .Distinct()
             .OrderBy(t => t)
@@ -118,7 +108,11 @@ public static class MapObjectsEndpoints
         return Results.Ok(categories);
     }
 
-    private static IResult GetMapObjectById(string id, IGameDataService dataService, IGamePathService gamePathService)
+    private static IResult GetMapObjectById(
+        string id,
+        IGameDataService dataService,
+        IGamePathService gamePathService,
+        MapObjectDetailsService mapObjectDetailsService)
     {
         if (!dataService.IsLoaded || dataService.Data is null)
         {
@@ -140,11 +134,26 @@ public static class MapObjectsEndpoints
         {
             return Results.NotFound(new ErrorDto(
                 $"Map object '{id}' not found",
-                "Check the map object ID and try again. Use GET /api/map-objects to list available map objects."
+                "Check the map object ID and try again."
             ));
         }
 
-        var dto = MapToDetail(mapObject, resolver, lang, locale);
+        var streamingAssetsPath = !string.IsNullOrEmpty(gamePathService.GameRoot)
+            ? System.IO.Path.Combine(gamePathService.GameRoot, "HeroesOE_Data", "StreamingAssets")
+            : null;
+
+        var dto = mapObjectDetailsService.GetDetails(
+            mapObject,
+            resolver,
+            lang,
+            locale,
+            streamingAssetsPath,
+            data.Units,
+            data.ArtifactsIndex,
+            data.SpellsIndex,
+            data.DifficultiesIndex
+        );
+
         return Results.Ok(dto);
     }
 
@@ -154,234 +163,97 @@ public static class MapObjectsEndpoints
         Localization.Indexing.LangIndex lang,
         string locale)
     {
-        var localizedName = GetLocalizedName(resolver, lang, mapObject, locale);
-        var icon = BuildIconPath(mapObject.PrefabPath);
+        var localizedName = GetLocalizedText(resolver, lang, mapObject.NameSid, mapObject.Id, "name", locale);
+        var icon = MapObjectIcon(mapObject.PrefabPath);
 
-        // Use Tag as Category (IDs don't have category prefix like "interactive/mine_gold")
+        string? bankType = null;
+        bool? hasGuards = null;
+        List<string>? rewardTypes = null;
+
+        if (mapObject.BankData != null)
+        {
+            bankType = mapObject.Tag;
+            hasGuards = mapObject.BankData.Variants.Any(v => v.GuardUnits.Count > 0);
+            rewardTypes = ExtractRewardTypes(mapObject.BankData);
+        }
+        else
+        {
+            bankType = "unused";
+        }
+
         return new MapObjectListItemDto(
             Id: mapObject.Id,
             Name: localizedName ?? mapObject.Id,
             Category: string.IsNullOrEmpty(mapObject.Tag) ? null : mapObject.Tag,
-            Icon: icon
+            Icon: icon,
+            BankType: bankType,
+            HasGuards: hasGuards,
+            RewardTypes: rewardTypes
         );
     }
 
-    private static MapObjectDetailDto MapToDetail(
-        MapObjectsIndex.MapObjectRecord mapObject,
-        ITextResolver resolver,
-        Localization.Indexing.LangIndex lang,
-        string locale)
+    private static List<string>? ExtractRewardTypes(BankData bankData)
     {
-        var localizedName = GetLocalizedName(resolver, lang, mapObject, locale);
-        var description = GetLocalizedDescription(resolver, lang, mapObject, locale);
-        var narrativeDescription = GetLocalizedNarrativeDescription(resolver, lang, mapObject, locale);
-        var icon = BuildIconPath(mapObject.PrefabPath);
+        var rewardTypes = new HashSet<string>();
 
-        return new MapObjectDetailDto(
-            Id: mapObject.Id,
-            Name: localizedName ?? mapObject.Id,
-            Description: description,
-            NarrativeDescription: narrativeDescription,
-            Icon: icon
-        );
-    }
-
-    private static string? BuildIconPath(string? prefabPath)
-    {
-        if (string.IsNullOrWhiteSpace(prefabPath))
-            return null;
-
-        var iconPath = prefabPath.Replace('\\', '/');
-        // Map Objects use Resources/objects/ folder, so prefix with "objects/" if not already present
-        if (!iconPath.StartsWith("objects/", StringComparison.OrdinalIgnoreCase))
-            iconPath = $"objects/{iconPath}";
-
-        return string.IsNullOrWhiteSpace(iconPath) ? null : iconPath;
-    }
-
-    private static string? GetLocalizedName(
-        ITextResolver resolver,
-        Localization.Indexing.LangIndex lang,
-        MapObjectsIndex.MapObjectRecord mapObject,
-        string locale)
-    {
-        // First try the explicit NameSid from JSON
-        if (!string.IsNullOrWhiteSpace(mapObject.NameSid))
+        foreach (var variant in bankData.Variants)
         {
-            var result = TryResolveText(resolver, mapObject.NameSid, locale);
-            if (!string.IsNullOrWhiteSpace(result))
-                return result;
-
-            // Try direct lang lookup
-            var langResult = lang.ResolveText(mapObject.NameSid);
-            if (!string.IsNullOrWhiteSpace(langResult))
-                return langResult;
-        }
-
-        // Fallback to pattern-based SIDs
-        var patterns = new[]
-        {
-            $"{mapObject.Id}_name",
-            $"mapobject.{mapObject.Id}.name",
-            $"object.{mapObject.Id}.name"
-        };
-
-        foreach (var pattern in patterns)
-        {
-            var result = TryResolveText(resolver, pattern, locale);
-            if (!string.IsNullOrWhiteSpace(result))
-                return result;
-
-            var langResult = lang.ResolveText(pattern);
-            if (!string.IsNullOrWhiteSpace(langResult))
-                return langResult;
-        }
-
-        return null;
-    }
-
-    private static string? GetLocalizedDescription(
-        ITextResolver resolver,
-        Localization.Indexing.LangIndex lang,
-        MapObjectsIndex.MapObjectRecord mapObject,
-        string locale)
-    {
-        // First try the explicit DescriptionSid from JSON
-        if (!string.IsNullOrWhiteSpace(mapObject.DescriptionSid))
-        {
-            var result = TryResolveText(resolver, mapObject.DescriptionSid, locale);
-            if (!string.IsNullOrWhiteSpace(result))
-                return result;
-
-            var langResult = lang.ResolveText(mapObject.DescriptionSid);
-            if (!string.IsNullOrWhiteSpace(langResult))
-                return langResult;
-        }
-
-        // Fallback to pattern-based SIDs
-        var patterns = new[]
-        {
-            $"{mapObject.Id}_description",
-            $"mapobject.{mapObject.Id}.description",
-            $"object.{mapObject.Id}.description"
-        };
-
-        foreach (var pattern in patterns)
-        {
-            var result = TryResolveText(resolver, pattern, locale);
-            if (!string.IsNullOrWhiteSpace(result))
-                return result;
-
-            var langResult = lang.ResolveText(pattern);
-            if (!string.IsNullOrWhiteSpace(langResult))
-                return langResult;
-        }
-
-        return null;
-    }
-
-    private static string? GetLocalizedNarrativeDescription(
-        ITextResolver resolver,
-        Localization.Indexing.LangIndex lang,
-        MapObjectsIndex.MapObjectRecord mapObject,
-        string locale)
-    {
-        // First try the explicit NarrativeDescriptionSid from JSON
-        if (!string.IsNullOrWhiteSpace(mapObject.NarrativeDescriptionSid))
-        {
-            var result = TryResolveText(resolver, mapObject.NarrativeDescriptionSid, locale);
-            if (!string.IsNullOrWhiteSpace(result))
-                return result;
-
-            var langResult = lang.ResolveText(mapObject.NarrativeDescriptionSid);
-            if (!string.IsNullOrWhiteSpace(langResult))
-                return langResult;
-        }
-
-        // Fallback to pattern-based SIDs
-        var patterns = new[]
-        {
-            $"{mapObject.Id}_narrativeDescription",
-            $"mapobject.{mapObject.Id}.narrativeDescription",
-            $"object.{mapObject.Id}.narrativeDescription"
-        };
-
-        foreach (var pattern in patterns)
-        {
-            var result = TryResolveText(resolver, pattern, locale);
-            if (!string.IsNullOrWhiteSpace(result))
-                return result;
-
-            var langResult = lang.ResolveText(pattern);
-            if (!string.IsNullOrWhiteSpace(langResult))
-                return langResult;
-        }
-
-        return null;
-    }
-
-    private static string? TryResolveText(ITextResolver resolver, string sid, string locale)
-    {
-        if (string.IsNullOrWhiteSpace(sid))
-        {
-            return null;
-        }
-
-        try
-        {
-            var ctx = new ResolutionContext(locale);
-            var result = resolver.Resolve(sid, ctx, out _);
-
-            if (!string.IsNullOrWhiteSpace(result) && result != sid)
+            foreach (var reward in variant.RewardSet.Rewards)
             {
-                return result;
+                switch (reward.RewardType)
+                {
+                    case "HeroUnitsReward":
+                        rewardTypes.Add("unit");
+                        break;
+                    case "SideResReward":
+                        rewardTypes.Add("resource");
+                        break;
+                    case "HeroRandomItemsReward":
+                        rewardTypes.Add("artifact");
+                        break;
+                    case "HeroMagicAdditionReward":
+                    case "HeroMagicRandomAdditionReward":
+                        rewardTypes.Add("spell");
+                        break;
+                    case "HeroExpReward":
+                        rewardTypes.Add("experience");
+                        break;
+                }
             }
         }
-        catch
-        {
-        }
 
-        return null;
+        return rewardTypes.Count > 0 ? rewardTypes.OrderBy(r => r).ToList() : null;
+    }
+
+    private static IEnumerable<MapObjectsIndex.MapObjectRecord> FilterDisplayableMapObjects(
+        IEnumerable<MapObjectsIndex.MapObjectRecord> mapObjects)
+    {
+        return mapObjects.Where(mo =>
+            mo.IsInteractable &&
+            !string.Equals(mo.Tag, "Artifact", StringComparison.OrdinalIgnoreCase) &&
+            IsAllowedMapObject(mo));
     }
 
     private static bool IsAllowedMapObject(MapObjectsIndex.MapObjectRecord mapObject)
     {
         var prefabPath = mapObject.PrefabPath;
-        if (string.IsNullOrWhiteSpace(prefabPath))
-            return false;
+        if (string.IsNullOrWhiteSpace(prefabPath)) return false;
 
         var lowerPath = prefabPath.ToLowerInvariant().Replace('\\', '/');
 
-        // Stage 1: Only allow prefab paths that start with folders we have extracted textures for
         var hasValidPath = lowerPath.StartsWith("interactive/", StringComparison.Ordinal) ||
                            lowerPath.StartsWith("resource/", StringComparison.Ordinal) ||
                            lowerPath.StartsWith("barracks/", StringComparison.Ordinal);
 
-        if (!hasValidPath)
-            return false;
+        if (!hasValidPath) return false;
 
-        // Stage 2: Filter out duplicate variants that use the same textures as base objects
         var lowerId = mapObject.Id.ToLowerInvariant();
 
-        // custom_* variants (e.g., custom_storage_wood uses same texture as storage_wood)
-        if (lowerId.StartsWith("custom_", StringComparison.Ordinal))
-            return false;
-
-        // campaign_* variants (e.g., campaign_fort uses same texture as fort)
-        if (lowerId.StartsWith("campaign_", StringComparison.Ordinal))
-            return false;
-
-        // *_campaign variants (e.g., fort_campaign uses same texture as fort)
-        if (lowerId.EndsWith("_campaign", StringComparison.Ordinal))
-            return false;
-
-        // pvp_promo_* variants (use existing barracks textures)
-        if (lowerId.StartsWith("pvp_promo_", StringComparison.Ordinal))
-            return false;
-
-        // *_old variants (old versions, e.g., learning_stone_old, prison_old)
-        if (lowerId.EndsWith("_old", StringComparison.Ordinal))
-            return false;
+        if (lowerId.StartsWith("custom_", StringComparison.Ordinal)) return false;
+        if (lowerId.StartsWith("campaign_", StringComparison.Ordinal)) return false;
+        if (lowerId.EndsWith("_campaign", StringComparison.Ordinal)) return false;
+        if (lowerId.StartsWith("pvp_promo_", StringComparison.Ordinal)) return false;
+        if (lowerId.EndsWith("_old", StringComparison.Ordinal)) return false;
 
         return true;
     }

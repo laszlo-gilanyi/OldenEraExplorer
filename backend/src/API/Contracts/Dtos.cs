@@ -144,13 +144,17 @@ public record ModelStatusDto(
 );
 
 /// Game doesn't provide icon paths for map objects. Derived from PrefabPath by convention.
+/// Filter metadata (BankType, HasGuards, RewardTypes) enables frontend filtering without detail queries.
 public record MapObjectListItemDto(
     string Id,
     string Name,
     string? Category,
     string? Icon,
     bool IsOrphan = false,
-    string? PrefabPath = null
+    string? PrefabPath = null,
+    string? BankType = null,
+    bool? HasGuards = null,
+    IReadOnlyList<string>? RewardTypes = null
 );
 
 public record MapObjectDetailDto(
@@ -158,7 +162,109 @@ public record MapObjectDetailDto(
     string Name,
     string? Description,
     string? NarrativeDescription,
-    string? Icon
+    string? Icon,
+    CreatureBankInfoDto? CreatureBankInfo
+);
+
+public record CreatureBankInfoDto(
+    bool HasGuards,
+    string VisitType,
+    List<CreatureBankVariantInfoDto> Variants,
+    bool IsBarracks = false,
+    List<DifficultyLevelDto>? DifficultyLevels = null,
+    string? DifficultyLabel = null,
+    string? GuardsLabel = null,
+    string? BankType = null
+);
+
+public record CreatureBankVariantInfoDto(
+    double RollChance,
+    int Value,
+    int? CustomGuardValue,
+    List<GuardUnitInfoDto> Guards,
+    CategorizedRewardsDto Rewards,
+    string? RewardApplyType = null,
+    List<CategorizedRewardsDto>? RewardOptions = null
+);
+
+public record GuardUnitInfoDto(
+    string UnitId,
+    string UnitName,
+    int Amount,
+    string Icon,
+    int? MinAmount = null,
+    int? MaxAmount = null
+);
+
+/// <summary>
+/// Pre-categorized rewards for a creature bank variant.
+/// All parsing is done server-side - frontend just displays.
+/// </summary>
+public record CategorizedRewardsDto(
+    List<ResourceRewardEntryDto> Resources,
+    List<ArtifactRarityPoolDto> ArtifactPools,
+    List<SpellPoolOptionDto> SpellPools,
+    List<GuardUnitInfoDto> Units,
+    int? Experience
+);
+
+public record ResourceRewardEntryDto(
+    string ResourceKey,
+    string DisplayName,
+    int Amount
+);
+
+public record ArtifactRarityPoolDto(
+    string Rarity,
+    string RarityLabel,
+    int Draws,
+    List<ArtifactPoolGroupDto> Groups
+);
+
+public record ArtifactPoolGroupDto(
+    string GroupName,
+    string Rarity,
+    int Count,
+    double Percentage,
+    List<ArtifactPoolItemDto> Artifacts
+);
+
+public record ArtifactPoolItemDto(
+    string Id,
+    string Name,
+    string Rarity,
+    string Icon
+);
+
+/// <summary>
+/// A spell pool option that the player can choose.
+/// Each option contains multiple tier groups with weighted chances.
+/// Example: Option 1 might have Tier 1 (60%) and Tier 2 (40%).
+/// </summary>
+public record SpellPoolOptionDto(
+    List<SpellPoolGroupDto> Groups
+);
+
+public record SpellPoolGroupDto(
+    string TierName,
+    int Tier,
+    double Weight,
+    int Count,
+    List<SpellPoolItemDto> Spells
+);
+
+public record SpellPoolItemDto(
+    string Id,
+    string Name,
+    int Rank,
+    string Icon
+);
+
+public record DifficultyLevelDto(
+    string Name,
+    double Power,
+    string Icon,
+    string? Tooltip = null
 );
 
 public record ArtifactListItemDto(
