@@ -97,7 +97,9 @@ internal sealed class CleanFormatter : ConsoleFormatter
 
         if (lower.Contains("unit") || lower.Contains("spell") || lower.Contains("skill") ||
             lower.Contains("artifact") || lower.Contains("building") || lower.Contains("hero") ||
-            lower.Contains("game data"))
+            lower.Contains("game data") || lower.Contains("abilit") || lower.Contains("subclass") ||
+            lower.Contains("itemset") || lower.Contains("factionlaw") || lower.Contains("mapobject") ||
+            lower.Contains("difficult") || lower.Contains("sidebuff"))
             return $"{GREEN}{message}{RESET}";
 
         if (lower.Contains("asset") || lower.Contains("serving") || lower.Contains("cache"))

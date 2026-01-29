@@ -140,10 +140,19 @@ public class GameDataService : IGameDataService, IDisposable
 
             _logger.LogInformation("Loaded data summary:");
             _logger.LogInformation("  Units: {Count}", result.Units.Count);
-            _logger.LogInformation("  Spells: {Count}", result.SpellsIndex.Spells.Count);
+            _logger.LogInformation("  Abilities: {Count}", result.AbilityIndex.Abilities.Count);
+            _logger.LogInformation("  Heroes: {Count}", result.HeroesIndex.Heroes.Count);
+            _logger.LogInformation("  HeroSpecializations: {Count}", result.HeroSpecializationsIndex.Specializations.Count);
             _logger.LogInformation("  Skills: {Count}", result.SkillsIndex.Skills.Count);
+            _logger.LogInformation("  Subclasses: {Count}", result.SubclassesIndex.Subclasses.Count);
+            _logger.LogInformation("  Spells: {Count}", result.SpellsIndex.Spells.Count);
             _logger.LogInformation("  Artifacts: {Count}", result.ArtifactsIndex.Artifacts.Count);
+            _logger.LogInformation("  ItemSets: {Count}", result.ItemSetsIndex.ItemSets.Count);
             _logger.LogInformation("  Buildings: {Count}", result.BuildingsIndex.Buildings.Count);
+            _logger.LogInformation("  FactionLaws: {Count}", result.FactionLawIndex.FactionLaws.Count);
+            _logger.LogInformation("  MapObjects: {Count}", result.MapObjectsIndex.MapObjects.Count);
+            _logger.LogInformation("  Difficulties: {Count}", result.DifficultiesIndex.GuardDifficulties.Count);
+            _logger.LogInformation("  SideBuffs: {Count}", result.MapObjectsIndex.SideBuffs.Count);
 
             return true;
         }
