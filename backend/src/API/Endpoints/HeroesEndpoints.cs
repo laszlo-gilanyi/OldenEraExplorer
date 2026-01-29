@@ -160,9 +160,20 @@ public static class HeroesEndpoints
         var spellPower = hero.BaseStats.TryGetValue("spellPower", out var sp) ? sp.ToString() : null;
         var knowledge = hero.BaseStats.TryGetValue("intelligence", out var intel) ? intel.ToString() : null;
 
-        var specializationName = lang.ResolveText($"{hero.HeroId}_spec_name") ?? "";
-        var specializationDescription = TryResolveTextWithHeroContext(resolver, $"{hero.HeroId}_spec_description", locale, hero.SpecializationSid)
-            ?? lang.ResolveText($"{hero.HeroId}_spec_description") ?? "";
+        string nameSid = $"{hero.HeroId}_spec_name";
+        string descSid = $"{hero.HeroId}_spec_description";
+
+        if (heroSpecializationsIndex?.Specializations.TryGetValue(hero.SpecializationSid ?? "", out var specRecord) == true)
+        {
+            if (!string.IsNullOrWhiteSpace(specRecord.NameSid))
+                nameSid = specRecord.NameSid;
+            if (!string.IsNullOrWhiteSpace(specRecord.DescSid))
+                descSid = specRecord.DescSid;
+        }
+
+        var specializationName = lang.ResolveText(nameSid) ?? "";
+        var specializationDescription = TryResolveTextWithHeroContext(resolver, descSid, locale, hero.SpecializationSid)
+            ?? lang.ResolveText(descSid) ?? "";
 
         var startingArmy = hero.StartSquad
             .Select(unit => new StartingArmyDto(
