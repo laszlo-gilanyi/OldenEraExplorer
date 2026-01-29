@@ -151,7 +151,8 @@ public static class MapObjectsEndpoints
             data.Units,
             data.ArtifactsIndex,
             data.SpellsIndex,
-            data.DifficultiesIndex
+            data.DifficultiesIndex,
+            data.MapObjectsIndex
         );
 
         return Results.Ok(dto);

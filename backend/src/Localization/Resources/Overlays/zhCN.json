@@ -26,6 +26,12 @@
   "label_epic_rarity": "史诗",
   "label_legendary_rarity": "传奇",
 
+  "none": "无",
+  "duration": "持续时间：{0}天",
+  "viewRadius": "{0} 视野范围",
+  "movementBonus": "{0} 移动点数",
+  "manaRestore": "每日恢复{0}魔力",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "单位",

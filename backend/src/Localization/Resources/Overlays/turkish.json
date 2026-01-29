@@ -26,6 +26,12 @@
   "label_epic_rarity": "Destansı",
   "label_legendary_rarity": "Efsanevi",
 
+  "none": "Hiçbiri",
+  "duration": "Süre: {0} gün",
+  "viewRadius": "{0} görüş mesafesi",
+  "movementBonus": "{0} hareket puanı",
+  "manaRestore": "Günlük {0} mana yenilenir",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "Birimler",

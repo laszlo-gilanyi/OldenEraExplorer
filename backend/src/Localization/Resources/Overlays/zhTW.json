@@ -26,6 +26,12 @@
   "label_epic_rarity": "史詩",
   "label_legendary_rarity": "傳奇",
 
+  "none": "無",
+  "duration": "持續時間：{0}天",
+  "viewRadius": "{0} 視野範圍",
+  "movementBonus": "{0} 移動點數",
+  "manaRestore": "每日恢復{0}魔力",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "單位",

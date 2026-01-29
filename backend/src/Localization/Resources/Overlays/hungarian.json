@@ -26,6 +26,12 @@
   "label_epic_rarity": "Eposzi",
   "label_legendary_rarity": "Legendás",
 
+  "none": "Semmi",
+  "duration": "Időtartam: {0} nap",
+  "viewRadius": "{0} látótávolság",
+  "movementBonus": "{0} mozgáspont",
+  "manaRestore": "{0} naponta visszatöltődő mana",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "Egységek",

@@ -26,6 +26,12 @@
   "label_epic_rarity": "エピック",
   "label_legendary_rarity": "レジェンダリー",
 
+  "none": "なし",
+  "duration": "持続時間: {0}日",
+  "viewRadius": "{0} 視界範囲",
+  "movementBonus": "{0} 移動ポイント",
+  "manaRestore": "毎日{0}マナ回復",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "ユニット",

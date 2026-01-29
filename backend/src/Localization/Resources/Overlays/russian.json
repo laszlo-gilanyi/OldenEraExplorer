@@ -26,6 +26,12 @@
   "label_epic_rarity": "Эпические",
   "label_legendary_rarity": "Легендарные",
 
+  "none": "Ничего",
+  "duration": "Продолжительность: {0} дн.",
+  "viewRadius": "{0} радиус обзора",
+  "movementBonus": "{0} очков движения",
+  "manaRestore": "{0} маны восстанавливается ежедневно",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "Отряды",

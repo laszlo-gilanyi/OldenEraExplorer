@@ -26,6 +26,12 @@
   "label_epic_rarity": "Епічна",
   "label_legendary_rarity": "Легендарна",
 
+  "none": "Нічого",
+  "duration": "Тривалість: {0} дн.",
+  "viewRadius": "{0} радіус огляду",
+  "movementBonus": "{0} очок руху",
+  "manaRestore": "{0} мани відновлюється щодня",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "Юніти",

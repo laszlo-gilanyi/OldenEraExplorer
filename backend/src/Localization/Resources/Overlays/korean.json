@@ -26,6 +26,12 @@
   "label_epic_rarity": "에픽",
   "label_legendary_rarity": "전설",
 
+  "none": "없음",
+  "duration": "지속 시간: {0}일",
+  "viewRadius": "{0} 시야 반경",
+  "movementBonus": "{0} 이동 포인트",
+  "manaRestore": "매일 {0} 마나 회복",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "유닛",

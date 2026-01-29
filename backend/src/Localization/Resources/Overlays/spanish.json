@@ -26,6 +26,12 @@
   "label_epic_rarity": "Épica",
   "label_legendary_rarity": "Legendaria",
 
+  "none": "Nada",
+  "duration": "Duración: {0} día(s)",
+  "viewRadius": "{0} radio de visión",
+  "movementBonus": "{0} puntos de movimiento",
+  "manaRestore": "{0} maná restaurado diariamente",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "Unidades",

@@ -196,16 +196,14 @@ public record GuardUnitInfoDto(
     int? MaxAmount = null
 );
 
-/// <summary>
-/// Pre-categorized rewards for a creature bank variant.
 /// All parsing is done server-side - frontend just displays.
-/// </summary>
 public record CategorizedRewardsDto(
     List<ResourceRewardEntryDto> Resources,
     List<ArtifactRarityPoolDto> ArtifactPools,
     List<SpellPoolOptionDto> SpellPools,
     List<GuardUnitInfoDto> Units,
-    int? Experience
+    int? Experience,
+    List<CursePoolDto>? CursePools = null
 );
 
 public record ResourceRewardEntryDto(
@@ -236,11 +234,6 @@ public record ArtifactPoolItemDto(
     string Icon
 );
 
-/// <summary>
-/// A spell pool option that the player can choose.
-/// Each option contains multiple tier groups with weighted chances.
-/// Example: Option 1 might have Tier 1 (60%) and Tier 2 (40%).
-/// </summary>
 public record SpellPoolOptionDto(
     List<SpellPoolGroupDto> Groups
 );
@@ -265,6 +258,27 @@ public record DifficultyLevelDto(
     double Power,
     string Icon,
     string? Tooltip = null
+);
+
+/// Used for map objects like Hero's Crypt that apply debuffs along with rewards.
+public record CursePoolDto(
+    string Title,
+    List<CurseInfoDto> Curses,
+    int DurationDays
+);
+
+/// Name and description may be null if not localized (e.g., for invisible curses).
+public record CurseInfoDto(
+    string Id,
+    string? Name,
+    string? Description,
+    List<CurseEffectDto> Effects
+);
+
+public record CurseEffectDto(
+    string Stat,
+    string StatDisplayName,
+    string Modifier
 );
 
 public record ArtifactListItemDto(

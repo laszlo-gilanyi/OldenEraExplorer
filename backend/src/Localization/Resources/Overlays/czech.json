@@ -26,6 +26,12 @@
   "label_epic_rarity": "Epická",
   "label_legendary_rarity": "Legendární",
 
+  "none": "Nic",
+  "duration": "Doba trvání: {0} dní",
+  "viewRadius": "{0} dosah vidění",
+  "movementBonus": "{0} bodů pohybu",
+  "manaRestore": "{0} many obnovené denně",
+
   "app_title": "Olden Era Explorer",
 
   "nav_units": "Jednotky",

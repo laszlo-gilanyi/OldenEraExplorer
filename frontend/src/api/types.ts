@@ -236,7 +236,6 @@ export interface MapObjectListItemDto {
   icon: string | null;
   isOrphan?: boolean;
   prefabPath?: string | null;
-  // Filter metadata for frontend filtering
   bankType?: string | null;
   hasGuards?: boolean | null;
   rewardTypes?: string[] | null;
@@ -259,7 +258,7 @@ export interface CreatureBankInfoDto {
   difficultyLevels?: DifficultyLevelDto[] | null;
   difficultyLabel?: string | null;
   guardsLabel?: string | null;
-  bankType?: string | null;  // "Creature Bank", "Resource Bank", "Creature Dwelling", "Interactive"
+  bankType?: string | null;
 }
 
 export interface CreatureBankVariantInfoDto {
@@ -281,16 +280,14 @@ export interface GuardUnitInfoDto {
   maxAmount?: number | null;
 }
 
-/**
- * Pre-categorized rewards for a creature bank variant.
- * All parsing is done server-side - frontend just displays.
- */
+// All parsing is done server-side - frontend just displays.
 export interface CategorizedRewardsDto {
   resources: ResourceRewardEntryDto[];
   artifactPools: ArtifactRarityPoolDto[];
   spellPools: SpellPoolOptionDto[];
   units: GuardUnitInfoDto[];
   experience: number | null;
+  cursePools?: CursePoolDto[] | null;
 }
 
 export interface ResourceRewardEntryDto {
@@ -321,10 +318,6 @@ export interface ArtifactPoolItemDto {
   icon: string;
 }
 
-/**
- * A spell pool option that the player can choose.
- * Each option contains multiple tier groups with weighted chances.
- */
 export interface SpellPoolOptionDto {
   groups: SpellPoolGroupDto[];
 }
@@ -349,6 +342,27 @@ export interface DifficultyLevelDto {
   power: number;
   icon: string;
   tooltip?: string | null;
+}
+
+// Used for map objects like Hero's Crypt that apply debuffs along with rewards.
+export interface CursePoolDto {
+  title: string;
+  curses: CurseInfoDto[];
+  durationDays: number;
+}
+
+// Name and description may be null if not localized (e.g., for invisible curses).
+export interface CurseInfoDto {
+  id: string;
+  name: string | null;
+  description: string | null;
+  effects: CurseEffectDto[];
+}
+
+export interface CurseEffectDto {
+  stat: string;
+  statDisplayName: string;
+  modifier: string;
 }
 
 // Ability types

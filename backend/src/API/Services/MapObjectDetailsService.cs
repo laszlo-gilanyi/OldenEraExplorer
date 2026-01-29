@@ -31,7 +31,8 @@ public class MapObjectDetailsService
         List<DbIndex.UnitRecord>? units,
         ArtifactsIndex? artifactsIndex,
         SpellsIndex? spellsIndex,
-        DifficultiesIndex? difficultiesIndex)
+        DifficultiesIndex? difficultiesIndex,
+        MapObjectsIndex? mapObjectsIndex)
     {
         if (mapObject == null) throw new ArgumentNullException(nameof(mapObject));
         if (resolver == null) throw new ArgumentNullException(nameof(resolver));
@@ -55,7 +56,8 @@ public class MapObjectDetailsService
                 locale,
                 difficultiesIndex,
                 artifactsIndex,
-                spellsIndex
+                spellsIndex,
+                mapObjectsIndex
             );
         }
 
@@ -78,7 +80,8 @@ public class MapObjectDetailsService
         string locale,
         DifficultiesIndex? difficultiesIndex,
         ArtifactsIndex? artifactsIndex,
-        SpellsIndex? spellsIndex)
+        SpellsIndex? spellsIndex,
+        MapObjectsIndex? mapObjectsIndex)
     {
         var bankData = mapObject.BankData!;
         var sourceFolder = bankData.SourceFolder;
@@ -106,7 +109,6 @@ public class MapObjectDetailsService
             CategorizedRewardsDto categorizedRewards;
             List<CategorizedRewardsDto>? rewardOptions = null;
 
-            // For "OnlySelected" type, each reward is a separate option to choose from
             if (rewardApplyType == "OnlySelected" && variant.RewardSet.Rewards.Count > 1)
             {
                 rewardOptions = variant.RewardSet.Rewards.Select(reward =>
@@ -115,18 +117,19 @@ public class MapObjectDetailsService
                         resolver,
                         artifactsIndex,
                         spellsIndex,
+                        mapObjectsIndex,
                         units,
                         locale,
                         lang
                     )
                 ).ToList();
 
-                // Empty rewards since they're in options
                 categorizedRewards = new CategorizedRewardsDto(
                     new List<ResourceRewardEntryDto>(),
                     new List<ArtifactRarityPoolDto>(),
                     new List<SpellPoolOptionDto>(),
                     new List<GuardUnitInfoDto>(),
+                    null,
                     null
                 );
             }
@@ -137,6 +140,7 @@ public class MapObjectDetailsService
                     resolver,
                     artifactsIndex,
                     spellsIndex,
+                    mapObjectsIndex,
                     units,
                     locale,
                     lang
@@ -193,6 +197,7 @@ public class MapObjectDetailsService
         ITextResolver resolver,
         ArtifactsIndex? artifactsIndex,
         SpellsIndex? spellsIndex,
+        MapObjectsIndex? mapObjectsIndex,
         List<DbIndex.UnitRecord>? units,
         string locale,
         LangIndex lang)
@@ -201,6 +206,7 @@ public class MapObjectDetailsService
         var artifactPools = new List<ArtifactRarityPoolDto>();
         var spellPools = new List<SpellPoolOptionDto>();
         var unitRewards = new List<GuardUnitInfoDto>();
+        var cursePools = new List<CursePoolDto>();
         int? experience = null;
 
         foreach (var reward in rewards)
@@ -258,9 +264,102 @@ public class MapObjectDetailsService
                         }
                     }
                     break;
+
+                case "SideRandomBuffReward":
+                    if (mapObjectsIndex != null)
+                    {
+                        var cursePool = BuildCursePool(parameters, mapObjectsIndex, resolver, locale);
+                        if (cursePool != null)
+                        {
+                            cursePools.Add(cursePool);
+                        }
+                    }
+                    break;
             }
         }
 
-        return new CategorizedRewardsDto(resources, artifactPools, spellPools, unitRewards, experience);
+        return new CategorizedRewardsDto(resources, artifactPools, spellPools, unitRewards, experience, cursePools.Count > 0 ? cursePools : null);
+    }
+
+    private CursePoolDto? BuildCursePool(
+        List<string> parameters,
+        MapObjectsIndex mapObjectsIndex,
+        ITextResolver resolver,
+        string locale)
+    {
+        if (parameters.Count < 2) return null;
+
+        var curseInfos = new List<CurseInfoDto>();
+        int durationDays = 0;
+        string? curseRarity = null;
+
+        var durationTypeIndex = parameters.FindIndex(p => p.Equals("ForSeveralDays", StringComparison.OrdinalIgnoreCase));
+        if (durationTypeIndex >= 0 && durationTypeIndex + 1 < parameters.Count)
+        {
+            if (int.TryParse(parameters[durationTypeIndex + 1], out var days))
+            {
+                durationDays = days;
+            }
+        }
+
+        var curseIds = durationTypeIndex > 0 ? parameters.Take(durationTypeIndex).ToList() : parameters;
+
+        foreach (var curseId in curseIds)
+        {
+            if (mapObjectsIndex.SideBuffs.TryGetValue(curseId, out var buffRecord))
+            {
+                if (curseRarity == null && curseId.Contains("_debuff_"))
+                {
+                    var parts = curseId.Split('_');
+                    var debuffIndex = Array.IndexOf(parts, "debuff");
+                    if (debuffIndex >= 0 && debuffIndex + 1 < parts.Length)
+                    {
+                        var rarityPart = parts[debuffIndex + 1];
+                        if (rarityPart.StartsWith("common")) curseRarity = "common";
+                        else if (rarityPart.StartsWith("rare")) curseRarity = "rare";
+                        else if (rarityPart.StartsWith("epic")) curseRarity = "epic";
+                        else if (rarityPart.StartsWith("legendary")) curseRarity = "legendary";
+                        else if (rarityPart.Equals("none", StringComparison.OrdinalIgnoreCase)) curseRarity = "none";
+                    }
+                }
+
+                var name = TryResolveText(resolver, buffRecord.NameSid, locale);
+                var description = TryResolveText(resolver, buffRecord.DescriptionSid, locale);
+
+                var effects = new List<CurseEffectDto>();
+                foreach (var bonus in buffRecord.Bonuses)
+                {
+                    if (bonus.Parameters.Count >= 2)
+                    {
+                        var stat = bonus.Parameters[0];
+                        var modifier = bonus.Parameters[1];
+
+                        var normalizedStat = stat switch
+                        {
+                            "moral" => "morale",
+                            _ => stat
+                        };
+
+                        var statDisplayName = TryResolveText(resolver, $"{normalizedStat}_name", locale) ?? CapitalizeFirst(normalizedStat);
+
+                        effects.Add(new CurseEffectDto(stat, statDisplayName, modifier));
+                    }
+                }
+
+                curseInfos.Add(new CurseInfoDto(
+                    buffRecord.Id,
+                    name,
+                    description,
+                    effects
+                ));
+            }
+        }
+
+        if (curseInfos.Count == 0) return null;
+
+        var curseTitleKey = curseRarity != null ? $"{curseRarity}Curse" : "commonCurse";
+        var curseTitle = TryResolveText(resolver, curseTitleKey, locale) ?? "Curse";
+
+        return new CursePoolDto(curseTitle, curseInfos, durationDays);
     }
 }

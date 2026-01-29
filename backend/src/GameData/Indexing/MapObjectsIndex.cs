@@ -11,6 +11,23 @@ namespace GameData.Indexing;
 
 #region Bank Data Classes
 
+public sealed class BuffBonus
+{
+    public required string Type { get; init; }
+    public required List<string> Parameters { get; init; }
+}
+
+public sealed class SideBuffRecord
+{
+    public required string Id { get; init; }
+    public required string Icon { get; init; }
+    public required string NameSid { get; init; }
+    public required string DescriptionSid { get; init; }
+    public required string AdditionType { get; init; }
+    public bool IsPositive { get; init; }
+    public required List<BuffBonus> Bonuses { get; init; }
+}
+
 public sealed class GuardUnit
 {
     public required string Sid { get; init; }
@@ -75,11 +92,14 @@ public sealed class MapObjectsIndex
     );
 
     private readonly Dictionary<string, MapObjectRecord> _mapObjects = new();
+    private readonly Dictionary<string, SideBuffRecord> _sideBuffs = new();
     public IReadOnlyDictionary<string, MapObjectRecord> MapObjects => _mapObjects;
+    public IReadOnlyDictionary<string, SideBuffRecord> SideBuffs => _sideBuffs;
 
     public void Scan(string streamingAssetsRoot)
     {
         _mapObjects.Clear();
+        _sideBuffs.Clear();
         var zipPath = Path.Combine(streamingAssetsRoot, "Core.zip");
         if (!File.Exists(zipPath)) return;
 
@@ -87,8 +107,9 @@ public sealed class MapObjectsIndex
 
         ScanMapObjects(zip);
         ScanAndMergeBankData(zip);
+        ScanSideBuffs(zip);
 
-        DiagnosticsLog.Trace($"[MapObjectsIndex] Loaded {_mapObjects.Count} map objects");
+        DiagnosticsLog.Trace($"[MapObjectsIndex] Loaded {_mapObjects.Count} map objects, {_sideBuffs.Count} side buffs");
     }
 
     private void ScanMapObjects(ZipArchive zip)
@@ -154,7 +175,7 @@ public sealed class MapObjectsIndex
             var entries = zip.Entries.Where(e =>
                 e.FullName.StartsWith(path, StringComparison.OrdinalIgnoreCase) &&
                 e.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase) &&
-                !e.FullName.Substring(path.Length).Contains('/') && // Only direct children, not nested
+                !e.FullName.Substring(path.Length).Contains('/') &&
                 e.Length > 0);
 
             foreach (var entry in entries)
@@ -343,7 +364,6 @@ public sealed class MapObjectsIndex
         if (variants.Count == 0)
         {
             var rootGuardUnits = ParseGuardUnits(el);
-            // Create a single variant from root-level data
             variants.Add(new BankVariant
             {
                 RollChance = 100,
@@ -489,5 +509,78 @@ public sealed class MapObjectsIndex
             RewardNotificationDesc = notifDesc,
             Parameters = parameters
         };
+    }
+
+    private void ScanSideBuffs(ZipArchive zip)
+    {
+        var entry = zip.Entries.FirstOrDefault(e =>
+            e.FullName.Equals("DB/logic_side_buffs/logic_side_buffs.json", StringComparison.OrdinalIgnoreCase) &&
+            e.Length > 0);
+
+        if (entry == null) return;
+
+        try
+        {
+            using var stream = entry.Open();
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            using var doc = JsonDocument.Parse(reader.ReadToEnd());
+
+            if (!doc.RootElement.TryGetProperty("array", out var array))
+                return;
+
+            foreach (var el in array.EnumerateArray())
+            {
+                var id = el.TryGetProperty("id", out var idP) ? idP.GetString() ?? "" : "";
+                if (string.IsNullOrWhiteSpace(id)) continue;
+
+                var icon = el.TryGetProperty("icon", out var iconP) ? iconP.GetString() ?? "" : "";
+                var nameSid = el.TryGetProperty("name", out var nameP) ? nameP.GetString() ?? "" : "";
+                var descSid = el.TryGetProperty("description", out var descP) ? descP.GetString() ?? "" : "";
+                var additionType = el.TryGetProperty("additionType", out var addP) ? addP.GetString() ?? "" : "";
+                var isPositive = el.TryGetProperty("isPositive", out var posP) && posP.ValueKind == JsonValueKind.True;
+
+                var bonuses = new List<BuffBonus>();
+                if (el.TryGetProperty("bonuses", out var bonusesP) && bonusesP.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var bonusEl in bonusesP.EnumerateArray())
+                    {
+                        var bonusType = bonusEl.TryGetProperty("type", out var typeP) ? typeP.GetString() ?? "" : "";
+                        var parameters = new List<string>();
+
+                        if (bonusEl.TryGetProperty("parameters", out var paramsP) && paramsP.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var paramEl in paramsP.EnumerateArray())
+                            {
+                                var paramValue = paramEl.GetString() ?? "";
+                                parameters.Add(paramValue);
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(bonusType))
+                        {
+                            bonuses.Add(new BuffBonus { Type = bonusType, Parameters = parameters });
+                        }
+                    }
+                }
+
+                if (!_sideBuffs.ContainsKey(id))
+                {
+                    _sideBuffs[id] = new SideBuffRecord
+                    {
+                        Id = id,
+                        Icon = icon,
+                        NameSid = nameSid,
+                        DescriptionSid = descSid,
+                        AdditionType = additionType,
+                        IsPositive = isPositive,
+                        Bonuses = bonuses
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DiagnosticsLog.Trace($"[MapObjectsIndex] Error processing logic_side_buffs.json", ex);
+        }
     }
 }

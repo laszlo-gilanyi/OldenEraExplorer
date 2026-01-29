@@ -32,6 +32,45 @@ const rarityColorClasses: Record<string, string> = {
 const getRarityColorClass = (rarity: string | null) =>
   rarity ? rarityColorClasses[rarity.toLowerCase()] ?? 'text-muted-foreground' : 'text-muted-foreground';
 
+const getCurseRarityFromTitle = (title: string): string | null => {
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('common')) return 'common';
+  if (titleLower.includes('powerful')) return 'rare';
+  if (titleLower.includes('overwhelming')) return 'epic';
+  if (titleLower.includes('unbearable')) return 'legendary';
+  return null;
+};
+
+const isPercentageStat = (statId: string): boolean => {
+  return statId.includes('Percent') ||
+         statId.includes('Bonus') ||
+         statId === 'MovementPerBonus' ||
+         statId === 'ManaRestoreBonusPercent';
+};
+
+const formatCurseModifier = (modifier: string, statId: string): string => {
+  if (!isPercentageStat(statId)) {
+    return modifier;
+  }
+
+  const numValue = parseFloat(modifier);
+  if (isNaN(numValue)) {
+    return modifier;
+  }
+
+  const percentage = numValue * 100;
+  return `${percentage > 0 ? '+' : ''}${percentage.toFixed(0)}%`;
+};
+
+const getCurseLocalizationKey = (statId: string): string | null => {
+  const statToCurseKey: Record<string, string> = {
+    'viewRadius': 'viewRadius',
+    'movementPerBonus': 'movementBonus',
+    'manaRestoreBonusPercent': 'manaRestore',
+  };
+  return statToCurseKey[statId] || null;
+};
+
 const DEFAULT_DIFFICULTY_POWER = 1.0;
 const DEFAULT_DIFFICULTY_INDEX = 2;
 
@@ -48,7 +87,8 @@ function hasAnyRewards(rewards: CategorizedRewardsDto): boolean {
     rewards.artifactPools.length > 0 ||
     rewards.spellPools.length > 0 ||
     rewards.units.length > 0 ||
-    rewards.experience !== null
+    rewards.experience !== null ||
+    (rewards.cursePools?.length ?? 0) > 0
   );
 }
 
@@ -62,6 +102,7 @@ function isSimpleVariant(v: CreatureBankVariantInfoDto): boolean {
     v.rewards.artifactPools.length === 0 &&
     v.rewards.spellPools.length === 0 &&
     v.rewards.units.length === 0 &&
+    (!v.rewards.cursePools || v.rewards.cursePools.length === 0) &&
     !hasDisplayableOptions(v)
   );
 }
@@ -577,6 +618,74 @@ function RewardType({ variant, difficultyPower, guardsLabel }: RewardTypeProps) 
         </div>
       )}
 
+      {rewards.cursePools && rewards.cursePools.length > 0 && (
+        <div className="w-full space-y-2">
+          {rewards.cursePools.map((cursePool, poolIdx) => {
+            const curseRarity = getCurseRarityFromTitle(cursePool.title);
+            const curseTitleColor = getRarityColorClass(curseRarity);
+
+            return (
+              <div key={poolIdx} className="w-full">
+                <div className={`text-xs mb-1.5 text-center font-medium pt-2 border-t border-border/50 ${curseTitleColor}`}>
+                  {cursePool.title}
+                </div>
+                <div className="text-xs text-amber-300/70 mb-1.5 text-center">
+                  {label('duration', cursePool.durationDays)}
+                </div>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {cursePool.curses.map((curse, curseIdx) => {
+                    if (curse.effects.length > 0) {
+                      return (
+                        <div
+                          key={curseIdx}
+                          className="px-2 py-1 bg-muted/30 border border-border/50 rounded text-xs text-foreground/80 w-30 grid place-items-center text-center"
+                          title={curse.description || undefined}
+                        >
+                          {curse.effects.map((e, effectIdx) => {
+                            const formattedModifier = formatCurseModifier(e.modifier, e.stat);
+                            const localizationKey = getCurseLocalizationKey(e.stat);
+                            const effectText = localizationKey
+                              ? label(localizationKey, formattedModifier)
+                              : `${e.statDisplayName} ${formattedModifier}`;
+
+                            return (
+                              <span key={effectIdx}>
+                                {effectText}
+                                {effectIdx < curse.effects.length - 1 && <>,<br /></>}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    } else if (curse.id === 'heros_crypt_debuff_none') {
+                      return (
+                        <div
+                          key={curseIdx}
+                          className="px-2 py-1 bg-muted/30 border border-border/50 rounded text-xs text-foreground/80 w-30 grid place-items-center text-center"
+                          title={curse.description || undefined}
+                        >
+                          {label('none')}
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div
+                          key={curseIdx}
+                          className="px-2 py-1 bg-muted/30 border border-border/50 rounded text-xs text-foreground/80 w-30 grid place-items-center text-center"
+                          title={curse.description || undefined}
+                        >
+                          {curse.id}
+                        </div>
+                      );
+                    }
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {hasGuards && (
         <div className={showBothSections ? "border-t border-border/50 pt-2 mt-1 w-full" : "w-full"}>
           <div className="text-xs text-muted-foreground mb-2 text-center font-medium">{guardsLabel || 'Guards'}</div>
@@ -701,6 +810,57 @@ function RewardOption({
       {option.experience !== null && (
         <div className="text-foreground font-semibold">
           +{option.experience} XP
+        </div>
+      )}
+
+      {option.cursePools && option.cursePools.length > 0 && (
+        <div className="w-full space-y-1">
+          {option.cursePools.map((cursePool, poolIdx) => {
+            const curseRarity = getCurseRarityFromTitle(cursePool.title);
+            const curseTitleColor = getRarityColorClass(curseRarity);
+
+            return (
+              <div key={poolIdx} className="w-full">
+                <div className={`text-xs mb-1 text-center font-medium pt-1.5 border-t border-border/50 ${curseTitleColor}`}>
+                  {cursePool.title}
+                </div>
+                <div className="text-xs text-amber-300/70 mb-1 text-center">
+                  {label('duration', cursePool.durationDays)}
+                </div>
+                <div className="flex flex-wrap justify-center gap-1">
+                  {cursePool.curses.map((curse, curseIdx) => {
+                    let effectText: string;
+                    if (curse.effects.length > 0) {
+                      effectText = curse.effects.map(e => {
+                        const formattedModifier = formatCurseModifier(e.modifier, e.stat);
+                        const localizationKey = getCurseLocalizationKey(e.stat);
+
+                        if (localizationKey) {
+                          return label(localizationKey, formattedModifier);
+                        } else {
+                          return `${e.statDisplayName} ${formattedModifier}`;
+                        }
+                      }).join(', ');
+                    } else if (curse.id === 'heros_crypt_debuff_none') {
+                      effectText = label('none');
+                    } else {
+                      effectText = curse.id;
+                    }
+
+                    return (
+                      <div
+                        key={curseIdx}
+                        className="px-1.5 py-0.5 bg-muted/30 border border-border/50 rounded text-xs text-foreground/80"
+                        title={curse.description || undefined}
+                      >
+                        {effectText}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
