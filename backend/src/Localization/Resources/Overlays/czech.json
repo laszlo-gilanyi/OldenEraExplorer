@@ -160,5 +160,8 @@
   "entity_faction_law": "frakční zákon",
 
   "spell_category_global_map_magic": "Magie Globální Mapy",
-  "spell_category_skill_related": "Související s Dovedností"
+  "spell_category_skill_related": "Související s Dovedností",
+
+  "heroes_show_campaign": "Zobrazit hrdiny tutoriálu / kampaně",
+  "skills_show_arena": "Zobrazit dovednosti arény"
 }

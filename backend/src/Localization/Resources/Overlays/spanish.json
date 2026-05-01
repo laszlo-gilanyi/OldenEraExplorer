@@ -160,5 +160,8 @@
   "entity_faction_law": "ley de facción",
 
   "spell_category_global_map_magic": "Magia del Mapa Global",
-  "spell_category_skill_related": "Relacionado con Habilidad"
+  "spell_category_skill_related": "Relacionado con Habilidad",
+
+  "heroes_show_campaign": "Mostrar héroes de tutorial / campaña",
+  "skills_show_arena": "Mostrar habilidades de arena"
 }

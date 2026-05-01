@@ -160,5 +160,8 @@
   "entity_faction_law": "진영 규율",
 
   "spell_category_global_map_magic": "글로벌 맵 마법",
-  "spell_category_skill_related": "스킬 관련"
+  "spell_category_skill_related": "스킬 관련",
+
+  "heroes_show_campaign": "튜토리얼 / 캠페인 영웅 표시",
+  "skills_show_arena": "아레나 스킬 표시"
 }

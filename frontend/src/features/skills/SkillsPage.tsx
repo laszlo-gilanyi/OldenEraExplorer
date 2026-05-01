@@ -83,7 +83,10 @@ function SkillList({
         >
           <ProgressiveIcon iconPath={skill.icon} alt={skill.name} size={32} />
           <div className="flex-1 min-w-0">
-            <div className="font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+            <div className={cn(
+              "font-medium overflow-hidden text-ellipsis whitespace-nowrap",
+              selectedSkillId !== skill.id && skill.id.startsWith('arena_') && "text-semantic-gold"
+            )}>
               {skill.name}
             </div>
             <div className={cn(
@@ -258,6 +261,8 @@ export default function SkillsPage() {
     sortField,
     sortDirection,
     setSort,
+    showArenaSkills,
+    setShowArenaSkills,
   } = useSkillsStore();
 
   const { label } = useLabels();
@@ -272,12 +277,16 @@ export default function SkillsPage() {
     prevUrlSkillIdRef.current = urlSkillId;
   }, [urlSkillId, selectedSkillId, setSelectedSkillId]);
 
-  const skillsQuery = useSkills(searchQuery || undefined);
+  const skillsQuery = useSkills(searchQuery || undefined, showArenaSkills);
   const skillQuery = useSkill(selectedSkillId);
 
   const sortedSkills = useMemo(() => {
     if (!skillsQuery.data) return [];
     return [...skillsQuery.data].sort((a, b) => {
+      const aArena = a.id.startsWith('arena_') ? 1 : 0;
+      const bArena = b.id.startsWith('arena_') ? 1 : 0;
+      if (aArena !== bArena) return aArena - bArena;
+
       const cmp = sortField === 'name'
         ? (a.name || '').localeCompare(b.name || '')
         : a.id.localeCompare(b.id, undefined, { numeric: true });
@@ -357,8 +366,28 @@ export default function SkillsPage() {
         </div>
 
         {skillsQuery.data && (
-          <div className="px-3 py-2 border-t border-border text-xs text-muted-foreground">
+          <div className="px-3 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-between gap-2">
             <span>{label('total_count', skillsQuery.data.length, label('nav_skills'))}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span>{label('skills_show_arena')}</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showArenaSkills}
+                onClick={() => setShowArenaSkills(!showArenaSkills)}
+                className={cn(
+                  "relative w-9 h-5 rounded-full transition-colors flex items-center px-0.5 cursor-pointer",
+                  showArenaSkills ? "bg-primary" : "bg-muted-foreground/40"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-3.5 h-3.5 bg-white rounded-full shadow transition-transform",
+                    showArenaSkills && "translate-x-[18px]"
+                  )}
+                />
+              </button>
+            </div>
           </div>
         )}
       </aside>

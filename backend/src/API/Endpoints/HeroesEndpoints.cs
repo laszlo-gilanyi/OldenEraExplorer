@@ -41,7 +41,8 @@ public static class HeroesEndpoints
         IGamePathService gamePathService,
         FactionMapper factionMapper,
         ClassMapper classMapper,
-        string? search = null)
+        string? search = null,
+        bool includeCampaignAndTutorial = false)
     {
         if (!dataService.IsLoaded || dataService.Data is null)
         {
@@ -57,15 +58,19 @@ public static class HeroesEndpoints
         var resolver = data.ResolverFacade;
         var locale = gamePathService.CurrentLocale;
 
-        IEnumerable<HeroesIndex.HeroRecord> heroes = heroesIndex.Heroes.Values
-            .Where(h => !h.IsTutorialOrCampaignHero);
+        IEnumerable<HeroesIndex.HeroRecord> heroes = heroesIndex.Heroes.Values;
+
+        if (!includeCampaignAndTutorial)
+        {
+            heroes = heroes.Where(h => !h.IsTutorialOrCampaignHero);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var searchTerm = search.Trim();
             heroes = heroes.Where(h =>
                 h.HeroId.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                GetHeroName(lang, h.HeroId)?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true ||
+                GetHeroName(lang, h.HeroId, h.Icon, h.SpecializationSid)?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true ||
                 h.Fraction.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                 factionMapper.MapFactionDisplay(h.Fraction)?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true ||
                 h.ClassType.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
@@ -104,8 +109,7 @@ public static class HeroesEndpoints
         var locale = gamePathService.CurrentLocale;
 
         var heroRecord = heroesIndex.Heroes.Values.FirstOrDefault(h =>
-            h.HeroId.Equals(id, StringComparison.OrdinalIgnoreCase) &&
-            !h.IsTutorialOrCampaignHero);
+            h.HeroId.Equals(id, StringComparison.OrdinalIgnoreCase));
 
         if (heroRecord is null)
         {
@@ -125,7 +129,7 @@ public static class HeroesEndpoints
         FactionMapper factionMapper,
         ClassMapper classMapper)
     {
-        var heroName = GetHeroName(lang, hero.HeroId) ?? hero.HeroId;
+        var heroName = GetHeroName(lang, hero.HeroId, hero.Icon, hero.SpecializationSid) ?? hero.HeroId;
         var classDisplay = classMapper.MapClassDisplay(hero.ClassType, hero.Fraction);
         var factionDisplay = factionMapper.MapFactionDisplay(hero.Fraction);
 
@@ -151,7 +155,7 @@ public static class HeroesEndpoints
         FactionMapper factionMapper,
         ClassMapper classMapper)
     {
-        var heroName = GetHeroName(lang, hero.HeroId) ?? hero.HeroId;
+        var heroName = GetHeroName(lang, hero.HeroId, hero.Icon, hero.SpecializationSid) ?? hero.HeroId;
         var classDisplay = classMapper.MapClassDisplay(hero.ClassType, hero.Fraction);
         var factionDisplay = factionMapper.MapFactionDisplay(hero.Fraction);
 
@@ -160,9 +164,13 @@ public static class HeroesEndpoints
         var spellPower = hero.BaseStats.TryGetValue("spellPower", out var sp) ? sp.ToString() : null;
         var knowledge = hero.BaseStats.TryGetValue("intelligence", out var intel) ? intel.ToString() : null;
 
-        var specializationName = lang.ResolveText($"{hero.HeroId}_spec_name") ?? "";
+        var specializationName = lang.ResolveText($"{hero.HeroId}_spec_name")
+            ?? ResolveSpecNameFromIndex(lang, hero.SpecializationSid, heroSpecializationsIndex)
+            ?? "";
         var specializationDescription = TryResolveTextWithHeroContext(resolver, $"{hero.HeroId}_spec_description", locale, hero.SpecializationSid)
-            ?? lang.ResolveText($"{hero.HeroId}_spec_description") ?? "";
+            ?? lang.ResolveText($"{hero.HeroId}_spec_description")
+            ?? ResolveSpecDescFromIndex(lang, resolver, locale, hero.SpecializationSid, heroSpecializationsIndex)
+            ?? "";
 
         var startingArmy = hero.StartSquad
             .Select(unit => new StartingArmyDto(
@@ -263,7 +271,7 @@ public static class HeroesEndpoints
         );
     }
 
-    private static string? GetHeroName(LangIndex lang, string heroId)
+    private static string? GetHeroName(LangIndex lang, string heroId, string? iconField = null, string? specializationSid = null)
     {
         var result = lang.ResolveText(heroId);
         if (!string.IsNullOrWhiteSpace(result) && result != heroId)
@@ -273,7 +281,60 @@ public static class HeroesEndpoints
         if (!string.IsNullOrWhiteSpace(result) && result != $"{heroId}_name")
             return result;
 
+        // Campaign/tutorial heroes reference an existing hero's specialization — strip suffix to get base hero ID
+        // e.g. "necro_hero_8_specialization" → "necro_hero_8" → lang key exists
+        if (!string.IsNullOrWhiteSpace(specializationSid) &&
+            specializationSid.EndsWith("_specialization", StringComparison.OrdinalIgnoreCase))
+        {
+            var baseHeroId = specializationSid[..^"_specialization".Length];
+            result = lang.ResolveText(baseHeroId);
+            if (!string.IsNullOrWhiteSpace(result) && result != baseHeroId)
+                return result;
+        }
+
+        // Fallback: extract base hero ID from icon field
+        // e.g. "hero_nature_12_capreola_large" → try "nature_hero_12"
+        if (!string.IsNullOrWhiteSpace(iconField))
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(
+                iconField, @"^hero_([a-z]+)_(\d+)_", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                var baseHeroId = $"{m.Groups[1].Value.ToLower()}_hero_{m.Groups[2].Value}";
+                result = lang.ResolveText(baseHeroId);
+                if (!string.IsNullOrWhiteSpace(result) && result != baseHeroId)
+                    return result;
+            }
+        }
+
         return null;
+    }
+
+    private static string? ResolveSpecNameFromIndex(
+        LangIndex lang,
+        string? specializationSid,
+        HeroSpecializationsIndex? specIndex)
+    {
+        if (specIndex == null || string.IsNullOrWhiteSpace(specializationSid)) return null;
+        if (!specIndex.Specializations.TryGetValue(specializationSid, out var spec)) return null;
+        if (string.IsNullOrWhiteSpace(spec.NameSid)) return null;
+        var result = lang.ResolveText(spec.NameSid);
+        return !string.IsNullOrWhiteSpace(result) && result != spec.NameSid ? result : null;
+    }
+
+    private static string? ResolveSpecDescFromIndex(
+        LangIndex lang,
+        ITextResolver resolver,
+        string locale,
+        string? specializationSid,
+        HeroSpecializationsIndex? specIndex)
+    {
+        if (specIndex == null || string.IsNullOrWhiteSpace(specializationSid)) return null;
+        if (!specIndex.Specializations.TryGetValue(specializationSid, out var spec)) return null;
+        if (string.IsNullOrWhiteSpace(spec.DescSid)) return null;
+        var result = TryResolveTextWithHeroContext(resolver, spec.DescSid, locale, specializationSid)
+            ?? lang.ResolveText(spec.DescSid);
+        return !string.IsNullOrWhiteSpace(result) && result != spec.DescSid ? result : null;
     }
 
     private static string? TryResolveTextWithHeroContext(

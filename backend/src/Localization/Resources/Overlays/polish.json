@@ -160,5 +160,8 @@
   "entity_faction_law": "prawo frakcji",
 
   "spell_category_global_map_magic": "Magia Mapy Globalnej",
-  "spell_category_skill_related": "Związane z Umiejętnością"
+  "spell_category_skill_related": "Związane z Umiejętnością",
+
+  "heroes_show_campaign": "Pokaż bohaterów samouczka / kampanii",
+  "skills_show_arena": "Pokaż umiejętności areny"
 }

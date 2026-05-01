@@ -160,5 +160,8 @@
   "entity_faction_law": "Fraktionsgesetz",
 
   "spell_category_global_map_magic": "Globale Kartenmagie",
-  "spell_category_skill_related": "Fertigkeitsbezogen"
+  "spell_category_skill_related": "Fertigkeitsbezogen",
+
+  "heroes_show_campaign": "Tutorial-/Kampagnenhelden anzeigen",
+  "skills_show_arena": "Arenafertigkeiten anzeigen"
 }

@@ -224,11 +224,14 @@ export const spellsApi = {
 };
 
 export const skillsApi = {
-  list: async (search?: string): Promise<SkillListItemDto[]> => {
+  list: async (search?: string, includeArena?: boolean): Promise<SkillListItemDto[]> => {
     try {
       const params = new URLSearchParams();
       if (search) {
         params.set('search', search);
+      }
+      if (includeArena) {
+        params.set('includeArena', 'true');
       }
       const response = await api.get<SkillListItemDto[]>(`/skills?${params}`);
       return response.data;
@@ -272,11 +275,14 @@ export const factionLawsApi = {
 };
 
 export const heroesApi = {
-  list: async (search?: string): Promise<HeroListItemDto[]> => {
+  list: async (search?: string, includeCampaignAndTutorial?: boolean): Promise<HeroListItemDto[]> => {
     try {
       const params = new URLSearchParams();
       if (search) {
         params.set('search', search);
+      }
+      if (includeCampaignAndTutorial) {
+        params.set('includeCampaignAndTutorial', 'true');
       }
       const response = await api.get<HeroListItemDto[]>(`/heroes?${params}`);
       return response.data;

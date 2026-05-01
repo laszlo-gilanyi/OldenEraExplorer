@@ -160,5 +160,8 @@
   "entity_faction_law": "закон фракции",
 
   "spell_category_global_map_magic": "Магия Глобальной Карты",
-  "spell_category_skill_related": "Связанная с Навыком"
+  "spell_category_skill_related": "Связанная с Навыком",
+
+  "heroes_show_campaign": "Показать героев обучения / кампании",
+  "skills_show_arena": "Показать навыки арены"
 }

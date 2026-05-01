@@ -160,5 +160,8 @@
   "entity_faction_law": "派閥法",
 
   "spell_category_global_map_magic": "グローバルマップマジック",
-  "spell_category_skill_related": "スキル関連"
+  "spell_category_skill_related": "スキル関連",
+
+  "heroes_show_campaign": "チュートリアル / キャンペーンヒーローを表示",
+  "skills_show_arena": "アリーナスキルを表示"
 }

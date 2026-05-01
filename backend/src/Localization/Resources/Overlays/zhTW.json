@@ -160,5 +160,8 @@
   "entity_faction_law": "陣營法則",
 
   "spell_category_global_map_magic": "全域地圖魔法",
-  "spell_category_skill_related": "技能相關"
+  "spell_category_skill_related": "技能相關",
+
+  "heroes_show_campaign": "顯示教學 / 戰役英雄",
+  "skills_show_arena": "顯示競技場技能"
 }

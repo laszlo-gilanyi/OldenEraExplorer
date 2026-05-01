@@ -34,10 +34,11 @@ public sealed class HeroesIndex
         string SourceFile
     )
     {
-        /// <summary>Matches tutorial_* and campaign_hero_* patterns.</summary>
+        /// <summary>Matches tutorial_*, campaign_*, and cm_* patterns.</summary>
         public bool IsTutorialOrCampaignHero =>
             HeroId.StartsWith("tutorial_", StringComparison.OrdinalIgnoreCase) ||
-            HeroId.StartsWith("campaign_hero_", StringComparison.OrdinalIgnoreCase);
+            HeroId.StartsWith("campaign_", StringComparison.OrdinalIgnoreCase) ||
+            HeroId.StartsWith("cm_", StringComparison.OrdinalIgnoreCase);
     }
 
     private readonly Dictionary<string, HeroRecord> _heroes = new();
@@ -129,7 +130,7 @@ public sealed class HeroesIndex
                 Mesh: "",
                 Icon: $"{iconPattern}_large",
                 ClassIcon: string.IsNullOrEmpty(classType) ? "" : $"{classType.ToLower()}_{faction.ToLower()}_icon",
-                SpecializationIcon: classType.ToLower() == "might" ? "wip_might_specialization_icon" : "wip_mage_specialization_icon",
+                SpecializationIcon: $"{heroId}_specialization_icon",
                 CostGold: 0,
                 StartLevel: 1,
                 BaseStats: new Dictionary<string, int>(),
@@ -221,9 +222,7 @@ public sealed class HeroesIndex
                 ? ""
                 : $"{classType.ToLower()}_{fraction.ToLower()}_icon";
 
-            string specializationIcon = classType.ToLower() == "might"
-                ? "wip_might_specialization_icon"
-                : "wip_mage_specialization_icon";
+            string specializationIcon = $"{heroId}_specialization_icon";
 
             int costGold = 0;
             if (heroElement.TryGetProperty("costGold", out var costProp) && costProp.ValueKind == JsonValueKind.Number)
@@ -336,6 +335,26 @@ public sealed class HeroesIndex
                     startSquad,
                     Path.GetFileName(entry.FullName)
                 );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Override SpecializationIcon for each hero using the icon declared in the
+    /// specialization JSON (handles campaign heroes whose icon differs from the hero ID).
+    /// Must be called after HeroSpecializationsIndex is fully built.
+    /// </summary>
+    public void ApplySpecializationIcons(HeroSpecializationsIndex specIndex)
+    {
+        foreach (var (id, hero) in _heroes.ToList())
+        {
+            if (string.IsNullOrWhiteSpace(hero.SpecializationSid))
+                continue;
+
+            if (specIndex.Specializations.TryGetValue(hero.SpecializationSid, out var spec) &&
+                !string.IsNullOrWhiteSpace(spec.Icon))
+            {
+                _heroes[id] = hero with { SpecializationIcon = spec.Icon };
             }
         }
     }

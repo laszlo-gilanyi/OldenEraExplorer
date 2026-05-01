@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { skillsApi } from '@/api/client';
 import type { SkillListItemDto, SkillDetailDto } from '@/api/types';
 
-export function useSkills(search?: string) {
+export function useSkills(search?: string, includeArena?: boolean) {
   return useQuery<SkillListItemDto[]>({
-    queryKey: ['skills', search],
-    queryFn: () => skillsApi.list(search),
+    queryKey: ['skills', search, includeArena],
+    queryFn: () => skillsApi.list(search, includeArena),
     retry: false,
   });
 }

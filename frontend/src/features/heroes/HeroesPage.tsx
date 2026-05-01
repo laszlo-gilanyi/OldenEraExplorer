@@ -16,12 +16,20 @@ import DetailContainer from '@/components/display/DetailContainer';
 import UnitHexCard from '@/components/display/UnitHexCard';
 import { cn } from '@/lib/utils';
 
+function isNonStandardHero(id: string): boolean {
+  return id.startsWith('campaign_') || id.startsWith('tutorial_') || id.startsWith('cm_');
+}
+
 function compareHeroes(
   a: HeroListItemDto,
   b: HeroListItemDto,
   primaryField: HeroSortField,
   primaryDirection: SortDirection
 ): number {
+  const aNonStandard = isNonStandardHero(a.id) ? 1 : 0;
+  const bNonStandard = isNonStandardHero(b.id) ? 1 : 0;
+  if (aNonStandard !== bNonStandard) return aNonStandard - bNonStandard;
+
   const dir = primaryDirection === 'asc' ? 1 : -1;
 
   const compareFaction = () =>
@@ -103,7 +111,14 @@ function HeroList({
         >
           <ProgressiveIcon iconPath={hero.iconPath} alt={hero.name} size={40} />
           <div className="flex-1 min-w-0">
-            <div className="font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+            <div className={cn(
+              "font-medium overflow-hidden text-ellipsis whitespace-nowrap",
+              selectedHeroId !== hero.id && (
+                hero.id.startsWith('campaign_') ||
+                hero.id.startsWith('tutorial_') ||
+                hero.id.startsWith('cm_')
+              ) && "text-semantic-gold"
+            )}>
               {hero.name}
             </div>
             <div className={cn(
@@ -393,6 +408,8 @@ export default function HeroesPage() {
     sortField,
     sortDirection,
     setSort,
+    showCampaignHeroes,
+    setShowCampaignHeroes,
   } = useHeroesStore();
 
   const columnLabels = useColumnLabels();
@@ -407,7 +424,7 @@ export default function HeroesPage() {
     prevUrlHeroIdRef.current = urlHeroId;
   }, [urlHeroId, selectedHeroId, setSelectedHeroId]);
 
-  const heroesQuery = useHeroes(searchQuery || undefined);
+  const heroesQuery = useHeroes(searchQuery || undefined, showCampaignHeroes);
   const heroQuery = useHero(selectedHeroId);
 
   const filteredAndSortedHeroes = useMemo(() => {
@@ -501,12 +518,32 @@ export default function HeroesPage() {
         </div>
 
         {heroesQuery.data && (
-          <div className="px-3 py-2 border-t border-border text-xs text-muted-foreground">
+          <div className="px-3 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-between gap-2">
             <span>
               {filteredAndSortedHeroes.length === heroesQuery.data.length
                 ? label('total_count', heroesQuery.data.length, label('nav_heroes'))
                 : label('filtered_count', filteredAndSortedHeroes.length, heroesQuery.data.length, label('nav_heroes'))}
             </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span>{label('heroes_show_campaign')}</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showCampaignHeroes}
+                onClick={() => setShowCampaignHeroes(!showCampaignHeroes)}
+                className={cn(
+                  "relative w-9 h-5 rounded-full transition-colors flex items-center px-0.5 cursor-pointer",
+                  showCampaignHeroes ? "bg-primary" : "bg-muted-foreground/40"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-3.5 h-3.5 bg-white rounded-full shadow transition-transform",
+                    showCampaignHeroes && "translate-x-[18px]"
+                  )}
+                />
+              </button>
+            </div>
           </div>
         )}
       </aside>

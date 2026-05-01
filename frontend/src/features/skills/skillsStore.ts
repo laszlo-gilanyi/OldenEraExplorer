@@ -14,6 +14,9 @@ interface SkillsState {
   sortField: SkillSortField;
   sortDirection: SortDirection;
   setSort: (field: SkillSortField, direction: SortDirection) => void;
+
+  showArenaSkills: boolean;
+  setShowArenaSkills: (show: boolean) => void;
 }
 
 export const useSkillsStore = create<SkillsState>()(
@@ -28,6 +31,9 @@ export const useSkillsStore = create<SkillsState>()(
       sortField: 'name',
       sortDirection: 'asc',
       setSort: (field, direction) => set({ sortField: field, sortDirection: direction }),
+
+      showArenaSkills: false,
+      setShowArenaSkills: (show) => set({ showArenaSkills: show }),
     }),
     {
       name: 'oe-skills-store',

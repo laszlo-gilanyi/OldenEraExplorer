@@ -36,7 +36,8 @@ public static class SkillsEndpoints
     private static IResult GetSkills(
         IGameDataService dataService,
         IGamePathService gamePathService,
-        string? search = null)
+        string? search = null,
+        bool includeArena = false)
     {
         if (!dataService.IsLoaded || dataService.Data is null)
         {
@@ -54,10 +55,12 @@ public static class SkillsEndpoints
 
         // 1. Exclude pseudo-skills (technical skills)
         // 2. Exclude campaign_* skills (campaign-specific)
-        // 3. Exclude skills without localization (no name AND no description in lang files)
+        // 3. Exclude arena_* skills unless requested
+        // 4. Exclude skills without localization (no name AND no description in lang files)
         IEnumerable<SkillsIndex.SkillRecord> skills = skillsIndex.Skills.Values
             .Where(s => !s.IsPseudoSkill)
             .Where(s => !s.SkillId.StartsWith("campaign_", StringComparison.OrdinalIgnoreCase))
+            .Where(s => includeArena || !s.SkillId.StartsWith("arena_", StringComparison.OrdinalIgnoreCase))
             .Where(s => HasLocalization(s, langIndex));
 
         if (!string.IsNullOrWhiteSpace(search))

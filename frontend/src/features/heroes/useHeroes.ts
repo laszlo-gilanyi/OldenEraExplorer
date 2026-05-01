@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { heroesApi } from '@/api/client';
 import type { HeroListItemDto, HeroDetailDto } from '@/api/types';
 
-export function useHeroes(search?: string) {
+export function useHeroes(search?: string, includeCampaignAndTutorial?: boolean) {
   return useQuery<HeroListItemDto[]>({
-    queryKey: ['heroes', search],
-    queryFn: () => heroesApi.list(search),
+    queryKey: ['heroes', search, includeCampaignAndTutorial],
+    queryFn: () => heroesApi.list(search, includeCampaignAndTutorial),
     retry: false,
   });
 }

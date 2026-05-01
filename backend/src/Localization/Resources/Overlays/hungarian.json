@@ -160,5 +160,8 @@
   "entity_faction_law": "frakciótörvény",
 
   "spell_category_global_map_magic": "Globális Térkép Mágia",
-  "spell_category_skill_related": "Képesség Kapcsolódó"
+  "spell_category_skill_related": "Képesség Kapcsolódó",
+
+  "heroes_show_campaign": "Tutorial / kampány hősök megjelenítése",
+  "skills_show_arena": "Aréna képességek megjelenítése"
 }

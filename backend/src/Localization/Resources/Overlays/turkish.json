@@ -160,5 +160,8 @@
   "entity_faction_law": "fraksiyon kanunu",
 
   "spell_category_global_map_magic": "Küresel Harita Büyüsü",
-  "spell_category_skill_related": "Yetenek İlgili"
+  "spell_category_skill_related": "Yetenek İlgili",
+
+  "heroes_show_campaign": "Öğretici / Kampanya Kahramanlarını Göster",
+  "skills_show_arena": "Arena Yeteneklerini Göster"
 }

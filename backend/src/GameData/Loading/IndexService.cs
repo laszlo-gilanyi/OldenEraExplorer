@@ -35,7 +35,10 @@ public class IndexService
     {
         CreateSpellsIndex();
         CreateSkillsIndex();
+        CreateHeroSpecializationsIndex();
         CreateHeroesIndex();
+        if (HeroesIndex != null && HeroSpecializationsIndex != null)
+            HeroesIndex.ApplySpecializationIcons(HeroSpecializationsIndex);
         CreateArtifactsIndex();
         CreateItemSetsIndex();
         CreateBuildingsIndex();
@@ -43,7 +46,6 @@ public class IndexService
         CreateMapObjectsIndex();
         CreateFactionLawIndex();
         CreateAbilityIndex();
-        CreateHeroSpecializationsIndex();
         CreateDifficultiesIndex();
     }
 

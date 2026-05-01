@@ -160,5 +160,8 @@
   "entity_faction_law": "faction law",
 
   "spell_category_global_map_magic": "Global Map Magic",
-  "spell_category_skill_related": "Skill Related"
+  "spell_category_skill_related": "Skill Related",
+
+  "heroes_show_campaign": "Show Tutorial / Campaign Heroes",
+  "skills_show_arena": "Show Arena Skills"
 }

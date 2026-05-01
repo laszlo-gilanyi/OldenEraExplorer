@@ -183,6 +183,8 @@ public class GameDataLoader
         {
             cancellationToken.ThrowIfCancellationRequested();
             _indexService.CreateHeroesIndex();
+            if (_indexService.HeroesIndex != null && _indexService.HeroSpecializationsIndex != null)
+                _indexService.HeroesIndex.ApplySpecializationIcons(_indexService.HeroSpecializationsIndex);
         }, beginStageCallback, endStageCallback);
 
         Report("Scanning difficulties index...");

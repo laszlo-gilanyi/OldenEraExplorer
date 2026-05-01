@@ -14,6 +14,9 @@ interface HeroesState {
   sortField: HeroSortField;
   sortDirection: SortDirection;
   setSort: (field: HeroSortField, direction: SortDirection) => void;
+
+  showCampaignHeroes: boolean;
+  setShowCampaignHeroes: (show: boolean) => void;
 }
 
 export const useHeroesStore = create<HeroesState>()(
@@ -28,6 +31,9 @@ export const useHeroesStore = create<HeroesState>()(
       sortField: 'faction',
       sortDirection: 'asc',
       setSort: (field, direction) => set({ sortField: field, sortDirection: direction }),
+
+      showCampaignHeroes: false,
+      setShowCampaignHeroes: (show) => set({ showCampaignHeroes: show }),
     }),
     {
       name: 'oe-heroes-store',
