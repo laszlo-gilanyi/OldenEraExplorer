@@ -24,6 +24,13 @@ public sealed class BuildingsIndex
         public int Level { get; init; }
     }
 
+    public sealed class OptionalEffect
+    {
+        public string Sid { get; init; } = "";
+        public string Icon { get; init; } = "";
+        public string DescSid { get; init; } = "";
+    }
+
     public sealed record BuildingRecord(
         string Sid,
         string Category,
@@ -47,7 +54,12 @@ public sealed class BuildingsIndex
         /// Level 1 typically has base unit, Level 2+ has upgraded variants.
         /// </summary>
         string[][] RecruitableUnitsPerLevel,
-        RequiredBuilding[][] RequiredBuildingsPerLevel
+        RequiredBuilding[][] RequiredBuildingsPerLevel,
+        /// <summary>
+        /// Per-level selectable upgrade options (player picks one). Index 0 = level 1.
+        /// Each inner list contains the mutually-exclusive options for that level.
+        /// </summary>
+        OptionalEffect[][] OptionalEffectsPerLevel
     );
 
     private readonly Dictionary<string, BuildingRecord> _buildings = new();
@@ -162,7 +174,8 @@ public sealed class BuildingsIndex
                 CostsPerLevel: Array.Empty<BuildingCost[]>(),
                 RecruitableUnits: Array.Empty<string>(),
                 RecruitableUnitsPerLevel: Array.Empty<string[]>(),
-                RequiredBuildingsPerLevel: Array.Empty<RequiredBuilding[]>()
+                RequiredBuildingsPerLevel: Array.Empty<RequiredBuilding[]>(),
+                OptionalEffectsPerLevel: Array.Empty<OptionalEffect[]>()
             );
 
             addedCount++;
@@ -307,30 +320,32 @@ public sealed class BuildingsIndex
             if (maxLevel == 0) maxLevel = 1;
 
             var effectsPerLevel = Array.Empty<string[]>();
-            if (building.TryGetProperty("effectsPerLevel", out var effectsP) && effectsP.ValueKind == JsonValueKind.Array)
+
+            var optionalEffectsPerLevel = Array.Empty<OptionalEffect[]>();
+            if (building.TryGetProperty("optionalEffectsPerLevel", out var optEffectsP) && optEffectsP.ValueKind == JsonValueKind.Array)
             {
-                var effectsList = new List<string[]>();
-                foreach (var levelEffects in effectsP.EnumerateArray())
+                var optList = new List<OptionalEffect[]>();
+                foreach (var levelEntry in optEffectsP.EnumerateArray())
                 {
-                    if (levelEffects.TryGetProperty("list", out var listP) && listP.ValueKind == JsonValueKind.Array)
+                    if (levelEntry.TryGetProperty("effects", out var effectsArr) && effectsArr.ValueKind == JsonValueKind.Array)
                     {
-                        var effectIds = listP.EnumerateArray()
-                            .Select(e => e.GetString() ?? "")
-                            .Where(s => !string.IsNullOrWhiteSpace(s))
+                        var options = effectsArr.EnumerateArray()
+                            .Select(e => new OptionalEffect
+                            {
+                                Sid = e.TryGetProperty("sid", out var s) ? s.GetString() ?? "" : "",
+                                Icon = e.TryGetProperty("icon", out var ic) ? ic.GetString() ?? "" : "",
+                                DescSid = e.TryGetProperty("desc", out var d) ? d.GetString() ?? "" : "",
+                            })
+                            .Where(o => !string.IsNullOrWhiteSpace(o.Sid))
                             .ToArray();
-                        effectsList.Add(effectIds);
+                        optList.Add(options);
                     }
                     else
                     {
-                        effectsList.Add(Array.Empty<string>());
+                        optList.Add(Array.Empty<OptionalEffect>());
                     }
                 }
-                effectsPerLevel = effectsList.ToArray();
-
-                if (effectsPerLevel.Any(arr => arr.Length > 0))
-                {
-                    DiagnosticsLog.Trace($"[BuildingsIndex] Building '{sid}' in category '{category}' has effectsPerLevel with {effectsPerLevel.Length} levels");
-                }
+                optionalEffectsPerLevel = optList.ToArray();
             }
 
             var costsPerLevel = Array.Empty<BuildingCost[]>();
@@ -347,8 +362,11 @@ public sealed class BuildingsIndex
                         var levelCosts = new List<BuildingCost>();
                         foreach (var costEntry in costsP.EnumerateArray())
                         {
-                            var resName = costEntry.TryGetProperty("resName", out var resNameP) ? resNameP.GetString() ?? "" : "";
-                            var value = costEntry.TryGetProperty("value", out var valueP) && valueP.ValueKind == JsonValueKind.Number ? valueP.GetInt32() : 0;
+                            // EA format uses "name"/"cost"; legacy used "resName"/"value"
+                            var resName = costEntry.TryGetProperty("name", out var nameP) ? nameP.GetString() ?? ""
+                                : costEntry.TryGetProperty("resName", out var resNameP) ? resNameP.GetString() ?? "" : "";
+                            var value = costEntry.TryGetProperty("cost", out var costP) && costP.ValueKind == JsonValueKind.Number ? costP.GetInt32()
+                                : costEntry.TryGetProperty("value", out var valueP) && valueP.ValueKind == JsonValueKind.Number ? valueP.GetInt32() : 0;
 
                             if (!string.IsNullOrWhiteSpace(resName) && value > 0)
                             {
@@ -456,7 +474,8 @@ public sealed class BuildingsIndex
                     costsPerLevel,
                     recruitableUnits,
                     recruitableUnitsPerLevel,
-                    requiredBuildingsPerLevel
+                    requiredBuildingsPerLevel,
+                    optionalEffectsPerLevel
                 );
             }
         }

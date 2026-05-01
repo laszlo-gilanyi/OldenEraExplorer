@@ -20,20 +20,16 @@
   "label_chance": "chance",
   "label_rewards": "Belohnungen",
   "label_option": "Wahl",
-
   "label_common_rarity": "Gewöhnliche",
   "label_rare_rarity": "Seltene",
   "label_epic_rarity": "Epische",
   "label_legendary_rarity": "Legendäre",
-
   "none": "Nichts",
   "duration": "Dauer: {0} Tag(e)",
   "viewRadius": "{0} Sichtradius",
   "movementBonus": "{0} Bewegungspunkte",
   "manaRestore": "{0} täglich wiederhergestelltes Mana",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Einheiten",
   "nav_abilities": "Fähigkeiten",
   "nav_heroes": "Helden",
@@ -48,14 +44,12 @@
   "nav_back": "Zurück",
   "nav_home": "Startseite",
   "nav_reload": "Neu laden",
-
   "common_language": "Sprache",
   "common_loading": "Wird geladen{0}...",
   "loading_checking_config": "Spielkonfiguration wird überprüft...",
   "loading_game_data": "Spieldaten werden geladen...",
   "loading_detecting": "Spielinstallation wird erkannt...",
   "loading_setting_path": "Spielpfad wird festgelegt...",
-
   "error_generic": "Etwas ist schiefgelaufen",
   "error_unknown": "Unbekannter Fehler",
   "error_page_not_found": "Seite nicht gefunden",
@@ -65,11 +59,9 @@
   "error_server_msg": "Auf unserer Seite ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.",
   "error_check_console": "Falls das Problem weiterhin besteht, überprüfen Sie bitte die Konsole für weitere Details.",
   "error_btn_technical_details": "Technische Details",
-
   "welcome_detecting": "Spielinstallation wird erkannt...",
   "welcome_no_installs": "Keine Spielinstallationen gefunden. Bitte verwenden Sie Durchsuchen, um den Spielordner auszuwählen.",
   "welcome_browse_btn": "Durchsuchen...",
-
   "settings_header": "Einstellungen",
   "settings_theme": "Design",
   "settings_theme_system": "System",
@@ -79,7 +71,6 @@
   "settings_game_path": "Spielpfad:",
   "settings_no_game_configured": "Kein Spiel konfiguriert",
   "settings_change_game": "Ändern",
-
   "extraction_offline": "Offline",
   "extraction_error": "Fehler",
   "extraction_done": "Fertig",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "vor {0} T.",
   "extraction_icons_count": "{0} Bilder, {1} Modelle",
   "extraction_auto_extract": "Spielressourcen automatisch extrahieren",
-
   "search_placeholder": "Suchen...",
   "search_placeholder_entity": "{0} durchsuchen...",
   "search_no_results": "Keine Ergebnisse für \"{0}\" gefunden",
-
   "load_failed": "Laden von {0} fehlgeschlagen",
   "no_results": "Keine {0} gefunden",
   "total_count": "{0} {1} insgesamt",
   "filtered_count": "{0} von {1} {2}",
-
   "detail_error": "Fehler beim Laden von {0}: {1}",
   "detail_select": "Wählen Sie aus der Liste aus, um Details anzuzeigen",
-
-
   "viewer_dropped": "[Fallen gelassen]",
   "viewer_size": "{0} MB",
   "viewer_select": "Wählen Sie ein Modell zum Anzeigen aus",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Modell konnte nicht geladen werden",
   "viewer_close": "Schließen",
   "viewer_vfx_disclaimer": "Modelle enthalten keine Partikeleffekte wie leuchtende Auren, Feuer/Rauch oder magische Spuren aufgrund von GLB-Format-Beschränkungen.",
-
   "dropzone_hint": "oder ziehen Sie eine .glb-Datei hierher",
   "dropzone_text": "GLB-Datei hier ablegen",
   "dropzone_unsupported": "Nur .glb-Dateien werden unterstützt",
-
   "usedby_loading": "Verweise werden geladen...",
   "usedby_error": "Fehler beim Laden der Verweise: {0}",
   "usedby_heroes_unit": "Helden, die mit dieser Einheit starten",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Helden, die mit diesem Zauber starten",
   "usedby_creatures_ability": "Kreaturen mit dieser Fähigkeit",
   "usedby_default": "Verwendet von",
-  "building_prerequisites": "Voraussetzungen",
-  "building_recruitable_units": "Rekrutierbare Einheiten",
-
   "spell_mana": "Mana: {0}",
   "detail_level": "Stufe {0}",
-
   "entity_models": "Modelle",
   "entity_unit": "Einheit",
   "entity_ability": "Fähigkeit",
@@ -158,10 +138,8 @@
   "entity_building": "Gebäude",
   "entity_subclass": "Unterklasse",
   "entity_faction_law": "Fraktionsgesetz",
-
   "spell_category_global_map_magic": "Globale Kartenmagie",
   "spell_category_skill_related": "Fertigkeitsbezogen",
-
   "heroes_show_campaign": "Tutorial-/Kampagnenhelden anzeigen",
   "skills_show_arena": "Arenafertigkeiten anzeigen"
 }

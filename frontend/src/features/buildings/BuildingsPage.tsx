@@ -7,7 +7,7 @@ import { useHighlightText } from '@/hooks/useHighlightText';
 import SearchBox from '@/features/search/SearchBox';
 import ErrorBoundary from '@/components/feedback/ErrorBoundary';
 import RichText from '@/components/display/RichText';
-import type { BuildingListItemDto, BuildingDetailDto } from '@/api/types';
+import type { BuildingListItemDto, BuildingDetailDto, BuildingUpgradeOptionDto } from '@/api/types';
 import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import FactionBadge from '@/components/display/FactionBadge';
 import CurrencyBadge from '@/components/display/CurrencyBadge';
@@ -159,7 +159,7 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
               {building.costs && building.costs.length > 0 && (
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-muted-foreground">
-                    {label('label_cost')}:
+                    {building.costLabel}
                   </span>
                   {building.costs.map((cost, index) => (
                     <CurrencyBadge
@@ -169,7 +169,6 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
                       iconSize={32}
                       gap="gap-[5px]"
                       amountClassName="text-muted-foreground"
-                      useLocaleString={true}
                     />
                   ))}
                 </div>
@@ -177,25 +176,6 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
             </div>
           </div>
         </div>
-
-        {building.requirements && building.requirements.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
-              {label('building_prerequisites')}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {building.requirements.map((req) => (
-                <button
-                  key={req.buildingId}
-                  onClick={() => navigate(`/buildings/${req.buildingId}`)}
-                  className="px-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  {req.buildingName}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {building.effects && building.effects.length > 0 && (
           <div className="space-y-3">
@@ -220,10 +200,33 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
           </div>
         )}
 
+        {building.upgradeOptions && building.upgradeOptions.length > 0 && (
+          <BuildingUpgradeOptions options={building.upgradeOptions} label={building.upgradesLabel} />
+        )}
+
+        {building.requirements && building.requirements.length > 0 && (
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
+              {building.requirementsLabel}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {building.requirements.map((req) => (
+                <button
+                  key={req.buildingId}
+                  onClick={() => navigate(`/buildings/${req.buildingId}`)}
+                  className="px-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  {req.buildingName}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {building.recruitableUnits && building.recruitableUnits.length > 0 && (
           <div className="bg-card border border-border rounded-2xl p-5">
             <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
-              {label('building_recruitable_units')}
+              {building.recruitableUnitsLabel}
             </h3>
             <div className="flex flex-wrap gap-2">
               {building.recruitableUnits.map((unit) => (
@@ -239,6 +242,40 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
           </div>
         )}
     </DetailContainer>
+  );
+}
+
+interface BuildingUpgradeOptionsProps {
+  options: BuildingUpgradeOptionDto[];
+  label: string | null;
+}
+
+function BuildingUpgradeOptions({ options, label }: BuildingUpgradeOptionsProps) {
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5">
+      <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
+        {label}
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {options.map((option) => (
+          <div
+            key={option.sid}
+            className="flex flex-col items-center gap-3 p-4 bg-muted/30 border border-border/50 rounded-xl"
+          >
+            <ProgressiveIcon
+              iconPath={option.iconPath}
+              alt={option.sid}
+              size={64}
+              className="shrink-0"
+            />
+            <RichText
+              text={option.description}
+              className="text-muted-foreground text-sm leading-relaxed text-center block"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

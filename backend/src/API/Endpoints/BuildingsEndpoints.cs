@@ -314,6 +314,25 @@ public static class BuildingsEndpoints
                 .ToList();
         }
 
+        List<BuildingUpgradeOptionDto>? upgradeOptions = null;
+        if (building.OptionalEffectsPerLevel != null && levelIndex < building.OptionalEffectsPerLevel.Length)
+        {
+            var levelOptions = building.OptionalEffectsPerLevel[levelIndex];
+            if (levelOptions != null && levelOptions.Length > 0)
+            {
+                upgradeOptions = levelOptions
+                    .Select(o =>
+                    {
+                        var desc = ResolveText(o.DescSid, resolver, lang, ctx) ?? o.Sid;
+                        var iconPath = string.IsNullOrWhiteSpace(o.Icon)
+                            ? null
+                            : $"icons/cities_buildings/{o.Icon}";
+                        return new BuildingUpgradeOptionDto(o.Sid, iconPath, desc);
+                    })
+                    .ToList();
+            }
+        }
+
         var maxLevel = Math.Max(building.Names.Length, Math.Max(building.Descriptions.Length, 1));
         var id = $"{key}_L{level}";
 
@@ -326,9 +345,14 @@ public static class BuildingsEndpoints
             Description: description,
             IconPath: GetIconPath(building, level),
             Costs: costs,
+            CostLabel: lang.ResolveText("tooltipBuildingRequireResources"),
             Effects: effects,
             Requirements: requirements,
-            RecruitableUnits: recruitableUnits
+            RequirementsLabel: lang.ResolveText("tooltipBuildingRequire"),
+            RecruitableUnits: recruitableUnits,
+            RecruitableUnitsLabel: lang.ResolveText("hire_city_lable"),
+            UpgradeOptions: upgradeOptions,
+            UpgradesLabel: lang.ResolveText("tooltipBuildingMod")
         );
     }
 

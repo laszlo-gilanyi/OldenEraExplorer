@@ -20,20 +20,16 @@
   "label_chance": "шанс",
   "label_rewards": "Нагороди",
   "label_option": "Варіант",
-
   "label_common_rarity": "Звичайна",
   "label_rare_rarity": "Рідкісна",
   "label_epic_rarity": "Епічна",
   "label_legendary_rarity": "Легендарна",
-
   "none": "Нічого",
   "duration": "Тривалість: {0} дн.",
   "viewRadius": "{0} радіус огляду",
   "movementBonus": "{0} очок руху",
   "manaRestore": "{0} мани відновлюється щодня",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Юніти",
   "nav_abilities": "Здібності",
   "nav_heroes": "Герої",
@@ -48,14 +44,12 @@
   "nav_back": "Назад",
   "nav_home": "Головна",
   "nav_reload": "Перезавантажити",
-
   "common_language": "Мова",
   "common_loading": "Завантаження{0}...",
   "loading_checking_config": "Перевірка конфігурації гри...",
   "loading_game_data": "Завантаження ігрових даних...",
   "loading_detecting": "Виявлення інсталяції гри...",
   "loading_setting_path": "Встановлення шляху до гри...",
-
   "error_generic": "Щось пішло не так",
   "error_unknown": "Невідома помилка",
   "error_page_not_found": "Сторінку не знайдено",
@@ -65,11 +59,9 @@
   "error_server_msg": "Щось пішло не так на нашій стороні. Будь ласка, спробуйте ще раз пізніше.",
   "error_check_console": "Якщо проблема не зникає, перевірте консоль для отримання додаткової інформації.",
   "error_btn_technical_details": "Технічні деталі",
-
   "welcome_detecting": "Виявлення інсталяції гри...",
   "welcome_no_installs": "Інсталяцій гри не знайдено. Будь ласка, використовуйте кнопку Огляд для вибору папки гри.",
   "welcome_browse_btn": "Огляд...",
-
   "settings_header": "Налаштування",
   "settings_theme": "Тема",
   "settings_theme_system": "Системна",
@@ -79,7 +71,6 @@
   "settings_game_path": "Шлях до гри:",
   "settings_no_game_configured": "Гру не налаштовано",
   "settings_change_game": "Змінити",
-
   "extraction_offline": "Офлайн",
   "extraction_error": "Помилка",
   "extraction_done": "Виконано",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0}дн тому",
   "extraction_icons_count": "{0} зображень, {1} моделей",
   "extraction_auto_extract": "Автоматично вилучати ігрові ресурси",
-
   "search_placeholder": "Пошук...",
   "search_placeholder_entity": "Пошук {0}...",
   "search_no_results": "Результатів не знайдено для \"{0}\"",
-
   "load_failed": "Не вдалося завантажити {0}",
   "no_results": "{0} не знайдено",
   "total_count": "Всього {0} {1}",
   "filtered_count": "{0} з {1} {2}",
-
   "detail_error": "Помилка завантаження {0}: {1}",
   "detail_select": "Виберіть зі списку для перегляду деталей",
-
-
   "viewer_dropped": "[Видалено]",
   "viewer_size": "{0} МБ",
   "viewer_select": "Виберіть модель для перегляду",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Не вдалося завантажити модель",
   "viewer_close": "Закрити",
   "viewer_vfx_disclaimer": "Моделі не включають ефекти частинок, такі як світлові аури, вогонь/дим або магічні сліди через обмеження формату GLB.",
-
   "dropzone_hint": "або перетягніть файл .glb",
   "dropzone_text": "Перетягніть GLB-файл сюди",
   "dropzone_unsupported": "Підтримуються лише файли .glb",
-
   "usedby_loading": "Завантаження посилань...",
   "usedby_error": "Помилка завантаження посилань: {0}",
   "usedby_heroes_unit": "Герої, що починають з цим Юнітом",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Герої, що починають з цим Заклинанням",
   "usedby_creatures_ability": "Істоти з цією Здібністю",
   "usedby_default": "Використовується",
-  "building_prerequisites": "Вимоги",
-  "building_recruitable_units": "Наймані загони",
-
   "spell_mana": "Мана: {0}",
   "detail_level": "Рівень {0}",
-
   "entity_models": "моделі",
   "entity_unit": "юніт",
   "entity_ability": "здібність",
@@ -158,10 +138,8 @@
   "entity_building": "будівля",
   "entity_subclass": "підклас",
   "entity_faction_law": "закон фракції",
-
   "spell_category_global_map_magic": "Магія Глобальної Карти",
   "spell_category_skill_related": "Пов'язані з Навичкою",
-
   "heroes_show_campaign": "Показати героїв навчання / кампанії",
   "skills_show_arena": "Показати навички арени"
 }

@@ -20,20 +20,16 @@
   "label_chance": "几率",
   "label_rewards": "奖励",
   "label_option": "选项",
-
   "label_common_rarity": "一般",
   "label_rare_rarity": "稀有",
   "label_epic_rarity": "史诗",
   "label_legendary_rarity": "传奇",
-
   "none": "无",
   "duration": "持续时间：{0}天",
   "viewRadius": "{0} 视野范围",
   "movementBonus": "{0} 移动点数",
   "manaRestore": "每日恢复{0}魔力",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "单位",
   "nav_abilities": "能力",
   "nav_heroes": "英雄",
@@ -48,14 +44,12 @@
   "nav_back": "返回",
   "nav_home": "主页",
   "nav_reload": "重新加载",
-
   "common_language": "语言",
   "common_loading": "加载中{0}...",
   "loading_checking_config": "正在检查游戏配置...",
   "loading_game_data": "正在加载游戏数据...",
   "loading_detecting": "正在检测游戏安装...",
   "loading_setting_path": "正在设置游戏路径...",
-
   "error_generic": "发生错误",
   "error_unknown": "未知错误",
   "error_page_not_found": "页面未找到",
@@ -65,11 +59,9 @@
   "error_server_msg": "服务器端出现问题，请稍后再试。",
   "error_check_console": "如果问题持续存在，请检查控制台以获取更多详细信息。",
   "error_btn_technical_details": "技术细节",
-
   "welcome_detecting": "正在检测游戏安装...",
   "welcome_no_installs": "未找到游戏安装。请使用\"浏览\"选择游戏文件夹。",
   "welcome_browse_btn": "浏览...",
-
   "settings_header": "设置",
   "settings_theme": "主题",
   "settings_theme_system": "系统",
@@ -79,7 +71,6 @@
   "settings_game_path": "游戏路径：",
   "settings_no_game_configured": "未配置游戏",
   "settings_change_game": "更改",
-
   "extraction_offline": "离线",
   "extraction_error": "错误",
   "extraction_done": "完成",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0}天前",
   "extraction_icons_count": "{0}个图像，{1}个模型",
   "extraction_auto_extract": "自动提取游戏资源",
-
   "search_placeholder": "搜索...",
   "search_placeholder_entity": "搜索{0}...",
   "search_no_results": "未找到\"{0}\"的结果",
-
   "load_failed": "加载{0}失败",
   "no_results": "未找到{0}",
   "total_count": "共{0}个{1}",
   "filtered_count": "{1}个{2}中的{0}个",
-
   "detail_error": "加载{0}时出错：{1}",
   "detail_select": "从列表中选择以查看详细信息",
-
-
   "viewer_dropped": "[已丢弃]",
   "viewer_size": "{0} MB",
   "viewer_select": "选择要查看的模型",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "加载模型失败",
   "viewer_close": "关闭",
   "viewer_vfx_disclaimer": "由于GLB格式限制，模型不包括粒子效果，如发光光环、火焰/烟雾或魔法轨迹。",
-
   "dropzone_hint": "或拖放.glb文件",
   "dropzone_text": "将GLB文件拖放到此处",
   "dropzone_unsupported": "仅支持.glb文件",
-
   "usedby_loading": "正在加载引用...",
   "usedby_error": "加载引用时出错：{0}",
   "usedby_heroes_unit": "以此单位开局的英雄",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "以此法术开局的英雄",
   "usedby_creatures_ability": "拥有此能力的生物",
   "usedby_default": "使用者",
-  "building_prerequisites": "前提条件",
-  "building_recruitable_units": "可招募单位",
-
   "spell_mana": "法力：{0}",
   "detail_level": "等级 {0}",
-
   "entity_models": "模型",
   "entity_unit": "单位",
   "entity_ability": "能力",
@@ -158,10 +138,8 @@
   "entity_building": "建筑",
   "entity_subclass": "子类",
   "entity_faction_law": "阵营法则",
-
   "spell_category_global_map_magic": "全域地图魔法",
   "spell_category_skill_related": "技能相关",
-
   "heroes_show_campaign": "显示教程 / 战役英雄",
   "skills_show_arena": "显示竞技场技能"
 }

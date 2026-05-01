@@ -20,20 +20,16 @@
   "label_chance": "chance",
   "label_rewards": "Rewards",
   "label_option": "Option",
-
   "label_common_rarity": "Common",
   "label_rare_rarity": "Rare",
   "label_epic_rarity": "Epic",
   "label_legendary_rarity": "Legendary",
-
   "none": "Nothing",
   "duration": "Duration: {0} day(s)",
   "viewRadius": "{0} Sight radius",
   "movementBonus": "{0} Movement Points",
   "manaRestore": "{0} mana restored daily",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Units",
   "nav_abilities": "Abilities",
   "nav_heroes": "Heroes",
@@ -48,14 +44,12 @@
   "nav_back": "Go Back",
   "nav_home": "Home",
   "nav_reload": "Reload",
-
   "common_language": "Language",
   "common_loading": "Loading{0}...",
   "loading_checking_config": "Checking game configuration...",
   "loading_game_data": "Loading game data...",
   "loading_detecting": "Detecting game installation...",
   "loading_setting_path": "Setting game path...",
-
   "error_generic": "Something went wrong",
   "error_unknown": "Unknown error",
   "error_page_not_found": "Page not found",
@@ -65,11 +59,9 @@
   "error_server_msg": "Something went wrong on our end. Please try again later.",
   "error_check_console": "If this problem persists, please check the console for more details.",
   "error_btn_technical_details": "Technical Details",
-
   "welcome_detecting": "Detecting game installation...",
   "welcome_no_installs": "No game installations found. Please use Browse to select the game folder.",
   "welcome_browse_btn": "Browse...",
-
   "settings_header": "Settings",
   "settings_theme": "Theme",
   "settings_theme_system": "System",
@@ -79,7 +71,6 @@
   "settings_game_path": "Game path:",
   "settings_no_game_configured": "No game configured",
   "settings_change_game": "Change",
-
   "extraction_offline": "Offline",
   "extraction_error": "Error",
   "extraction_done": "Done",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0}d ago",
   "extraction_icons_count": "{0} images, {1} models",
   "extraction_auto_extract": "Auto extract game assets",
-
   "search_placeholder": "Search...",
   "search_placeholder_entity": "Search {0}...",
   "search_no_results": "No results found for \"{0}\"",
-
   "load_failed": "Failed to load {0}",
   "no_results": "No {0} found",
   "total_count": "{0} {1} total",
   "filtered_count": "{0} of {1} {2}",
-
   "detail_error": "Error loading {0}: {1}",
   "detail_select": "Select from the list to view details",
-
-
   "viewer_dropped": "[Dropped]",
   "viewer_size": "{0} MB",
   "viewer_select": "Select a model to view",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Failed to load model",
   "viewer_close": "Close",
   "viewer_vfx_disclaimer": "Models don't include particle effects like glowing auras, fire/smoke, or magical trails due to GLB format limitations.",
-
   "dropzone_hint": "or drag & drop a .glb file",
   "dropzone_text": "Drop GLB file here",
   "dropzone_unsupported": "Only .glb files are supported",
-
   "usedby_loading": "Loading references...",
   "usedby_error": "Error loading references: {0}",
   "usedby_heroes_unit": "Heroes starting with this Unit",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Heroes starting with this Spell",
   "usedby_creatures_ability": "Creatures with this Ability",
   "usedby_default": "Used By",
-  "building_prerequisites": "Prerequisites",
-  "building_recruitable_units": "Recruitable Units",
-
   "spell_mana": "Mana: {0}",
   "detail_level": "Level {0}",
-
   "entity_models": "models",
   "entity_unit": "unit",
   "entity_ability": "ability",
@@ -158,10 +138,8 @@
   "entity_building": "building",
   "entity_subclass": "subclass",
   "entity_faction_law": "faction law",
-
   "spell_category_global_map_magic": "Global Map Magic",
   "spell_category_skill_related": "Skill Related",
-
   "heroes_show_campaign": "Show Tutorial / Campaign Heroes",
   "skills_show_arena": "Show Arena Skills"
 }
