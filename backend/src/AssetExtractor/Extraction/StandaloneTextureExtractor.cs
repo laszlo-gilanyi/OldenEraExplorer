@@ -617,6 +617,17 @@ public class StandaloneTextureExtractor : IDisposable
             if (fileName == "unit_info_back" || fileName == "icon_lawspoint")
                 return true;
 
+            // EA unit hire background (replaces unit_info_back)
+            if (fileName == "city_background_unithire 3")
+                return true;
+
+            // Faction sky panoramas used by the 3D viewer
+            if (fileName is "demon_sky_texture" or "dungeon_sky_texture" or
+                "city_nature_sky" or "city_human_sky2" or "necro_sky_texture2" or
+                "unfrozen_sky_texture" or "grass_sky_texture" or "sand_sky_texture" or
+                "snow_sky_texture" or "campain_map_skybox")
+                return true;
+
             if (fileName.StartsWith("icon_difficulty_") &&
                 !fileName.Contains("_mouse_over") &&
                 !fileName.Contains("_selected"))

@@ -584,7 +584,7 @@ export default function ViewerPage() {
               <ErrorBoundary>
                 {glbUrl ? (
                   /* eslint-disable-next-line react-hooks/refs -- Ref access for Three.js stats container */
-                  <ModelViewer ref={modelViewerRef} glbUrl={glbUrl} statsContainer={viewerContainerRef.current} unitScale={selectedModel ? getScale(selectedModel) : null} />
+                  <ModelViewer ref={modelViewerRef} glbUrl={glbUrl} statsContainer={viewerContainerRef.current} unitScale={selectedModel ? getScale(selectedModel) : null} faction={isUnitListItem(selectedModel) ? selectedModel.faction : null} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground flex-col gap-3">
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

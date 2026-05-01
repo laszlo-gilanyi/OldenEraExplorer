@@ -44,6 +44,7 @@ interface ModelViewerProps {
   onModelLoaded?: () => void;
   statsContainer?: HTMLElement | null;
   unitScale?: number | null;
+  faction?: string | null;
 }
 
 class ThreeViewer {
@@ -102,6 +103,7 @@ class ThreeViewer {
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       preserveDrawingBuffer: true,
+      alpha: true,
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
@@ -565,13 +567,30 @@ class ThreeViewer {
     this.backgroundColor.set(color);
 
     if (displayMode === 'studio') {
-      // Studio: show=true -> neutralEnvironment, show=false -> backgroundColor
+      this.renderer.setClearAlpha(1);
       this.scene.background = show ? this.neutralEnvironment : this.backgroundColor;
     } else {
-      // Game-preview: show=true -> gameEnvironment (Cold Sunset), show=false -> gameBackground (unit_info_back)
-      this.scene.background = show
-        ? (this.gameEnvironment ?? this.backgroundColor)
-        : (this.gameBackground ?? this.backgroundColor);
+      if (show) {
+        // Show equirect skybox (Cold Sunset)
+        this.renderer.setClearAlpha(1);
+        this.scene.background = this.gameEnvironment ?? this.backgroundColor;
+      } else {
+        // CSS sky background handles the visual; canvas renders transparently on top
+        this.renderer.setClearAlpha(0);
+        this.scene.background = null;
+      }
+    }
+  }
+
+  setCanvasSkyBackground(url: string | null) {
+    const container = this.renderer.domElement.parentElement;
+    if (!container) return;
+    if (url) {
+      container.style.backgroundImage = `url(${url})`;
+      container.style.backgroundSize = 'cover';
+      container.style.backgroundPosition = 'center top';
+    } else {
+      container.style.backgroundImage = '';
     }
   }
 
@@ -598,7 +617,10 @@ class ThreeViewer {
     ambientIntensity: number,
     ambientColor: string,
     directionalIntensity: number,
-    directionalColor: string
+    directionalColor: string,
+    // Spherical angles from unit_hire_preview_lighting.asset
+    zenithDeg = 59.5,
+    azimuthDeg = 322
   ) {
     // Remove existing lights
     this.lights.forEach((light) => {
@@ -610,13 +632,19 @@ class ThreeViewer {
 
     const ambient = new THREE.AmbientLight(ambientColor, ambientIntensity);
     ambient.name = 'ambient_light';
-    this.camera.add(ambient);
+    this.scene.add(ambient);
     this.lights.push(ambient);
 
     const directional = new THREE.DirectionalLight(directionalColor, directionalIntensity);
-    directional.position.set(0.5, 0, 0.866); // ~60° angle from camera
+    const zenithRad = (zenithDeg * Math.PI) / 180;
+    const azimuthRad = (azimuthDeg * Math.PI) / 180;
+    directional.position.set(
+      Math.sin(zenithRad) * Math.sin(azimuthRad),
+      Math.cos(zenithRad),
+      Math.sin(zenithRad) * Math.cos(azimuthRad)
+    );
     directional.name = 'main_light';
-    this.camera.add(directional);
+    this.scene.add(directional);
     this.lights.push(directional);
   }
 
@@ -1478,8 +1506,6 @@ class ThreeViewer {
 
     console.log(`[Platform] size: [${this.platformSize.x.toFixed(4)}, ${this.platformSize.y.toFixed(4)}, ${this.platformSize.z.toFixed(4)}]`);
 
-    // 3. Now apply rotation (90° so arrow points toward +Z)
-    this.platformGroup.rotation.set(0, Math.PI / 2, 0);
     this.platformGroup.updateWorldMatrix(true, true);
 
     // 4. Get rotated platform bounds for positioning
@@ -1717,7 +1743,7 @@ class ThreeViewer {
 }
 
 const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
-  function ModelViewer({ glbUrl, onModelLoaded, statsContainer, unitScale }, ref) {
+  function ModelViewer({ glbUrl, onModelLoaded, statsContainer, unitScale, faction }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewerRef = useRef<ThreeViewer | null>(null);
     const [viewerReady, setViewerReady] = useState(false);
@@ -2064,23 +2090,17 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
       };
     }, [displayMode, showPlatform, loading, unitScale]);
 
-    // Load game-preview environment and background
+    // Load game-preview environment (Cold Sunset equirect for IBL)
     useEffect(() => {
       const viewer = viewerRef.current;
       if (!viewer || displayMode !== 'game-preview') return;
 
       let canceled = false;
       let environmentBlobUrl: string | null = null;
-      let backgroundBlobUrl: string | null = null;
 
       const loadGameAssets = async () => {
         try {
-          // Fetch both in parallel
-          const [envResponse, bgResponse] = await Promise.all([
-            fetch('/api/viewer/environment'),
-            fetch('/api/viewer/background'),
-          ]);
-
+          const envResponse = await fetch('/api/viewer/environment');
           if (canceled) return;
 
           if (envResponse.ok) {
@@ -2091,17 +2111,8 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
               viewer.setEnvironment(displayMode);
             }
           }
-
-          if (bgResponse.ok && !canceled) {
-            const blob = await bgResponse.blob();
-            backgroundBlobUrl = URL.createObjectURL(blob);
-            if (!canceled) {
-              await viewer.loadGameBackground(backgroundBlobUrl);
-              viewer.setBackground(showBackground, backgroundColor, displayMode);
-            }
-          }
         } catch (err) {
-          console.warn('Failed to load game-preview assets:', err);
+          console.warn('Failed to load game-preview environment:', err);
         }
       };
 
@@ -2110,9 +2121,44 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
       return () => {
         canceled = true;
         if (environmentBlobUrl) URL.revokeObjectURL(environmentBlobUrl);
-        if (backgroundBlobUrl) URL.revokeObjectURL(backgroundBlobUrl);
       };
-    }, [displayMode, showBackground, backgroundColor]);
+    }, [displayMode]);
+
+    // Load faction-specific sky as CSS background
+    useEffect(() => {
+      const viewer = viewerRef.current;
+      if (!viewer) return;
+
+      if (displayMode !== 'game-preview' || !faction) {
+        viewer.setCanvasSkyBackground(null);
+        return;
+      }
+
+      let canceled = false;
+      let skyBlobUrl: string | null = null;
+
+      const loadSky = async () => {
+        try {
+          const response = await fetch(`/api/viewer/sky/${encodeURIComponent(faction)}`);
+          if (canceled || !response.ok) return;
+          const blob = await response.blob();
+          skyBlobUrl = URL.createObjectURL(blob);
+          if (!canceled) viewer.setCanvasSkyBackground(skyBlobUrl);
+        } catch (err) {
+          console.warn('Failed to load faction sky:', err);
+        }
+      };
+
+      loadSky();
+
+      return () => {
+        canceled = true;
+        if (skyBlobUrl) {
+          URL.revokeObjectURL(skyBlobUrl);
+          viewer.setCanvasSkyBackground(null);
+        }
+      };
+    }, [displayMode, faction]);
 
     // Keyboard shortcuts
     useEffect(() => {

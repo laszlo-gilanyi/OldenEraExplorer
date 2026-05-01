@@ -28,6 +28,12 @@ public static class ViewerEndpoints
             .Produces(200, contentType: "image/png")
             .Produces<ErrorDto>(404);
 
+        group.MapGet("/sky/{faction}", GetFactionSky)
+            .WithName("GetFactionSky")
+            .WithSummary("Get the faction-specific sky panorama for Game Preview background")
+            .Produces(200, contentType: "image/png")
+            .Produces<ErrorDto>(404);
+
         return endpoints;
     }
 
@@ -46,7 +52,9 @@ public static class ViewerEndpoints
 
     private static IResult GetBackground(IAssetServingService assetService)
     {
-        var path = ResolveAssetPath(assetService.ExtractedAssetsDirectory, "Assets", "Texture2D", "unit_info_back.png");
+        // EA renamed the unit hire background; fall back to the pre-EA name
+        var path = ResolveAssetPath(assetService.ExtractedAssetsDirectory, "Assets", "Texture2D", "City_Background_Unithire 3.png")
+                ?? ResolveAssetPath(assetService.ExtractedAssetsDirectory, "Assets", "Texture2D", "unit_info_back.png");
 
         if (path == null || !File.Exists(path))
         {
@@ -54,7 +62,7 @@ public static class ViewerEndpoints
         }
 
         var fileBytes = File.ReadAllBytes(path);
-        return Results.File(fileBytes, "image/png", "unit_info_back.png");
+        return Results.File(fileBytes, "image/png", Path.GetFileName(path));
     }
 
     private static IResult GetEnvironment(IAssetServingService assetService)
@@ -68,6 +76,28 @@ public static class ViewerEndpoints
 
         var fileBytes = File.ReadAllBytes(path);
         return Results.File(fileBytes, "image/png", "Cold Sunset Equirect.png");
+    }
+
+    private static IResult GetFactionSky(string faction, IAssetServingService assetService)
+    {
+        var skyFileName = faction.ToLowerInvariant() switch
+        {
+            "human"    => "city_human_sky2.png",
+            "demon"    => "demon_sky_texture.png",
+            "dungeon"  => "dungeon_sky_texture.png",
+            "nature"   => "city_nature_sky.png",
+            "undead"   => "necro_sky_texture2.png",
+            "unfrozen" => "unfrozen_sky_texture.png",
+            _          => "Grass_sky_texture.png",
+        };
+
+        var path = ResolveAssetPath(assetService.ExtractedAssetsDirectory, "Assets", "Texture2D", skyFileName);
+
+        if (path == null || !File.Exists(path))
+            return Results.NotFound(new ErrorDto($"Sky texture for faction '{faction}' not found. Run extraction first."));
+
+        var fileBytes = File.ReadAllBytes(path);
+        return Results.File(fileBytes, "image/png", skyFileName);
     }
 
     private static string? ResolvePlatformGlbPath(string extractedDir)
