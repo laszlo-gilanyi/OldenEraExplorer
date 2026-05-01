@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using API.Utilities;
@@ -31,28 +32,50 @@ public class LocaleDiscoveryService
         var locales = new List<string>();
         var langDir = Path.Combine(streamingAssetsRoot, "Lang");
 
-        if (!Directory.Exists(langDir))
+        if (Directory.Exists(langDir))
         {
-            _logger.LogWarning("Lang directory not found: {LangDir}", langDir);
-            return locales;
+            foreach (var dir in Directory.EnumerateDirectories(langDir))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var localeName = Path.GetFileName(dir);
+                if (string.IsNullOrEmpty(localeName))
+                    continue;
+
+                if (Directory.Exists(Path.Combine(dir, "texts")))
+                    locales.Add(localeName);
+                else
+                    _logger.LogDebug("Skipping incomplete locale (no texts/ folder): {Locale}", localeName);
+            }
         }
-
-        foreach (var dir in Directory.EnumerateDirectories(langDir))
+        else
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var localeName = Path.GetFileName(dir);
-            if (string.IsNullOrEmpty(localeName))
-                continue;
-
-            if (Directory.Exists(Path.Combine(dir, "texts")))
+            // EA build: Lang is inside Core.zip
+            var coreZipPath = Path.Combine(streamingAssetsRoot, "Core.zip");
+            if (!File.Exists(coreZipPath))
             {
-                locales.Add(localeName);
+                _logger.LogWarning("Neither Lang directory nor Core.zip found in: {Root}", streamingAssetsRoot);
+                return locales;
             }
-            else
+
+            using var zip = ZipFile.OpenRead(coreZipPath);
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in zip.Entries)
             {
-                _logger.LogDebug("Skipping incomplete locale (no texts/ folder): {Locale}", localeName);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Match: Lang/<locale>/texts/<file>.json
+                var parts = entry.FullName.Split('/');
+                if (parts.Length >= 4 &&
+                    parts[0].Equals("Lang", StringComparison.OrdinalIgnoreCase) &&
+                    parts[2].Equals("texts", StringComparison.OrdinalIgnoreCase) &&
+                    entry.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                {
+                    seen.Add(parts[1]);
+                }
             }
+
+            locales.AddRange(seen);
         }
 
         var comparer = new NaturalStringComparer();

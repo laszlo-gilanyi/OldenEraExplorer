@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -76,11 +77,25 @@ public static class GameLocator
             var coreZip = Path.Combine(root, "Core.zip");
             if (!File.Exists(coreZip)) return false;
 
+            // Demo: Lang is on disk
             foreach (var loc in BuildLocaleProbeOrder(preferredLocale))
             {
                 var texts = Path.Combine(root, "Lang", loc, "texts");
                 if (Directory.Exists(texts) &&
                     Directory.EnumerateFiles(texts, "*.json", SearchOption.TopDirectoryOnly).Any())
+                {
+                    return true;
+                }
+            }
+
+            // EA: Lang is inside Core.zip
+            using var zip = ZipFile.OpenRead(coreZip);
+            foreach (var loc in BuildLocaleProbeOrder(preferredLocale))
+            {
+                var prefix = $"Lang/{loc}/texts/";
+                if (zip.Entries.Any(e =>
+                    e.FullName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                    e.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
                 {
                     return true;
                 }
@@ -158,6 +173,7 @@ public static class GameLocator
 
             var localeOrder = BuildLocaleProbeOrder(preferredLocale);
 
+            // Demo: Lang on disk
             foreach (var loc in localeOrder)
             {
                 var texts = Path.Combine(streamingAssets, "Lang", loc, "texts");
@@ -171,6 +187,33 @@ public static class GameLocator
                 }
             }
 
+            // EA: Lang inside Core.zip
+            if (!localeOk)
+            {
+                var coreZip = Path.Combine(streamingAssets, "Core.zip");
+                if (File.Exists(coreZip))
+                {
+                    try
+                    {
+                        using var zip = ZipFile.OpenRead(coreZip);
+                        foreach (var loc in localeOrder)
+                        {
+                            var prefix = $"Lang/{loc}/texts/";
+                            if (zip.Entries.Any(e =>
+                                e.FullName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                                e.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                localeOk = true;
+                                reasons.Add($"+2 Lang/{loc}/texts ok (Core.zip)");
+                                score += 2;
+                                break;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+
             if (!localeOk) return null;
 
             var name = Path.GetFileName(gameRoot) ?? "";
@@ -181,10 +224,10 @@ public static class GameLocator
                 reasons.Add("+3 folder name contains 'Olden Era'");
             }
 
-            if (Directory.EnumerateFiles(gameRoot, "HeroesOE*.exe", SearchOption.TopDirectoryOnly).Any())
+            if (Directory.EnumerateFiles(gameRoot, "Heroes*.exe", SearchOption.TopDirectoryOnly).Any())
             {
                 score += 2;
-                reasons.Add("+2 HeroesOE*.exe found");
+                reasons.Add("+2 Heroes*.exe found");
             }
 
             if (Regex.IsMatch(name, @"(?i)(Playtest|Demo|Early\s*Access|EA|Dev)"))
@@ -228,7 +271,8 @@ public static class GameLocator
                 try
                 {
                     var n = p.ProcessName;
-                    if (!n.StartsWith("HeroesOE", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!n.StartsWith("HeroesOE", StringComparison.OrdinalIgnoreCase) &&
+                        !n.StartsWith("HeroesOldenEra", StringComparison.OrdinalIgnoreCase)) continue;
 
                     var exe = p.MainModule?.FileName;
                     if (string.IsNullOrWhiteSpace(exe)) continue;

@@ -138,9 +138,7 @@ public static class MapObjectsEndpoints
             ));
         }
 
-        var streamingAssetsPath = !string.IsNullOrEmpty(gamePathService.GameRoot)
-            ? System.IO.Path.Combine(gamePathService.GameRoot, "HeroesOE_Data", "StreamingAssets")
-            : null;
+        var streamingAssetsPath = gamePathService.StreamingAssetsPath;
 
         var dto = mapObjectDetailsService.GetDetails(
             mapObject,

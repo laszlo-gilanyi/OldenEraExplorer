@@ -101,20 +101,16 @@ public sealed class GamePathDetector
             if (!Directory.Exists(path))
                 return null;
 
-            // If path ends with HeroesOE_Data, use it directly
-            if (Path.GetFileName(path).Equals("HeroesOE_Data", StringComparison.OrdinalIgnoreCase))
+            // If path itself is a *_Data directory, use it directly
+            if (Path.GetFileName(path).EndsWith("_Data", StringComparison.OrdinalIgnoreCase))
             {
                 return ValidateDataDirectory(path) ? path : null;
             }
 
-            // Check if HeroesOE_Data is a subdirectory
-            var dataPath = Path.Combine(path, "HeroesOE_Data");
-            if (Directory.Exists(dataPath) && ValidateDataDirectory(dataPath))
-            {
-                return dataPath;
-            }
-
-            return null;
+            // Check for any *_Data subdirectory
+            var dataDir = Directory.EnumerateDirectories(path, "*_Data", SearchOption.TopDirectoryOnly)
+                .FirstOrDefault(d => ValidateDataDirectory(d));
+            return dataDir;
         }
         catch
         {
@@ -343,8 +339,9 @@ public sealed class GamePathDetector
             if (!dirNameLower.Contains("olden") && !dirNameLower.Contains("heroes"))
                 return null;
 
-            var dataPath = Path.Combine(directory, "HeroesOE_Data");
-            if (!Directory.Exists(dataPath))
+            var dataPath = Directory.EnumerateDirectories(directory, "*_Data", SearchOption.TopDirectoryOnly)
+                .FirstOrDefault();
+            if (dataPath is null)
                 return null;
 
             // Calculate score
@@ -362,6 +359,8 @@ public sealed class GamePathDetector
             // +2: Executable found
             var exePaths = new[]
             {
+                Path.Combine(directory, "HeroesOldenEra.exe"),
+                Path.Combine(directory, "HeroesOldenEra"),
                 Path.Combine(directory, "HeroesOE.exe"),
                 Path.Combine(directory, "HeroesOE"),
             };

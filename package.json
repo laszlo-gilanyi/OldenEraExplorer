@@ -17,7 +17,8 @@
     "dev:frontend": "wait-on tcp:5176 && npm run dev --prefix frontend"
   },
   "overrides": {
-    "@types/three": "0.176.0"
+    "@types/three": "0.176.0",
+    "axios": "1.15.2"
   },
   "devDependencies": {
     "concurrently": "9.1.2",

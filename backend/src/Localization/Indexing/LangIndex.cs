@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -52,56 +53,97 @@ public sealed partial class LangIndex
             foreach (var jsonPath in Directory.EnumerateFiles(argsDir, "*.json"))
             {
                 using var fs = File.OpenRead(jsonPath);
-                using var doc = JsonDocument.Parse(fs);
-                if (!doc.RootElement.TryGetProperty("tokensArgs", out var arr) || arr.ValueKind != JsonValueKind.Array)
-                    continue;
-
-                foreach (var a in arr.EnumerateArray())
+                LoadArgsFromStream(fs);
+            }
+        }
+        else
+        {
+            // EA build: args are inside Core.zip
+            var coreZipPath = Path.Combine(_streamingAssetsRoot, "Core.zip");
+            if (File.Exists(coreZipPath))
+            {
+                using var zip = ZipFile.OpenRead(coreZipPath);
+                foreach (var entry in zip.Entries.Where(e =>
+                    e.FullName.StartsWith("Lang/args/", StringComparison.OrdinalIgnoreCase) &&
+                    e.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
                 {
-                    var sid = a.TryGetProperty("sid", out var sidEl) ? sidEl.GetString() ?? "" : "";
-                    if (string.IsNullOrWhiteSpace(sid)) continue;
-
-                    var args = a.TryGetProperty("args", out var argsEl) && argsEl.ValueKind == JsonValueKind.Array
-                        ? argsEl.EnumerateArray().Select(x => x.GetString() ?? "").ToArray()
-                        : Array.Empty<string>();
-
-                    _argsBySid[sid] = args;
+                    using var stream = entry.Open();
+                    LoadArgsFromStream(stream);
                 }
             }
+        }
+    }
+
+    private void LoadArgsFromStream(Stream stream)
+    {
+        using var doc = JsonDocument.Parse(stream);
+        if (!doc.RootElement.TryGetProperty("tokensArgs", out var arr) || arr.ValueKind != JsonValueKind.Array)
+            return;
+
+        foreach (var a in arr.EnumerateArray())
+        {
+            var sid = a.TryGetProperty("sid", out var sidEl) ? sidEl.GetString() ?? "" : "";
+            if (string.IsNullOrWhiteSpace(sid)) continue;
+
+            var args = a.TryGetProperty("args", out var argsEl) && argsEl.ValueKind == JsonValueKind.Array
+                ? argsEl.EnumerateArray().Select(x => x.GetString() ?? "").ToArray()
+                : Array.Empty<string>();
+
+            _argsBySid[sid] = args;
         }
     }
 
     private void LoadTextsForLocale(string locale, bool overwriteExisting = true)
     {
         var textsDir = Path.Combine(_streamingAssetsRoot, "Lang", locale, "texts");
-        if (!Directory.Exists(textsDir)) return;
-
-        foreach (var jsonPath in Directory.EnumerateFiles(textsDir, "*.json"))
+        if (Directory.Exists(textsDir))
         {
-            using var fs = File.OpenRead(jsonPath);
-            using var doc = JsonDocument.Parse(fs);
-            if (!doc.RootElement.TryGetProperty("tokens", out var arr) || arr.ValueKind != JsonValueKind.Array)
-                continue;
-
-            var fileName = Path.GetFileNameWithoutExtension(jsonPath);
-            foreach (var t in arr.EnumerateArray())
+            foreach (var jsonPath in Directory.EnumerateFiles(textsDir, "*.json"))
             {
-                var sid = t.TryGetProperty("sid", out var sidEl) ? sidEl.GetString() ?? "" : "";
-                if (string.IsNullOrWhiteSpace(sid)) continue;
-
-                var text = t.TryGetProperty("text", out var txtEl) ? txtEl.GetString() ?? "" : "";
-
-                var entry = new ResolvedEntry(
-                    sid,
-                    text,
-                    fileName,
-                    Category: fileName,
-                    HasPlaceholders: PlaceholderRx().IsMatch(text ?? "")
-                );
-
-                if (overwriteExisting || !_bySid.ContainsKey(sid))
-                    _bySid[sid] = entry;
+                using var fs = File.OpenRead(jsonPath);
+                LoadTextsFromStream(fs, Path.GetFileNameWithoutExtension(jsonPath), overwriteExisting);
             }
+            return;
+        }
+
+        // EA build: texts are inside Core.zip
+        var coreZipPath = Path.Combine(_streamingAssetsRoot, "Core.zip");
+        if (!File.Exists(coreZipPath)) return;
+
+        var prefix = $"Lang/{locale}/texts/";
+        using var zip = ZipFile.OpenRead(coreZipPath);
+        foreach (var entry in zip.Entries.Where(e =>
+            e.FullName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+            e.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+        {
+            using var stream = entry.Open();
+            LoadTextsFromStream(stream, Path.GetFileNameWithoutExtension(entry.Name), overwriteExisting);
+        }
+    }
+
+    private void LoadTextsFromStream(Stream stream, string fileName, bool overwriteExisting)
+    {
+        using var doc = JsonDocument.Parse(stream);
+        if (!doc.RootElement.TryGetProperty("tokens", out var arr) || arr.ValueKind != JsonValueKind.Array)
+            return;
+
+        foreach (var t in arr.EnumerateArray())
+        {
+            var sid = t.TryGetProperty("sid", out var sidEl) ? sidEl.GetString() ?? "" : "";
+            if (string.IsNullOrWhiteSpace(sid)) continue;
+
+            var text = t.TryGetProperty("text", out var txtEl) ? txtEl.GetString() ?? "" : "";
+
+            var entry = new ResolvedEntry(
+                sid,
+                text,
+                fileName,
+                Category: fileName,
+                HasPlaceholders: PlaceholderRx().IsMatch(text ?? "")
+            );
+
+            if (overwriteExisting || !_bySid.ContainsKey(sid))
+                _bySid[sid] = entry;
         }
     }
 
