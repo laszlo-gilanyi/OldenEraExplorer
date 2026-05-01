@@ -20,20 +20,16 @@
   "label_chance": "şans",
   "label_rewards": "Ödüller",
   "label_option": "Seçenek",
-
   "label_common_rarity": "Sıradan",
   "label_rare_rarity": "Nadir",
   "label_epic_rarity": "Destansı",
   "label_legendary_rarity": "Efsanevi",
-
   "none": "Hiçbiri",
   "duration": "Süre: {0} gün",
   "viewRadius": "{0} görüş mesafesi",
   "movementBonus": "{0} hareket puanı",
   "manaRestore": "Günlük {0} mana yenilenir",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Birimler",
   "nav_abilities": "Yetenekler",
   "nav_heroes": "Kahramanlar",
@@ -48,14 +44,12 @@
   "nav_back": "Geri Dön",
   "nav_home": "Ana Sayfa",
   "nav_reload": "Yenile",
-
   "common_language": "Dil",
   "common_loading": "Yükleniyor{0}...",
   "loading_checking_config": "Oyun yapılandırması kontrol ediliyor...",
   "loading_game_data": "Oyun verileri yükleniyor...",
   "loading_detecting": "Oyun kurulumu algılanıyor...",
   "loading_setting_path": "Oyun yolu ayarlanıyor...",
-
   "error_generic": "Bir şeyler yanlış gitti",
   "error_unknown": "Bilinmeyen hata",
   "error_page_not_found": "Sayfa bulunamadı",
@@ -65,11 +59,9 @@
   "error_server_msg": "Bizim tarafımızda bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.",
   "error_check_console": "Bu sorun devam ederse, lütfen daha fazla ayrıntı için konsolu kontrol edin.",
   "error_btn_technical_details": "Teknik Detaylar",
-
   "welcome_detecting": "Oyun kurulumu algılanıyor...",
   "welcome_no_installs": "Oyun kurulumu bulunamadı. Lütfen oyun klasörünü seçmek için Gözat'ı kullanın.",
   "welcome_browse_btn": "Gözat...",
-
   "settings_header": "Ayarlar",
   "settings_theme": "Tema",
   "settings_theme_system": "Sistem",
@@ -79,7 +71,6 @@
   "settings_game_path": "Oyun yolu:",
   "settings_no_game_configured": "Yapılandırılmış oyun yok",
   "settings_change_game": "Değiştir",
-
   "extraction_offline": "Çevrimdışı",
   "extraction_error": "Hata",
   "extraction_done": "Tamamlandı",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0}g önce",
   "extraction_icons_count": "{0} görsel, {1} model",
   "extraction_auto_extract": "Oyun varlıklarını otomatik çıkar",
-
   "search_placeholder": "Ara...",
   "search_placeholder_entity": "{0} ara...",
   "search_no_results": "\"{0}\" için sonuç bulunamadı",
-
   "load_failed": "{0} yüklenemedi",
   "no_results": "{0} bulunamadı",
   "total_count": "Toplam {0} {1}",
   "filtered_count": "{1} {2} içinden {0}",
-
   "detail_error": "{0} yüklenirken hata: {1}",
   "detail_select": "Detayları görüntülemek için listeden seçin",
-
-
   "viewer_dropped": "[Çıkarıldı]",
   "viewer_size": "{0} MB",
   "viewer_select": "Görüntülemek için bir model seçin",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Model yüklenemedi",
   "viewer_close": "Kapat",
   "viewer_vfx_disclaimer": "Modeller, GLB formatı sınırlamaları nedeniyle parlayan auralar, ateş/duman veya büyülü izler gibi partikül efektlerini içermez.",
-
   "dropzone_hint": "veya bir .glb dosyasını sürükleyip bırakın",
   "dropzone_text": "GLB dosyasını buraya bırakın",
   "dropzone_unsupported": "Yalnızca .glb dosyaları desteklenir",
-
   "usedby_loading": "Referanslar yükleniyor...",
   "usedby_error": "Referanslar yüklenirken hata: {0}",
   "usedby_heroes_unit": "Bu Birimle başlayan Kahramanlar",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Bu Büyüyle başlayan Kahramanlar",
   "usedby_creatures_ability": "Bu Yeteneğe sahip Yaratıklar",
   "usedby_default": "Kullanan",
-  "building_prerequisites": "Önkoşullar",
-  "building_recruitable_units": "Askere alınabilir birimler",
-
   "spell_mana": "Mana: {0}",
   "detail_level": "Seviye {0}",
-
   "entity_models": "modeller",
   "entity_unit": "birim",
   "entity_ability": "yetenek",
@@ -158,10 +138,8 @@
   "entity_building": "bina",
   "entity_subclass": "alt sınıf",
   "entity_faction_law": "fraksiyon kanunu",
-
   "spell_category_global_map_magic": "Küresel Harita Büyüsü",
   "spell_category_skill_related": "Yetenek İlgili",
-
   "heroes_show_campaign": "Öğretici / Kampanya Kahramanlarını Göster",
   "skills_show_arena": "Arena Yeteneklerini Göster"
 }

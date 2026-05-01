@@ -20,20 +20,16 @@
   "label_chance": "probabilidad",
   "label_rewards": "Recompensas",
   "label_option": "Opción",
-
   "label_common_rarity": "Común",
   "label_rare_rarity": "Rara",
   "label_epic_rarity": "Épica",
   "label_legendary_rarity": "Legendaria",
-
   "none": "Nada",
   "duration": "Duración: {0} día(s)",
   "viewRadius": "{0} radio de visión",
   "movementBonus": "{0} puntos de movimiento",
   "manaRestore": "{0} maná restaurado diariamente",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Unidades",
   "nav_abilities": "Aptitudes",
   "nav_heroes": "Héroes",
@@ -48,14 +44,12 @@
   "nav_back": "Atrás",
   "nav_home": "Inicio",
   "nav_reload": "Recargar",
-
   "common_language": "Idioma",
   "common_loading": "Cargando{0}...",
   "loading_checking_config": "Comprobando configuración del juego...",
   "loading_game_data": "Cargando datos del juego...",
   "loading_detecting": "Detectando instalación del juego...",
   "loading_setting_path": "Estableciendo ruta del juego...",
-
   "error_generic": "Algo salió mal",
   "error_unknown": "Error desconocido",
   "error_page_not_found": "Página no encontrada",
@@ -65,11 +59,9 @@
   "error_server_msg": "Algo salió mal de nuestra parte. Por favor, inténtalo de nuevo más tarde.",
   "error_check_console": "Si este problema persiste, por favor revisa la consola para más detalles.",
   "error_btn_technical_details": "Detalles técnicos",
-
   "welcome_detecting": "Detectando instalación del juego...",
   "welcome_no_installs": "No se encontraron instalaciones del juego. Por favor, usa Examinar para seleccionar la carpeta del juego.",
   "welcome_browse_btn": "Examinar...",
-
   "settings_header": "Ajustes",
   "settings_theme": "Tema",
   "settings_theme_system": "Sistema",
@@ -79,7 +71,6 @@
   "settings_game_path": "Ruta del juego:",
   "settings_no_game_configured": "No hay juego configurado",
   "settings_change_game": "Cambiar",
-
   "extraction_offline": "Sin conexión",
   "extraction_error": "Error",
   "extraction_done": "Hecho",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "hace {0}d",
   "extraction_icons_count": "{0} imágenes, {1} modelos",
   "extraction_auto_extract": "Extraer automáticamente recursos del juego",
-
   "search_placeholder": "Buscar...",
   "search_placeholder_entity": "Buscar {0}...",
   "search_no_results": "No se encontraron resultados para \"{0}\"",
-
   "load_failed": "Error al cargar {0}",
   "no_results": "No se encontraron {0}",
   "total_count": "{0} {1} en total",
   "filtered_count": "{0} de {1} {2}",
-
   "detail_error": "Error al cargar {0}: {1}",
   "detail_select": "Selecciona de la lista para ver detalles",
-
-
   "viewer_dropped": "[Descartado]",
   "viewer_size": "{0} MB",
   "viewer_select": "Selecciona un modelo para ver",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Error al cargar modelo",
   "viewer_close": "Cerrar",
   "viewer_vfx_disclaimer": "Los modelos no incluyen efectos de partículas como auras brillantes, fuego/humo o rastros mágicos debido a las limitaciones del formato GLB.",
-
   "dropzone_hint": "o arrastra y suelta un archivo .glb",
   "dropzone_text": "Suelta el archivo GLB aquí",
   "dropzone_unsupported": "Solo se admiten archivos .glb",
-
   "usedby_loading": "Cargando referencias...",
   "usedby_error": "Error al cargar referencias: {0}",
   "usedby_heroes_unit": "Héroes que empiezan con esta Unidad",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Héroes que empiezan con este Hechizo",
   "usedby_creatures_ability": "Criaturas con esta Aptitud",
   "usedby_default": "Usado por",
-  "building_prerequisites": "Requisitos",
-  "building_recruitable_units": "Unidades reclutables",
-
   "spell_mana": "Maná: {0}",
   "detail_level": "Nivel {0}",
-
   "entity_models": "modelos",
   "entity_unit": "unidad",
   "entity_ability": "aptitud",
@@ -158,10 +138,8 @@
   "entity_building": "edificio",
   "entity_subclass": "subclase",
   "entity_faction_law": "ley de facción",
-
   "spell_category_global_map_magic": "Magia del Mapa Global",
   "spell_category_skill_related": "Relacionado con Habilidad",
-
   "heroes_show_campaign": "Mostrar héroes de tutorial / campaña",
   "skills_show_arena": "Mostrar habilidades de arena"
 }

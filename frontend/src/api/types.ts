@@ -604,9 +604,20 @@ export interface BuildingDetailDto {
   description: string | null;
   iconPath: string | null;
   costs: BuildingCostDto[] | null;
+  costLabel: string | null;
   effects: BuildingEffectDto[] | null;
   requirements: BuildingRequirementDto[] | null;
+  requirementsLabel: string | null;
   recruitableUnits: RecruitableUnitDto[] | null;
+  recruitableUnitsLabel: string | null;
+  upgradeOptions: BuildingUpgradeOptionDto[] | null;
+  upgradesLabel: string | null;
+}
+
+export interface BuildingUpgradeOptionDto {
+  sid: string;
+  iconPath: string | null;
+  description: string;
 }
 
 export interface BuildingCostDto {

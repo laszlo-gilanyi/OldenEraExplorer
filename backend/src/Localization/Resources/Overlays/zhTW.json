@@ -20,20 +20,16 @@
   "label_chance": "機率",
   "label_rewards": "獎勵",
   "label_option": "選項",
-
   "label_common_rarity": "一般",
   "label_rare_rarity": "稀有",
   "label_epic_rarity": "史詩",
   "label_legendary_rarity": "傳奇",
-
   "none": "無",
   "duration": "持續時間：{0}天",
   "viewRadius": "{0} 視野範圍",
   "movementBonus": "{0} 移動點數",
   "manaRestore": "每日恢復{0}魔力",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "單位",
   "nav_abilities": "能力",
   "nav_heroes": "英雄",
@@ -48,14 +44,12 @@
   "nav_back": "返回",
   "nav_home": "主頁",
   "nav_reload": "重新載入",
-
   "common_language": "語言",
   "common_loading": "載入中{0}...",
   "loading_checking_config": "正在檢查遊戲設定...",
   "loading_game_data": "正在載入遊戲資料...",
   "loading_detecting": "正在偵測遊戲安裝...",
   "loading_setting_path": "正在設定遊戲路徑...",
-
   "error_generic": "發生錯誤",
   "error_unknown": "未知錯誤",
   "error_page_not_found": "找不到頁面",
@@ -65,11 +59,9 @@
   "error_server_msg": "伺服器發生問題。請稍後再試。",
   "error_check_console": "如果問題持續發生，請檢查主控台以獲取更多詳細資訊。",
   "error_btn_technical_details": "技術細節",
-
   "welcome_detecting": "正在偵測遊戲安裝...",
   "welcome_no_installs": "找不到遊戲安裝。請使用「瀏覽」來選擇遊戲資料夾。",
   "welcome_browse_btn": "瀏覽...",
-
   "settings_header": "設定",
   "settings_theme": "主題",
   "settings_theme_system": "系統",
@@ -79,7 +71,6 @@
   "settings_game_path": "遊戲路徑：",
   "settings_no_game_configured": "未設定遊戲",
   "settings_change_game": "變更",
-
   "extraction_offline": "離線",
   "extraction_error": "錯誤",
   "extraction_done": "完成",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0} 天前",
   "extraction_icons_count": "{0} 張圖片，{1} 個模型",
   "extraction_auto_extract": "自動解壓縮遊戲資源",
-
   "search_placeholder": "搜尋...",
   "search_placeholder_entity": "搜尋 {0}...",
   "search_no_results": "找不到「{0}」的結果",
-
   "load_failed": "載入 {0} 失敗",
   "no_results": "找不到 {0}",
   "total_count": "共 {0} 個 {1}",
   "filtered_count": "{1} 個 {2} 中的 {0} 個",
-
   "detail_error": "載入 {0} 時發生錯誤：{1}",
   "detail_select": "從列表中選擇以檢視詳細資訊",
-
-
   "viewer_dropped": "[已捨棄]",
   "viewer_size": "{0} MB",
   "viewer_select": "選擇一個模型來檢視",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "載入模型失敗",
   "viewer_close": "關閉",
   "viewer_vfx_disclaimer": "由於GLB格式限制，模型不包括粒子效果，如發光光環、火焰/煙霧或魔法軌跡。",
-
   "dropzone_hint": "或拖放 .glb 檔案",
   "dropzone_text": "將 GLB 檔案拖放到此處",
   "dropzone_unsupported": "僅支援 .glb 檔案",
-
   "usedby_loading": "正在載入參考資料...",
   "usedby_error": "載入參考資料時發生錯誤：{0}",
   "usedby_heroes_unit": "以此單位開局的英雄",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "以此法術開局的英雄",
   "usedby_creatures_ability": "擁有此能力的生物",
   "usedby_default": "使用者",
-  "building_prerequisites": "前提條件",
-  "building_recruitable_units": "可招募單位",
-
   "spell_mana": "魔力：{0}",
   "detail_level": "等級 {0}",
-
   "entity_models": "模型",
   "entity_unit": "單位",
   "entity_ability": "能力",
@@ -158,10 +138,8 @@
   "entity_building": "建築",
   "entity_subclass": "子類",
   "entity_faction_law": "陣營法則",
-
   "spell_category_global_map_magic": "全域地圖魔法",
   "spell_category_skill_related": "技能相關",
-
   "heroes_show_campaign": "顯示教學 / 戰役英雄",
   "skills_show_arena": "顯示競技場技能"
 }

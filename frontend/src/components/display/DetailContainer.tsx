@@ -12,7 +12,7 @@ export default function DetailContainer({ children, className }: DetailContainer
       <div
         data-detail-container
         className={cn(
-          "w-full max-w-170 mx-auto px-5 py-5",
+          "w-full max-w-300 mx-auto px-5 py-5",
           "lg:px-0",
           className
         )}

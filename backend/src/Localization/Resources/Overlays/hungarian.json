@@ -20,20 +20,16 @@
   "label_chance": "esély",
   "label_rewards": "Jutalmak",
   "label_option": "Opció",
-
   "label_common_rarity": "Közönséges",
   "label_rare_rarity": "Ritka",
   "label_epic_rarity": "Eposzi",
   "label_legendary_rarity": "Legendás",
-
   "none": "Semmi",
   "duration": "Időtartam: {0} nap",
   "viewRadius": "{0} látótávolság",
   "movementBonus": "{0} mozgáspont",
   "manaRestore": "{0} naponta visszatöltődő mana",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Egységek",
   "nav_abilities": "Képességek",
   "nav_heroes": "Hősök",
@@ -48,14 +44,12 @@
   "nav_back": "Vissza",
   "nav_home": "Főoldal",
   "nav_reload": "Újratöltés",
-
   "common_language": "Nyelv",
   "common_loading": "Betöltés{0}...",
   "loading_checking_config": "Játékbeállítások ellenőrzése...",
   "loading_game_data": "Játékadatok betöltése...",
   "loading_detecting": "Játéktelepítés felderítése...",
   "loading_setting_path": "Játék elérési útjának beállítása...",
-
   "error_generic": "Valami hiba történt",
   "error_unknown": "Ismeretlen hiba",
   "error_page_not_found": "Az oldal nem található",
@@ -65,11 +59,9 @@
   "error_server_msg": "Hiba történt a kiszolgálónkon. Kérjük, próbáld újra később.",
   "error_check_console": "Ha a probléma továbbra is fennáll, nézd meg a konzolt a részletekért.",
   "error_btn_technical_details": "Technikai részletek",
-
   "welcome_detecting": "Játéktelepítés felderítése...",
   "welcome_no_installs": "Nem található játéktelepítés. Kérjük, válaszd ki a játékmappát a Tallózás gombbal.",
   "welcome_browse_btn": "Tallózás...",
-
   "settings_header": "Beállítások",
   "settings_theme": "Téma",
   "settings_theme_system": "Rendszer",
@@ -79,7 +71,6 @@
   "settings_game_path": "Játék elérési útja:",
   "settings_no_game_configured": "Nincs beállított játék",
   "settings_change_game": "Módosítás",
-
   "extraction_offline": "Offline",
   "extraction_error": "Hiba",
   "extraction_done": "Kész",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0} napja",
   "extraction_icons_count": "{0} kép, {1} modell",
   "extraction_auto_extract": "Játékelemek automatikus kicsomagolása",
-
   "search_placeholder": "Keresés...",
   "search_placeholder_entity": "{0} keresése...",
   "search_no_results": "Nincs találat erre: \"{0}\"",
-
   "load_failed": "Nem sikerült betölteni: {0}",
   "no_results": "Nincs {0}",
   "total_count": "Összesen {0} {1}",
   "filtered_count": "{0} / {1} {2}",
-
   "detail_error": "Hiba {0} betöltésekor: {1}",
   "detail_select": "Válassz a listából a részletekhez",
-
-
   "viewer_dropped": "[Bedobva]",
   "viewer_size": "{0} MB",
   "viewer_select": "Válassz egy modellt a megtekintéshez",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Nem sikerült betölteni a modellt",
   "viewer_close": "Bezárás",
   "viewer_vfx_disclaimer": "A modellek nem tartalmaznak részecske-effektusokat, mint izzó aurák, tűz/füst, vagy mágikus nyomok a GLB formátum korlátai miatt.",
-
   "dropzone_hint": "vagy húzd ide a .glb fájlt",
   "dropzone_text": "Húzd ide a GLB fájlt",
   "dropzone_unsupported": "Csak .glb fájlok támogatottak",
-
   "usedby_loading": "Hivatkozások betöltése...",
   "usedby_error": "Hiba a hivatkozások betöltésekor: {0}",
   "usedby_heroes_unit": "Ezzel az egységgel induló hősök",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Ezzel a varázslattal induló hősök",
   "usedby_creatures_ability": "Ezzel a képességgel rendelkező lények",
   "usedby_default": "Felhasználók",
-  "building_prerequisites": "Előfeltételek",
-  "building_recruitable_units": "Toborozható egységek",
-
   "spell_mana": "Mana: {0}",
   "detail_level": "Szint {0}",
-
   "entity_models": "modell",
   "entity_unit": "egység",
   "entity_ability": "képesség",
@@ -158,10 +138,8 @@
   "entity_building": "épület",
   "entity_subclass": "kiegészítés",
   "entity_faction_law": "frakciótörvény",
-
   "spell_category_global_map_magic": "Globális Térkép Mágia",
   "spell_category_skill_related": "Képesség Kapcsolódó",
-
   "heroes_show_campaign": "Tutorial / kampány hősök megjelenítése",
   "skills_show_arena": "Aréna képességek megjelenítése"
 }

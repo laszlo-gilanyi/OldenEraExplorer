@@ -20,20 +20,16 @@
   "label_chance": "szansa",
   "label_rewards": "Nagrody",
   "label_option": "Opcja",
-
   "label_common_rarity": "Powszechna",
   "label_rare_rarity": "Rzadka",
   "label_epic_rarity": "Epicka",
   "label_legendary_rarity": "Legendarna",
-
   "none": "Nic",
   "duration": "Czas trwania: {0} dni",
   "viewRadius": "{0} zasięg widzenia",
   "movementBonus": "{0} punktów ruchu",
   "manaRestore": "{0} many odnawianej dziennie",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Jednostki",
   "nav_abilities": "Zdolności",
   "nav_heroes": "Bohaterowie",
@@ -48,14 +44,12 @@
   "nav_back": "Wstecz",
   "nav_home": "Strona główna",
   "nav_reload": "Odśwież",
-
   "common_language": "Język",
   "common_loading": "Ładowanie{0}...",
   "loading_checking_config": "Sprawdzanie konfiguracji gry...",
   "loading_game_data": "Ładowanie danych gry...",
   "loading_detecting": "Wykrywanie instalacji gry...",
   "loading_setting_path": "Ustawianie ścieżki gry...",
-
   "error_generic": "Coś poszło nie tak",
   "error_unknown": "Nieznany błąd",
   "error_page_not_found": "Nie znaleziono strony",
@@ -65,11 +59,9 @@
   "error_server_msg": "Coś poszło nie tak po naszej stronie. Spróbuj ponownie później.",
   "error_check_console": "Jeśli problem będzie się powtarzał, sprawdź konsolę, aby uzyskać więcej informacji.",
   "error_btn_technical_details": "Szczegóły techniczne",
-
   "welcome_detecting": "Wykrywanie instalacji gry...",
   "welcome_no_installs": "Nie znaleziono instalacji gry. Użyj przycisku Przeglądaj, aby wybrać folder gry.",
   "welcome_browse_btn": "Przeglądaj...",
-
   "settings_header": "Ustawienia",
   "settings_theme": "Motyw",
   "settings_theme_system": "Systemowy",
@@ -79,7 +71,6 @@
   "settings_game_path": "Ścieżka do gry:",
   "settings_no_game_configured": "Nie skonfigurowano gry",
   "settings_change_game": "Zmień",
-
   "extraction_offline": "Offline",
   "extraction_error": "Błąd",
   "extraction_done": "Gotowe",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0}d temu",
   "extraction_icons_count": "{0} obrazów, {1} modeli",
   "extraction_auto_extract": "Automatycznie wyodrębnij zasoby gry",
-
   "search_placeholder": "Szukaj...",
   "search_placeholder_entity": "Szukaj {0}...",
   "search_no_results": "Nie znaleziono wyników dla \"{0}\"",
-
   "load_failed": "Nie udało się załadować {0}",
   "no_results": "Nie znaleziono {0}",
   "total_count": "{0} {1} w sumie",
   "filtered_count": "{0} z {1} {2}",
-
   "detail_error": "Błąd ładowania {0}: {1}",
   "detail_select": "Wybierz z listy, aby zobaczyć szczegóły",
-
-
   "viewer_dropped": "[Porzucony]",
   "viewer_size": "{0} MB",
   "viewer_select": "Wybierz model do wyświetlenia",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Nie udało się załadować modelu",
   "viewer_close": "Zamknij",
   "viewer_vfx_disclaimer": "Modele nie zawierają efektów cząsteczkowych, takich jak świecące aury, ogień/dym lub magiczne ślady, ze względu na ograniczenia formatu GLB.",
-
   "dropzone_hint": "lub przeciągnij i upuść plik .glb",
   "dropzone_text": "Upuść plik GLB tutaj",
   "dropzone_unsupported": "Obsługiwane są tylko pliki .glb",
-
   "usedby_loading": "Ładowanie odniesień...",
   "usedby_error": "Błąd ładowania odniesień: {0}",
   "usedby_heroes_unit": "Bohaterowie zaczynający z tą Jednostką",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Bohaterowie zaczynający z tym Czarem",
   "usedby_creatures_ability": "Stworzenia z tą Zdolnością",
   "usedby_default": "Używane przez",
-  "building_prerequisites": "Wymagania",
-  "building_recruitable_units": "Jednostki do rekrutacji",
-
   "spell_mana": "Mana: {0}",
   "detail_level": "Poziom {0}",
-
   "entity_models": "modele",
   "entity_unit": "jednostka",
   "entity_ability": "zdolność",
@@ -158,10 +138,8 @@
   "entity_building": "budynek",
   "entity_subclass": "podklasa",
   "entity_faction_law": "prawo frakcji",
-
   "spell_category_global_map_magic": "Magia Mapy Globalnej",
   "spell_category_skill_related": "Związane z Umiejętnością",
-
   "heroes_show_campaign": "Pokaż bohaterów samouczka / kampanii",
   "skills_show_arena": "Pokaż umiejętności areny"
 }

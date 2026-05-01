@@ -20,20 +20,16 @@
   "label_chance": "šance",
   "label_rewards": "Odměny",
   "label_option": "Možnost",
-
   "label_common_rarity": "Běžná",
   "label_rare_rarity": "Vzácná",
   "label_epic_rarity": "Epická",
   "label_legendary_rarity": "Legendární",
-
   "none": "Nic",
   "duration": "Doba trvání: {0} dní",
   "viewRadius": "{0} dosah vidění",
   "movementBonus": "{0} bodů pohybu",
   "manaRestore": "{0} many obnovené denně",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Jednotky",
   "nav_abilities": "Schopnosti",
   "nav_heroes": "Hrdinové",
@@ -48,14 +44,12 @@
   "nav_back": "Zpět",
   "nav_home": "Domů",
   "nav_reload": "Znovu načíst",
-
   "common_language": "Jazyk",
   "common_loading": "Načítání{0}...",
   "loading_checking_config": "Kontrola konfigurace hry...",
   "loading_game_data": "Načítání herních dat...",
   "loading_detecting": "Detekce instalace hry...",
   "loading_setting_path": "Nastavení cesty ke hře...",
-
   "error_generic": "Něco se pokazilo",
   "error_unknown": "Neznámá chyba",
   "error_page_not_found": "Stránka nenalezena",
@@ -65,11 +59,9 @@
   "error_server_msg": "Na naší straně se něco pokazilo. Zkuste to prosím později.",
   "error_check_console": "Pokud tento problém přetrvává, zkontrolujte konzoli pro více podrobností.",
   "error_btn_technical_details": "Technické podrobnosti",
-
   "welcome_detecting": "Detekce instalace hry...",
   "welcome_no_installs": "Nenalezeny žádné instalace hry. Pro výběr složky hry použijte Procházet.",
   "welcome_browse_btn": "Procházet...",
-
   "settings_header": "Nastavení",
   "settings_theme": "Motiv",
   "settings_theme_system": "Systémové",
@@ -79,7 +71,6 @@
   "settings_game_path": "Cesta ke hře:",
   "settings_no_game_configured": "Žádná hra není nakonfigurována",
   "settings_change_game": "Změnit",
-
   "extraction_offline": "Offline",
   "extraction_error": "Chyba",
   "extraction_done": "Hotovo",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "před {0} d",
   "extraction_icons_count": "{0} obrázků, {1} modelů",
   "extraction_auto_extract": "Automaticky extrahovat herní zdroje",
-
   "search_placeholder": "Hledat...",
   "search_placeholder_entity": "Hledat {0}...",
   "search_no_results": "Žádné výsledky pro \"{0}\"",
-
   "load_failed": "Nepodařilo se načíst {0}",
   "no_results": "Nenalezeny žádné {0}",
   "total_count": "{0} {1} celkem",
   "filtered_count": "{0} z {1} {2}",
-
   "detail_error": "Chyba při načítání {0}: {1}",
   "detail_select": "Vyberte ze seznamu pro zobrazení podrobností",
-
-
   "viewer_dropped": "[Vyřazeno]",
   "viewer_size": "{0} MB",
   "viewer_select": "Vyberte model k zobrazení",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Nepodařilo se načíst model",
   "viewer_close": "Zavřít",
   "viewer_vfx_disclaimer": "Modely neobsahují částicové efekty jako světélkující aury, oheň/kouř nebo magické stopy kvůli omezením formátu GLB.",
-
   "dropzone_hint": "nebo přetáhněte .glb soubor",
   "dropzone_text": "Přetáhněte GLB soubor sem",
   "dropzone_unsupported": "Podporovány jsou pouze .glb soubory",
-
   "usedby_loading": "Načítání referencí...",
   "usedby_error": "Chyba při načítání referencí: {0}",
   "usedby_heroes_unit": "Hrdinové začínající s touto Jednotkou",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Hrdinové začínající s tímto Kouzlem",
   "usedby_creatures_ability": "Jednotky s touto Schopností",
   "usedby_default": "Používá",
-  "building_prerequisites": "Požadavky",
-  "building_recruitable_units": "Verbovatelné jednotky",
-
   "spell_mana": "Mana: {0}",
   "detail_level": "Úroveň {0}",
-
   "entity_models": "modely",
   "entity_unit": "jednotka",
   "entity_ability": "schopnost",
@@ -158,10 +138,8 @@
   "entity_building": "budova",
   "entity_subclass": "podtřída",
   "entity_faction_law": "frakční zákon",
-
   "spell_category_global_map_magic": "Magie Globální Mapy",
   "spell_category_skill_related": "Související s Dovedností",
-
   "heroes_show_campaign": "Zobrazit hrdiny tutoriálu / kampaně",
   "skills_show_arena": "Zobrazit dovednosti arény"
 }

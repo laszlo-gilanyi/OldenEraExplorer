@@ -20,20 +20,16 @@
   "label_chance": "шанс",
   "label_rewards": "Награды",
   "label_option": "Вариант",
-
   "label_common_rarity": "Обычные",
   "label_rare_rarity": "Редкие",
   "label_epic_rarity": "Эпические",
   "label_legendary_rarity": "Легендарные",
-
   "none": "Ничего",
   "duration": "Продолжительность: {0} дн.",
   "viewRadius": "{0} радиус обзора",
   "movementBonus": "{0} очков движения",
   "manaRestore": "{0} маны восстанавливается ежедневно",
-
   "app_title": "Olden Era Explorer",
-
   "nav_units": "Отряды",
   "nav_abilities": "Способности",
   "nav_heroes": "Герои",
@@ -48,14 +44,12 @@
   "nav_back": "Назад",
   "nav_home": "Главная",
   "nav_reload": "Перезагрузить",
-
   "common_language": "Язык",
   "common_loading": "Загрузка{0}...",
   "loading_checking_config": "Проверка конфигурации игры...",
   "loading_game_data": "Загрузка данных игры...",
   "loading_detecting": "Обнаружение установки игры...",
   "loading_setting_path": "Установка пути игры...",
-
   "error_generic": "Что-то пошло не так",
   "error_unknown": "Неизвестная ошибка",
   "error_page_not_found": "Страница не найдена",
@@ -65,11 +59,9 @@
   "error_server_msg": "Что-то пошло не так на нашей стороне. Попробуйте позже.",
   "error_check_console": "Если проблема сохраняется, проверьте консоль для получения дополнительной информации.",
   "error_btn_technical_details": "Технические детали",
-
   "welcome_detecting": "Обнаружение установки игры...",
   "welcome_no_installs": "Установки игры не найдены. Используйте кнопку «Обзор», чтобы выбрать папку игры.",
   "welcome_browse_btn": "Обзор...",
-
   "settings_header": "Настройки",
   "settings_theme": "Тема",
   "settings_theme_system": "Системная",
@@ -79,7 +71,6 @@
   "settings_game_path": "Путь к игре:",
   "settings_no_game_configured": "Игра не настроена",
   "settings_change_game": "Изменить",
-
   "extraction_offline": "Не в сети",
   "extraction_error": "Ошибка",
   "extraction_done": "Готово",
@@ -105,20 +96,15 @@
   "extraction_time_days_ago": "{0} дн. назад",
   "extraction_icons_count": "{0} изображений, {1} моделей",
   "extraction_auto_extract": "Автоматически извлекать ресурсы игры",
-
   "search_placeholder": "Поиск...",
   "search_placeholder_entity": "Поиск {0}...",
   "search_no_results": "Нет результатов для «{0}»",
-
   "load_failed": "Не удалось загрузить {0}",
   "no_results": "{0} не найдено",
   "total_count": "Всего {0} {1}",
   "filtered_count": "{0} из {1} {2}",
-
   "detail_error": "Ошибка загрузки {0}: {1}",
   "detail_select": "Выберите из списка для просмотра подробностей",
-
-
   "viewer_dropped": "[Удалён]",
   "viewer_size": "{0} МБ",
   "viewer_select": "Выберите модель для просмотра",
@@ -130,11 +116,9 @@
   "viewer_model_failed": "Не удалось загрузить модель",
   "viewer_close": "Закрыть",
   "viewer_vfx_disclaimer": "Модели не включают эффекты частиц, такие как светящиеся ауры, огонь/дым или магические следы из-за ограничений формата GLB.",
-
   "dropzone_hint": "или перетащите файл .glb",
   "dropzone_text": "Перетащите файл GLB сюда",
   "dropzone_unsupported": "Поддерживаются только файлы .glb",
-
   "usedby_loading": "Загрузка ссылок...",
   "usedby_error": "Ошибка загрузки ссылок: {0}",
   "usedby_heroes_unit": "Герои, начинающие с этим отрядом",
@@ -142,12 +126,8 @@
   "usedby_heroes_spell": "Герои, начинающие с этим заклинанием",
   "usedby_creatures_ability": "Существа с этой способностью",
   "usedby_default": "Используется",
-  "building_prerequisites": "Требования",
-  "building_recruitable_units": "Нанимаемые отряды",
-
   "spell_mana": "Мана: {0}",
   "detail_level": "Уровень {0}",
-
   "entity_models": "модели",
   "entity_unit": "отряд",
   "entity_ability": "способность",
@@ -158,10 +138,8 @@
   "entity_building": "здание",
   "entity_subclass": "подкласс",
   "entity_faction_law": "закон фракции",
-
   "spell_category_global_map_magic": "Магия Глобальной Карты",
   "spell_category_skill_related": "Связанная с Навыком",
-
   "heroes_show_campaign": "Показать героев обучения / кампании",
   "skills_show_arena": "Показать навыки арены"
 }
