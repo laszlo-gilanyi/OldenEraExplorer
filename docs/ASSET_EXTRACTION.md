@@ -64,10 +64,7 @@ backend/src/
 
 Asset extraction runs as a **separate CLI process** spawned by the main API.
 
-**Why?**
-1. **Cancellable** - User can stop via SIGTERM (otherwise extraction blocks until complete)
-2. **Isolated** - Memory-intensive operations don't block the API
-3. **Progress** - JSON output stream provides real-time updates
+This keeps extraction cancellable, isolated from the main API process, and able to report progress in real time.
 
 **How it works:**
 ```
@@ -519,13 +516,13 @@ connection.on('ProgressUpdate', (data) => {
   "lastPromotionRun": "2026-01-15T15:47:21Z",
   "builds": {
     "0.46.10-demo": {
-      "gameRootPath": "/path/to/HeroesOE_Data",
+      "gameRootPath": "/path/to/<game>_Data",
       "gameVersion": "0.46.10-demo",
       "extractedAt": "2026-01-15T06:37:34Z",
       "assetsHash": "b169e3366d732fd2"
     },
     "0.45.02-cb": {
-      "gameRootPath": "/path/to/HeroesOE_Data",
+      "gameRootPath": "/path/to/<game>_Data",
       "gameVersion": "0.45.02-cb",
       "extractedAt": "2026-01-15T15:46:16Z",
       "assetsHash": "b1da178b33b68c15"

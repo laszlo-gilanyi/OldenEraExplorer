@@ -577,10 +577,10 @@ dotnet build backend/Backend.slnx
 Use the release script from the repository root:
 
 ```bash
-./scripts/build-release.sh
+node scripts/build-release.js
 ```
 
-Builds for win-x64, linux-x64, osx-x64, osx-arm64. Outputs zip packages to `dist/`. Each contains self-contained executable (`OldenEraExplorer`) with:
+Builds for win-x64 and linux-x64. Outputs zip packages to `dist/`. Each contains a self-contained executable (`OldenEraExplorer`) with:
 - Embedded frontend
 - Native dependencies
 - System tray icon support
@@ -645,7 +645,7 @@ See [NOTICE.md](../NOTICE.md) for full license information.
 ## Troubleshooting
 
 ### Issue: "Game data not loaded"
-**Solution:** Check game path in Settings. Verify `Core.zip` exists in `<game>/HeroesOE_Data/StreamingAssets/`.
+**Solution:** Check game path in Settings. Verify `Core.zip` exists in the game's `*_Data/StreamingAssets/` directory.
 
 ### Issue: "Extraction hangs"
 **Solution:** Kill subprocess and retry. Check disk space (~1.3 GB needed).

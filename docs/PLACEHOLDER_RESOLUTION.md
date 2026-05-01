@@ -153,26 +153,25 @@ Input:  sid = "artifact_brightmind_tiara_description"
 Output: text = "Increases Mana Regeneration by {0}."
 ```
 
-`LangIndex` loads the template from `Lang/{locale}/texts/*.json` files.
+`LangIndex` loads the template from `Lang/{locale}/texts/*.json`, either from `StreamingAssets/Lang` on disk or from `Core.zip` when the game build embeds language data there.
 
 **Directory Structure:**
 ```
-StreamingAssets/Lang/
+StreamingAssets/Lang/             ← Demo-era on-disk layout
+or Core.zip:Lang/                 ← Early Access/current layout
 ├── args/                          ← SHARED across all locales
 │   ├── artifacts.json
 │   ├── heroInfo.json
 │   ├── magic.json
 │   └── ...
-├── english/                       ← Locale-specific
+├── english/
 │   └── texts/
-│       ├── artifacts.json
-│       └── ...
 ├── french/
 │   └── texts/
 └── ...
 ```
 
-**Args format** (`Lang/args/*.json`):
+**Args format** (`Lang/args/*.json`, regardless of whether the source is disk or `Core.zip`):
 ```json
 {
   "tokensArgs": [

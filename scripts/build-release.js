@@ -7,7 +7,7 @@ const os = require('os');
 const APP_NAME = 'OldenEraExplorer';
 const VERSION = process.argv[2] || process.env.VERSION || '';
 const PACKAGE_BASE = VERSION ? `${APP_NAME}-v${VERSION}` : APP_NAME;
-const RIDS = ['win-x64', 'linux-x64', 'osx-x64', 'osx-arm64'];
+const RIDS = ['win-x64', 'linux-x64'];
 
 const ROOT = path.resolve(__dirname, '..');
 process.chdir(ROOT);

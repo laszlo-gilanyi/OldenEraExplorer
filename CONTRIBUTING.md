@@ -5,7 +5,7 @@ This document covers development setup, build instructions, and contribution gui
 ## Prerequisites
 
 - **.NET 10 SDK**
-- **Node.js 20+**
+- **Node.js 22+**
 - **Heroes of Might and Magic: Olden Era** (Steam installation, for testing)
 
 ## Project Structure
@@ -73,25 +73,28 @@ cd frontend && npm run build
 Run the release script from the repository root:
 
 ```bash
-./scripts/build-release.sh
+node scripts/build-release.js
 ```
 
 This builds release packages for all platforms:
 - `win-x64`
 - `linux-x64`
-- `osx-x64`, `osx-arm64`
 
 Output goes to `dist/`:
 
 ```
 dist/
 ├── OldenEraExplorer-win-x64.zip
-├── OldenEraExplorer-linux-x64.zip
-├── OldenEraExplorer-osx-x64.zip
-└── OldenEraExplorer-osx-arm64.zip
+└── OldenEraExplorer-linux-x64.zip
 ```
 
 Each package contains a single self-contained executable with the frontend embedded.
+
+You can optionally pass a version:
+
+```bash
+node scripts/build-release.js 1.2.3
+```
 
 ## Technical Documentation
 

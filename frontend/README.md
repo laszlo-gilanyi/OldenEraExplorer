@@ -7,7 +7,7 @@ React single-page application for browsing and visualizing game data.
 - **React 19** with TypeScript
 - **Vite 7** for development and building
 - **TanStack Query** for server state management
-- **Zustand** for client state (per-entity stores)
+- **Zustand** for client state
 - **Three.js** for 3D model viewing
 - **Tailwind CSS 4** for styling
 - **SignalR** for real-time extraction progress
@@ -23,7 +23,7 @@ src/
 │   ├── feedback/  # Feedback components (loading, errors)
 │   └── layout/    # Layout components (Navigation)
 ├── features/      # Feature modules (one per entity type)
-├── stores/        # Zustand stores (one per entity + global stores)
+├── stores/        # Global Zustand stores
 ├── hooks/         # Custom React hooks
 ├── lib/           # Utilities and helpers
 ├── styles/        # Global CSS and Tailwind config
@@ -45,17 +45,16 @@ src/
 
 ## State Management
 
-Each entity type has its own Zustand store (e.g., `unitsStore.ts`, `heroesStore.ts`) managing:
-- Entity list and loading state
+Each feature keeps its own local Zustand store (for example `features/units/unitsStore.ts` or `features/heroes/heroesStore.ts`) for UI state such as:
 - Selected entity
 - Filters and sorting
-- Pagination
+- Per-page toggles and view preferences
 
 Global stores handle:
 - `gameStore` - Game path, loading status, locale
 - `imageStore` - Icon/texture caching
-- `extractionStore` - Asset extraction progress
-- `viewerStore` - 3D viewer state
+
+Feature-specific state such as extraction progress and viewer controls lives under the corresponding `features/` modules.
 
 ## Development
 

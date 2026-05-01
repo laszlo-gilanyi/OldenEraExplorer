@@ -18,9 +18,9 @@ This shows you **everything**. All units, all heroes, all skills at all levels, 
 The tool doesn't ship with any game content. When you run it:
 
 1. Auto-detects your Steam installation
-2. Reads JSON game data from `HeroesOE_Data/StreamingAssets/Core.zip`
-3. Loads localization from `StreamingAssets/Lang` (14 languages + script arguments)
-4. Extracts textures and 3D models from Unity asset bundles in `HeroesOE_Data`
+2. Reads JSON game data from `<game>/*_Data/StreamingAssets/Core.zip`
+3. Loads localization and script arguments from the game files
+4. Extracts textures and 3D models from the game's Unity asset bundles
 5. Runs the game's own script system to resolve placeholder text (stuff like `{0}` → actual damage values)
 6. Shows everything through a local web server
 
@@ -45,7 +45,7 @@ You need to own the game - this just makes your own copy easier to browse.
 
 View units and map objects in 3D with animation support.
 
-**Heads up:** GLB models exported from Unity don't include particle systems, VFX, or complex shader effects. Models look close to in-game but won't have glowing auras, fire/smoke particles, or magic effects. Full VFX export is technically possible but would require significantly more reverse engineering work.
+**Heads up:** GLB models exported from Unity don't include particle systems, VFX, or complex shader effects. Models look close to in-game, but things like glowing auras, fire/smoke particles, and similar effects won't be present.
 
 ### Smart text resolution
 
@@ -72,7 +72,7 @@ First launch scans your Steam library folders and finds the game automatically. 
 - **Auto-Extract on Startup** - automatically extract assets when game path is set (default: on)
 - **Game Path** - current install location, switch between detected installs, or browse manually
 
-Tested with Demo (0.46.10-demo) build. Early Access (April 2025) should work but isn't guaranteed yet.
+Tested with the Early Access `0.80.07` build. As the game continues to evolve, future patches may still require updates to the tool.
 
 ### Asset extraction panel
 
@@ -90,9 +90,9 @@ Separate panel in the navbar:
 
 ### How to run
 
-1. Download the latest release for your platform from [Releases](https://github.com/laszlo-gilanyi/Olden-Era-Explorer/releases)
+1. Download the latest release for your platform from [Releases](https://github.com/laszlo-gilanyi/OldenEraExplorer/releases)
 2. Extract the zip
-3. Run the executable (`OldenEraExplorer.exe` on Windows, `OldenEraExplorer` on Linux/macOS)
+3. Run the executable (`OldenEraExplorer.exe` on Windows, `OldenEraExplorer` on Linux)
 4. System tray icon appears, browser opens automatically to `http://localhost:5176`
 5. App auto-detects your game and you're ready. Asset extraction runs in background (icons show placeholders while extracting)
 

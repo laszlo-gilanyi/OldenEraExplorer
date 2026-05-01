@@ -8,7 +8,7 @@ public static class EmbeddedStaticFilesExtensions
     {
         if (!HasEmbeddedFrontend())
         {
-            Console.WriteLine("WARNING: Frontend not embedded. Build with scripts/build-release.sh for a complete release.");
+            Console.WriteLine("WARNING: Frontend not embedded. Build with node scripts/build-release.js for a complete release.");
             Console.WriteLine("         Running in API-only mode.");
             return;
         }

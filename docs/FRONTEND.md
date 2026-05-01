@@ -7,7 +7,7 @@ The frontend is a React 19 + Vite + TypeScript single-page application with a fe
 - **React 19.2.3** - UI framework
 - **TypeScript ~5.9.3** - Type safety
 - **Vite 7.3.0** - Build tool and dev server
-- **React Router DOM 7.11.0** - Client-side routing
+- **React Router DOM 7.12.0** - Client-side routing
 - **TanStack React Query 5.90.16** - Server state management
 - **Zustand** - Client state management
 - **SignalR** - Real-time WebSocket communication
@@ -96,7 +96,7 @@ frontend/src/
 │   ├── useOnClickOutside.ts
 │   └── index.ts
 │
-├── stores/                      # Global Zustand stores (3 files)
+├── stores/                      # Global Zustand stores
 │   ├── gameStore.ts             # Minimal (isGameReady only)
 │   ├── imageStore.ts
 │   └── index.ts
@@ -112,7 +112,7 @@ frontend/src/
     └── globals.css              # Global styles + Tailwind
 ```
 
-**Total Files:** 95 TypeScript/TSX files
+The frontend mixes global stores under `src/stores/` with feature-local stores inside each feature folder.
 
 ## Core Concepts
 
@@ -145,12 +145,6 @@ features/[entity]/
 12. search - Global and entity-specific search
 13. settings - Settings panel
 14. viewer - 3D model viewer (most complex)
-
-**Benefits:**
-- Everything related to a feature is co-located
-- Easy to find code
-- Minimal coupling between features
-- Consistent patterns
 
 ### 2. State Management
 

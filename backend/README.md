@@ -34,8 +34,8 @@ backend/
 | `/api/skills` | Hero skills and perks |
 | `/api/abilities` | Unit and spell abilities |
 | `/api/subclasses` | Hero subclasses |
-| `/api/mapobjects` | Map objects and resources |
-| `/api/factionlaws` | Faction-specific rules |
+| `/api/map-objects` | Map objects and resources |
+| `/api/faction-laws` | Faction-specific rules |
 | `/api/search` | Full-text search across all entities |
 | `/api/models` | 3D model streaming (GLB) |
 | `/api/assets` | Texture and icon serving |
@@ -58,7 +58,7 @@ The placeholder resolution system (`Localization/Resolution/`) dynamically resol
 `ModelsEndpoints.cs` serves GLB 3D models extracted from Unity asset bundles.
 
 ### Game Detection
-`GameLocator.cs` (static class) auto-detects Steam installations across Windows/Linux/macOS.
+`GameLocator.cs` auto-detects Steam installations across Windows/Linux/macOS.
 
 ## Development
 
@@ -84,10 +84,10 @@ dotnet build backend/Backend.slnx
 Use the release script from the repository root:
 
 ```bash
-./scripts/build-release.sh
+node scripts/build-release.js
 ```
 
-Builds for win-x64, linux-x64, osx-x64, osx-arm64. Creates zip packages in `dist/`. Each contains a single self-contained executable with embedded frontend.
+Builds for win-x64 and linux-x64. Creates zip packages in `dist/`. Each contains a single self-contained executable with embedded frontend.
 
 ## API Documentation
 
