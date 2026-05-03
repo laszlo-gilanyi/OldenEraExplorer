@@ -30,5 +30,11 @@ public record SubSkillDto(
     string Id,
     string Name,
     string? Description,
-    string? Icon
+    string? Icon,
+    SpellLinkDto? GrantedSpell = null,
+    BattleAbilityLinkDto? GrantedBattleAbility = null
 );
+
+public record SpellLinkDto(string Id, string Name, string? Icon);
+
+public record BattleAbilityLinkDto(string Id, string Name, string? Icon, string? Description = null);

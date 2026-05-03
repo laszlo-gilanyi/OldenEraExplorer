@@ -317,6 +317,17 @@ public static class SpellsEndpoints
             }
         }
 
+        SkillReferenceDto? relatedSkill = null;
+        if (data.SkillsIndex.SpellToSkill.TryGetValue(spell.Id, out var linkedSkillId) &&
+            data.SkillsIndex.Skills.TryGetValue(linkedSkillId, out var skillRecord))
+        {
+            var skillName = TryResolveText(resolver, skillRecord.NameSid, locale) ?? skillRecord.SkillId;
+            var skillIcon = skillRecord.LevelParams.Count > 0 && !string.IsNullOrEmpty(skillRecord.LevelParams[0].Icon)
+                ? $"icons/hero_skills/{skillRecord.LevelParams[0].Icon}"
+                : null;
+            relatedSkill = new SkillReferenceDto(linkedSkillId, skillName, skillIcon);
+        }
+
         return new SpellDetailDto(
             Id: spell.Id,
             Name: spell.NameSid,
@@ -327,7 +338,8 @@ public static class SpellsEndpoints
             SchoolTierText: schoolTierText,
             ExceptionText: exceptionText,
             IsBonusSpell: isBonusSpell,
-            Levels: levels.Count > 0 ? levels : null
+            Levels: levels.Count > 0 ? levels : null,
+            RelatedSkill: relatedSkill
         );
     }
 

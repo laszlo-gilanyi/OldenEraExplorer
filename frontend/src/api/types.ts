@@ -185,6 +185,13 @@ export interface SpellDetailDto {
   exceptionText: string | null;
   isBonusSpell: boolean;
   levels: SpellLevelDto[] | null;
+  relatedSkill: SkillReferenceDto | null;
+}
+
+export interface SkillReferenceDto {
+  id: string;
+  name: string;
+  icon: string | null;
 }
 
 export interface SpellLevelDto {
@@ -226,6 +233,21 @@ export interface SubSkillDto {
   name: string;
   description: string | null;
   icon: string | null;
+  grantedSpell?: SpellLinkDto | null;
+  grantedBattleAbility?: BattleAbilityLinkDto | null;
+}
+
+export interface SpellLinkDto {
+  id: string;
+  name: string;
+  icon: string | null;
+}
+
+export interface BattleAbilityLinkDto {
+  id: string;
+  name: string;
+  icon: string | null;
+  description: string | null;
 }
 
 // Map Object types
