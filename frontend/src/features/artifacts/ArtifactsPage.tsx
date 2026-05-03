@@ -370,23 +370,17 @@ function ArtifactDetailPanel({ artifact, selectedArtifactId, error, onNavigateTo
                 />
               )}
 
-              {artifact.upgradeDescription && (
-                <RichText
-                  text={artifact.upgradeDescription}
-                  className="m-0 text-semantic-gold font-semibold leading-relaxed block"
-                />
-              )}
-
               {artifact.upgradeCost && (
                 <div>
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-2">
+                    <ProgressiveIcon iconPath="Button_LevelUp" size={32} alt="Upgrade" />
                     <CurrencyBadge
                       amount={artifact.upgradeCost}
                       resourceKey="dust"
                       displayName="Dust"
                       iconSize={32}
                       gap="gap-[5px]"
-                      amountClassName="text-semantic-orange"
+                      amountClassName="text-semantic-gold"
                     />
                   </div>
                   {artifact.upgradeCostNote && (
@@ -394,6 +388,27 @@ function ArtifactDetailPanel({ artifact, selectedArtifactId, error, onNavigateTo
                       {artifact.upgradeCostNote}
                     </div>
                   )}
+                </div>
+              )}
+
+              {artifact.upgradeDescription && (
+                <RichText
+                  text={artifact.upgradeDescription}
+                  className="m-0 text-semantic-gold font-semibold leading-relaxed block"
+                />
+              )}
+
+              {artifact.destroyReward != null && (
+                <div className="flex items-center gap-2">
+                  <ProgressiveIcon iconPath="Button_Item_Delete" size={32} alt="Destroy" />
+                  <CurrencyBadge
+                    amount={artifact.destroyReward}
+                    resourceKey="dust"
+                    displayName="Dust"
+                    iconSize={32}
+                    gap="gap-[5px]"
+                    amountClassName="text-foreground"
+                  />
                 </div>
               )}
 
