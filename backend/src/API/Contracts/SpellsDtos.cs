@@ -25,8 +25,11 @@ public record SpellDetailDto(
     string? SchoolTierText,
     string? ExceptionText,
     bool IsBonusSpell,
-    IReadOnlyList<SpellLevelDto>? Levels
+    IReadOnlyList<SpellLevelDto>? Levels,
+    SkillReferenceDto? RelatedSkill
 );
+
+public record SkillReferenceDto(string Id, string Name, string? Icon);
 
 public record SpellLevelDto(
     int Level,

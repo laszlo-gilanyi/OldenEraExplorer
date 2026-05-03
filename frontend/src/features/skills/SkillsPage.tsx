@@ -12,7 +12,7 @@ import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import RichText from '@/components/display/RichText';
 import DetailContainer from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
-import type { SkillListItemDto, SkillDetailDto, SkillLevelDto, SubSkillDto } from '@/api/types';
+import type { SkillListItemDto, SkillDetailDto, SkillLevelDto, SubSkillDto, SpellLinkDto, BattleAbilityLinkDto } from '@/api/types';
 
 // Skill type background classes for visual distinction (theme-aware)
 const skillTypeBgClasses: Record<string, string> = {
@@ -103,6 +103,7 @@ function SkillList({
 }
 
 function SubSkillCard({ subSkill }: { subSkill: SubSkillDto }) {
+  const navigate = useNavigate();
   return (
     <div className="p-4 bg-card rounded-lg border border-border flex flex-col md:flex-row gap-3">
       {subSkill.icon ? (
@@ -125,7 +126,46 @@ function SubSkillCard({ subSkill }: { subSkill: SubSkillDto }) {
             className="text-muted-foreground text-[0.85rem] leading-relaxed whitespace-pre-wrap block"
           />
         )}
+        {subSkill.grantedSpell && (
+          <GrantedSpellLink spell={subSkill.grantedSpell} onNavigate={(id) => navigate(`/spells/${id}`)} />
+        )}
+        {subSkill.grantedBattleAbility && (
+          <GrantedBattleAbilityDisplay ability={subSkill.grantedBattleAbility} />
+        )}
       </div>
+    </div>
+  );
+}
+
+function GrantedSpellLink({ spell, onNavigate }: { spell: SpellLinkDto; onNavigate: (id: string) => void }) {
+  return (
+    <button
+      onClick={() => onNavigate(spell.id)}
+      className="mt-2 flex items-center gap-2 px-2 py-1 -ml-2 rounded-md cursor-pointer hover:bg-accent transition-colors text-left"
+    >
+      {spell.icon && (
+        <ProgressiveIcon iconPath={spell.icon} alt={spell.name} size={24} className="shrink-0" />
+      )}
+      <span className="text-foreground text-sm font-medium">{spell.name}</span>
+    </button>
+  );
+}
+
+function GrantedBattleAbilityDisplay({ ability }: { ability: BattleAbilityLinkDto }) {
+  return (
+    <div className="mt-2 px-2 py-1 -ml-2">
+      <div className="flex items-center gap-2">
+        {ability.icon && (
+          <ProgressiveIcon iconPath={ability.icon} alt={ability.name} size={24} className="shrink-0" />
+        )}
+        <span className="text-foreground text-sm font-medium">{ability.name}</span>
+      </div>
+      {ability.description && (
+        <RichText
+          text={ability.description}
+          className="mt-1 text-muted-foreground text-[0.85rem] leading-relaxed whitespace-pre-wrap block"
+        />
+      )}
     </div>
   );
 }
