@@ -35,5 +35,6 @@ public record SpellLevelDto(
     int Level,
     int ManaCost,
     string? Description,
-    string? BonusDescription
+    string? BonusDescription,
+    int? StarDustCost
 );
