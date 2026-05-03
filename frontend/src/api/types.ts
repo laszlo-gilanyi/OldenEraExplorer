@@ -199,6 +199,7 @@ export interface SpellLevelDto {
   manaCost: number;
   description: string | null;
   bonusDescription: string | null;
+  starDustCost: number | null;
 }
 
 // Skill types

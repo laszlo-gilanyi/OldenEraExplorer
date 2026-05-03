@@ -1,4 +1,5 @@
 using GameData.Indexing;
+using Localization.DbAccess;
 using Localization.Indexing;
 using Localization.Resolution;
 using Localization.Services;
@@ -221,9 +222,35 @@ public static class SpellsEndpoints
         int[] manaCosts = new int[4];
         string?[] descriptions = new string?[4];
         string?[] bonusDescriptions = new string?[4];
+        int?[] starDustCosts = new int?[4];
 
         if (data.DbAccessor.TryGetMagic(spell.Id, out var spellJson))
         {
+            // learnCost → level 1 starDust cost; upgradeCost array → levels 2/3/4
+            if (spellJson.TryGetProperty("learnCost", out var learnCostArr) &&
+                learnCostArr.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var entry in learnCostArr.EnumerateArray())
+                {
+                    if (entry.TryGetProperty("name", out var resName) &&
+                        resName.GetString() == "starDust" &&
+                        entry.TryGetProperty("cost", out var resCost))
+                    {
+                        starDustCosts[0] = resCost.GetInt32();
+                        break;
+                    }
+                }
+            }
+
+            if (spellJson.TryGetProperty("upgradeCost", out var upgradeCostArr) &&
+                upgradeCostArr.ValueKind == System.Text.Json.JsonValueKind.Array &&
+                starDustCosts[0].HasValue)
+            {
+                int arrLen = upgradeCostArr.GetArrayLength();
+                if (arrLen > 0) starDustCosts[1] = upgradeCostArr[0].GetInt32();
+                if (arrLen > 1) starDustCosts[2] = upgradeCostArr[1].GetInt32();
+                if (arrLen > 2) starDustCosts[3] = upgradeCostArr[2].GetInt32();
+            }
             if (spellJson.TryGetProperty("manaCost", out var manaCostArr) &&
                 manaCostArr.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
@@ -299,7 +326,8 @@ public static class SpellsEndpoints
                 Level: i + 1,
                 ManaCost: manaCosts[i],
                 Description: descriptions[i],
-                BonusDescription: bonusDescriptions[i]
+                BonusDescription: bonusDescriptions[i],
+                StarDustCost: starDustCosts[i]
             ));
         }
 
