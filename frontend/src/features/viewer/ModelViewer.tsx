@@ -84,6 +84,9 @@ class ThreeViewer {
   private animationFrameId: number | null = null;
   private prevTime = 0;
   private disposed = false;
+  private resizeObserver: ResizeObserver | null = null;
+  private skyBackgroundImage: HTMLImageElement | null = null;
+  private skyBackgroundPosition = 'center center';
 
   private materialRegistry: Map<string, THREE.Material> = new Map();
   private backgroundColor = new THREE.Color('#191919');
@@ -127,7 +130,8 @@ class ThreeViewer {
     this.platformGroup = new THREE.Group();
     this.scene.add(this.platformGroup);
 
-    window.addEventListener('resize', this.handleResize);
+    this.resizeObserver = new ResizeObserver(this.handleResize);
+    this.resizeObserver.observe(container);
 
     this.animate(0);
   }
@@ -582,15 +586,20 @@ class ThreeViewer {
     }
   }
 
-  setCanvasSkyBackground(url: string | null) {
+  setCanvasSkyBackground(url: string | null, position = 'center center') {
     const container = this.renderer.domElement.parentElement;
     if (!container) return;
     if (url) {
       container.style.backgroundImage = `url(${url})`;
       container.style.backgroundSize = 'cover';
-      container.style.backgroundPosition = 'center top';
+      container.style.backgroundPosition = position;
+      this.skyBackgroundPosition = position;
+      const img = new Image();
+      img.onload = () => { this.skyBackgroundImage = img; };
+      img.src = url;
     } else {
       container.style.backgroundImage = '';
+      this.skyBackgroundImage = null;
     }
   }
 
@@ -1525,9 +1534,11 @@ class ThreeViewer {
     const intersects = raycaster.intersectObject(this.platformGroup, true);
     const platformSurfaceY = intersects.length > 0 ? intersects[0].point.y : rotatedPlatformBox.max.y;
 
-    // 4. Position platform so surface is at Y=0 and circular disk center is at origin
-    const DISK_CENTER_OFFSET_X = -0.05;
-    const DISK_CENTER_OFFSET_Z = 0.15;
+    // 6. Position platform so disk center is at origin and surface is at Y=0
+    // These offsets correct for the model's disk center not being at its bounding box center.
+    // TODO: if the platform model changes and the disk drifts, update these two values.
+    const DISK_CENTER_OFFSET_X = -0.1;
+    const DISK_CENTER_OFFSET_Z = 0.3;
     const offsetY = 0 - platformSurfaceY;
     this.platformGroup.position.set(
       0 - platformCenter.x + DISK_CENTER_OFFSET_X,
@@ -1613,6 +1624,18 @@ class ThreeViewer {
     this.controls.update();
     this.setCameraPreset('isometric');
 
+    // Zoom in 8 scroll steps (OrbitControls dolly factor: 0.95 per step)
+    const zoomFactor = Math.pow(0.95, 8);
+    const dir = this.camera.position.clone().sub(this.controls.target);
+    this.camera.position.copy(this.controls.target.clone().add(dir.multiplyScalar(zoomFactor)));
+    this.controls.update();
+
+    // Rotate camera 30 degrees around Y axis for default orientation
+    const rotDir = this.camera.position.clone().sub(this.controls.target);
+    rotDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), (-15 * Math.PI) / 180);
+    this.camera.position.copy(this.controls.target.clone().add(rotDir));
+    this.controls.update();
+
     const currentPolar = this.controls.getPolarAngle();
     this.controls.minPolarAngle = currentPolar;
     this.controls.maxPolarAngle = currentPolar;
@@ -1649,8 +1672,8 @@ class ThreeViewer {
         position = new THREE.Vector3(0, -distance, 0);
         break;
       case 'isometric':
-        // Front-left view: camera at (-x, +y, +z)
-        position = new THREE.Vector3(-distance / 2.0, distance / 5.0, distance / 2.0)
+        // Front-left view matching ingame unit panel angle (~-20° elevation)
+        position = new THREE.Vector3(-distance / 2.0, -distance / 16.0, distance / 2.0)
           .normalize()
           .multiplyScalar(distance);
         break;
@@ -1664,7 +1687,40 @@ class ThreeViewer {
   }
 
   takeScreenshot(): string | null {
-    return this.renderer.domElement.toDataURL('image/png');
+    const glCanvas = this.renderer.domElement;
+    const width = glCanvas.width;
+    const height = glCanvas.height;
+
+    if (!this.skyBackgroundImage) {
+      return glCanvas.toDataURL('image/png');
+    }
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = width;
+    offscreen.height = height;
+    const ctx = offscreen.getContext('2d');
+    if (!ctx) return glCanvas.toDataURL('image/png');
+
+    // Draw background with CSS cover semantics
+    const img = this.skyBackgroundImage;
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    const canvasAspect = width / height;
+    let drawW: number, drawH: number;
+    if (imgAspect > canvasAspect) {
+      drawH = height;
+      drawW = height * imgAspect;
+    } else {
+      drawW = width;
+      drawH = width / imgAspect;
+    }
+    const drawX = (width - drawW) / 2;
+    const drawY = this.skyBackgroundPosition.includes('top') ? 0 : (height - drawH) / 2;
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+    // Composite WebGL canvas on top
+    ctx.drawImage(glCanvas, 0, 0);
+
+    return offscreen.toDataURL('image/png');
   }
 
   getContent() {
@@ -1683,8 +1739,9 @@ class ThreeViewer {
       cancelAnimationFrame(this.animationFrameId);
     }
 
-    // Remove event listeners
-    window.removeEventListener('resize', this.handleResize);
+    // Remove resize observer
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
 
     // Clear content
     this.clear();
@@ -2124,7 +2181,7 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
       };
     }, [displayMode]);
 
-    // Load faction-specific sky as CSS background
+    // Load faction-specific background as CSS background (unit_background primary, sky fallback)
     useEffect(() => {
       const viewer = viewerRef.current;
       if (!viewer) return;
@@ -2135,26 +2192,34 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
       }
 
       let canceled = false;
-      let skyBlobUrl: string | null = null;
+      let bgBlobUrl: string | null = null;
 
-      const loadSky = async () => {
+      const loadBackground = async () => {
         try {
-          const response = await fetch(`/api/viewer/sky/${encodeURIComponent(faction)}`);
-          if (canceled || !response.ok) return;
+          let response = await fetch(`/api/viewer/unit-background/${encodeURIComponent(faction)}`);
+          if (canceled) return;
+
+          let position = 'center center';
+          if (!response.ok) {
+            response = await fetch(`/api/viewer/sky/${encodeURIComponent(faction)}`);
+            if (canceled || !response.ok) return;
+            position = 'center top';
+          }
+
           const blob = await response.blob();
-          skyBlobUrl = URL.createObjectURL(blob);
-          if (!canceled) viewer.setCanvasSkyBackground(skyBlobUrl);
+          bgBlobUrl = URL.createObjectURL(blob);
+          if (!canceled) viewer.setCanvasSkyBackground(bgBlobUrl, position);
         } catch (err) {
-          console.warn('Failed to load faction sky:', err);
+          console.warn('Failed to load faction background:', err);
         }
       };
 
-      loadSky();
+      loadBackground();
 
       return () => {
         canceled = true;
-        if (skyBlobUrl) {
-          URL.revokeObjectURL(skyBlobUrl);
+        if (bgBlobUrl) {
+          URL.revokeObjectURL(bgBlobUrl);
           viewer.setCanvasSkyBackground(null);
         }
       };

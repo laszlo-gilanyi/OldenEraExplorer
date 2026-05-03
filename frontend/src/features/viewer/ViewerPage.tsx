@@ -134,6 +134,7 @@ export default function ViewerPage() {
 
   const setDisplayMode = useViewerStore((s) => s.setDisplayMode);
 
+  const [isPortrait, setIsPortrait] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const columnLabels = useColumnLabels();
 
@@ -580,7 +581,11 @@ export default function ViewerPage() {
 
         <div className="flex-1 flex p-4 overflow-hidden">
           <DropZoneOverlay onFileDropped={handleFileDropped}>
-            <div ref={viewerContainerRef} className="flex-1 relative rounded-lg overflow-hidden bg-card shadow-2xl h-full">
+            <div className="flex justify-center h-full">
+            <div
+              ref={viewerContainerRef}
+              className={`relative rounded-lg overflow-hidden bg-card shadow-2xl h-full ${isPortrait ? 'aspect-[1250/1760]' : 'flex-1'}`}
+            >
               <ErrorBoundary>
                 {glbUrl ? (
                   /* eslint-disable-next-line react-hooks/refs -- Ref access for Three.js stats container */
@@ -612,6 +617,28 @@ export default function ViewerPage() {
                   </svg>
                 </button>
               )}
+              <button
+                onClick={() => setIsPortrait(p => !p)}
+                className="absolute bottom-4 right-4 p-0 m-0 bg-transparent text-muted-foreground border-0 cursor-pointer z-10"
+              >
+                {isPortrait ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3l18 18M3 21l18-18" className="hidden" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="4 14 10 14 10 20" />
+                    <polyline points="20 10 14 10 14 4" />
+                    <line x1="10" y1="14" x2="3" y2="21" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                  </svg>
+                )}
+              </button>
+            </div>
             </div>
           </DropZoneOverlay>
         </div>

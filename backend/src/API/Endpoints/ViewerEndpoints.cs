@@ -28,6 +28,12 @@ public static class ViewerEndpoints
             .Produces(200, contentType: "image/png")
             .Produces<ErrorDto>(404);
 
+        group.MapGet("/unit-background/{faction}", GetUnitBackground)
+            .WithName("GetUnitBackground")
+            .WithSummary("Get the faction-specific unit background illustration for Game Preview")
+            .Produces(200, contentType: "image/png")
+            .Produces<ErrorDto>(404);
+
         group.MapGet("/sky/{faction}", GetFactionSky)
             .WithName("GetFactionSky")
             .WithSummary("Get the faction-specific sky panorama for Game Preview background")
@@ -76,6 +82,18 @@ public static class ViewerEndpoints
 
         var fileBytes = File.ReadAllBytes(path);
         return Results.File(fileBytes, "image/png", "Cold Sunset Equirect.png");
+    }
+
+    private static IResult GetUnitBackground(string faction, IAssetServingService assetService)
+    {
+        var bgFileName = $"unit_background_{faction.ToLowerInvariant()}.png";
+        var path = ResolveAssetPath(assetService.ExtractedAssetsDirectory, "Assets", "Resources", "icons", "unit_backgrounds", bgFileName);
+
+        if (path == null || !File.Exists(path))
+            return Results.NotFound(new ErrorDto($"Unit background for faction '{faction}' not found."));
+
+        var fileBytes = File.ReadAllBytes(path);
+        return Results.File(fileBytes, "image/png", bgFileName);
     }
 
     private static IResult GetFactionSky(string faction, IAssetServingService assetService)

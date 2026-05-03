@@ -307,18 +307,17 @@ public sealed class MapObjectsIndex
 
     private void MergeBankDataToMapObject(string id, BankData bankData, string sourceFolder)
     {
-        var tag = sourceFolder;
-
         if (_mapObjects.TryGetValue(id, out var existing))
         {
-            _mapObjects[id] = existing with { BankData = bankData, Tag = tag };
+            // Preserve the original tag from the map object definition; don't overwrite with bank source folder
+            _mapObjects[id] = existing with { BankData = bankData };
         }
         else
         {
             // Bank exists but no corresponding map object - create a minimal record
             _mapObjects[id] = new MapObjectRecord(
                 id,
-                tag,
+                sourceFolder,
                 true,
                 1,
                 1,
