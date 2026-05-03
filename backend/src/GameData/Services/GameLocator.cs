@@ -230,10 +230,10 @@ public static class GameLocator
                 reasons.Add("+2 Heroes*.exe found");
             }
 
-            if (Regex.IsMatch(name, @"(?i)(Playtest|Demo|Early\s*Access|EA|Dev)"))
+            if (Regex.IsMatch(name, @"(?i)(Playtest|Demo|Dev)"))
             {
-                score += 1;
-                reasons.Add("+1 folder name: Playtest/Demo/EA/Dev");
+                score -= 2;
+                reasons.Add("-2 folder name: Playtest/Demo/Dev");
             }
 
             if (runningRoots.Contains(gameRoot))

@@ -641,6 +641,13 @@ public class StandaloneTextureExtractor : IDisposable
                 }
             }
 
+            // UI sprites: buttons, icons, rank frames, Unity UI component variants
+            if (fileName.Contains("button") ||
+                fileName.Contains("icon") ||
+                fileName.StartsWith("rang") ||
+                fileName.StartsWith("property 1="))
+                return true;
+
             return false;
         }
 
