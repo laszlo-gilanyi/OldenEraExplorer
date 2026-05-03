@@ -306,6 +306,7 @@ public record ArtifactDetailDto(
     string? UpgradeDescription,
     string? UpgradeCost,
     string? UpgradeCostNote,
+    string? DestroyReward,
     ArtifactSetBonusDto? SetBonus
 );
 

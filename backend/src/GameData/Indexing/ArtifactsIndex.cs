@@ -23,6 +23,7 @@ public sealed class ArtifactsIndex
         int MaxLevel,
         int CostBase,
         int CostPerLevel,
+        int RewardForDestroy,
         bool IsSpecialItem
     );
 
@@ -87,11 +88,12 @@ public sealed class ArtifactsIndex
                     var maxLevel = el.TryGetProperty("maxLevel", out var maxLvlP) && maxLvlP.TryGetInt32(out var maxLvl) ? maxLvl : 0;
                     var costBase = el.TryGetProperty("costBase", out var costBaseP) && costBaseP.TryGetInt32(out var cBase) ? cBase : 0;
                     var costPerLevel = el.TryGetProperty("costPerLevel", out var costPerLvlP) && costPerLvlP.TryGetInt32(out var cPerLvl) ? cPerLvl : 0;
+                    var rewardForDestroy = el.TryGetProperty("rewardForDestroy", out var rewardP) && rewardP.TryGetInt32(out var reward) ? reward : 0;
                     var isSpecialItem = el.TryGetProperty("isSpecialItem", out var specialP) && specialP.GetBoolean();
                     icon = NormalizeIcon(id, icon);
 
                     if (!string.IsNullOrWhiteSpace(id) && !_artifacts.ContainsKey(id))
-                        _artifacts[id] = new ArtifactRecord(id, name, desc, rarity, slot, icon, itemSetId, narrativeDescSid, upgradeDescSid, maxLevel, costBase, costPerLevel, isSpecialItem);
+                        _artifacts[id] = new ArtifactRecord(id, name, desc, rarity, slot, icon, itemSetId, narrativeDescSid, upgradeDescSid, maxLevel, costBase, costPerLevel, rewardForDestroy, isSpecialItem);
                 }
             }
             catch { }

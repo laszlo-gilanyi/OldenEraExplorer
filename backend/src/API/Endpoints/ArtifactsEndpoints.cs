@@ -157,6 +157,7 @@ public static class ArtifactsEndpoints
             UpgradeDescription: upgradeDesc,
             UpgradeCost: upgradeCost,
             UpgradeCostNote: upgradeCostNote,
+            DestroyReward: BuildDestroyReward(artifact, lang),
             SetBonus: setBonus
         );
     }
@@ -235,7 +236,9 @@ public static class ArtifactsEndpoints
                      ?? "Upgrade Cost: {0}";
 
         // Number only - dust icon is displayed in frontend
-        var upgradeCost = string.Format(costLabel, artifact.CostBase);
+        // First upgrade cost = costBase + costPerLevel (level 1 → 2)
+        var firstUpgradeCost = artifact.CostBase + artifact.CostPerLevel;
+        var upgradeCost = string.Format(costLabel, firstUpgradeCost);
 
         string? costNote = null;
         if (artifact.MaxLevel == 999)
@@ -245,6 +248,17 @@ public static class ArtifactsEndpoints
         }
 
         return (upgradeCost, costNote);
+    }
+
+    private static string? BuildDestroyReward(
+        ArtifactsIndex.ArtifactRecord artifact,
+        Localization.Indexing.LangIndex lang)
+    {
+        if (artifact.RewardForDestroy <= 0)
+            return null;
+
+        var label = lang.ResolveText("hero_window_ui_delete_item") ?? "Destroy Artifact";
+        return $"{label}: {artifact.RewardForDestroy}";
     }
 
     private static string NormalizeSlotForSid(string slot)

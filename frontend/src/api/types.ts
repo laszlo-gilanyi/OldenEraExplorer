@@ -585,6 +585,7 @@ export interface ArtifactDetailDto {
   upgradeDescription: string | null;
   upgradeCost: string | null;
   upgradeCostNote: string | null;
+  destroyReward: string | null;
   setBonus: ArtifactSetBonusDto | null;
 }
 
