@@ -639,18 +639,21 @@ public class GltfMeshExporter : IMeshExporter
                 var matNameLower = materialData.Name.ToLowerInvariant();
                 var emissiveNameLower = materialData.EmissiveTextureName.ToLowerInvariant();
 
-                // starchild_alpha_mt→starchild_body_emissive is wrong (alpha/non-alpha mismatch). Filter.
-                bool isAlphaMaterial = matNameLower.Contains("_alpha") || matNameLower.Contains("alpha_");
-                bool emissiveMatchesMaterial = emissiveNameLower.Contains("alpha") == isAlphaMaterial;
+                // Unity lets artists assign any emissive to any material. When a base unit's emissive
+                // lands on an upgrade variant, the UVs don't match — different mesh, different UV layout —
+                // so the emissive renders as stripes or noise instead of the intended subtle glow.
+                // Asset naming convention mirrors material naming, so prefix mismatch reliably catches this.
+                var matBase = matNameLower.EndsWith("_mt") ? matNameLower[..^3] : matNameLower;
+                bool emissiveMismatchesMaterial = !emissiveNameLower.StartsWith(matBase);
 
-                // olgoi_transparent.png is transparency, not emissive. Skip.
+                // Some textures named like emissives are actually alpha/transparency masks (e.g. olgoi_transparent).
                 bool isTransparencyTexture = emissiveNameLower.Contains("_transparent") &&
                                              !emissiveNameLower.Contains("emissive");
 
-                if (isAlphaMaterial && !emissiveMatchesMaterial)
+                if (emissiveMismatchesMaterial)
                 {
-                    _logger.LogInformation("Skipping emissive for alpha material '{MaterialName}' (emissive '{EmissiveTextureName}' is for different material)",
-                        materialData.Name, materialData.EmissiveTextureName);
+                    _logger.LogInformation("Skipping emissive '{EmissiveTextureName}' - does not match material base name '{MatBase}'",
+                        materialData.EmissiveTextureName, matBase);
                 }
                 else if (isTransparencyTexture)
                 {
