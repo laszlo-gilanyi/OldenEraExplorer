@@ -13,7 +13,6 @@ public static class SkillsEndpoints
             .WithTags("Skills")
             ;
 
-        // GET /api/skills - List all skills
         group.MapGet("/", GetSkills)
             .WithName("GetSkills")
             .WithSummary("List all skills")
@@ -21,7 +20,6 @@ public static class SkillsEndpoints
             .Produces<List<SkillListItemDto>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/skills/{id} - Get skill details
         group.MapGet("/{id}", GetSkillById)
             .WithName("GetSkillById")
             .WithSummary("Get skill details")
@@ -349,7 +347,6 @@ public static class SkillsEndpoints
         {
         }
 
-        // Fallback to lang index
         return langIndex.ResolveText(sid);
     }
 }

@@ -152,7 +152,6 @@ public static class UnitsEndpoints
                 ImmunitySids: Array.Empty<string>(),
                 InfoDescriptionSids: Array.Empty<string>()
             );
-            // Lookup variant ID from pre-aggregated abilities
             var baseClassVariantId = FindVariantIdForAbility(
                 dataService.Data!.AggregatedAbilities,
                 unit.BaseClassNameSid,
@@ -368,7 +367,6 @@ public static class UnitsEndpoints
         if (string.IsNullOrWhiteSpace(nameSid))
             return nameSid;
 
-        // Resolve the description for this specific ability
         var currentUnitCtx = new ResolutionContext(locale)
         {
             UnitId = currentUnitId,
@@ -379,7 +377,6 @@ public static class UnitsEndpoints
             ? ""
             : (resolver.Resolve(descriptionSid, currentUnitCtx, out _) ?? descriptionSid);
 
-        // Find matching aggregate by NameSid and ResolvedDescription
         var matchingAggregate = aggregatedAbilities.FirstOrDefault(a =>
             a.Key.NameSid.Equals(nameSid, StringComparison.OrdinalIgnoreCase) &&
             a.Key.ResolvedDescription == resolvedDescToMatch &&

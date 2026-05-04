@@ -130,7 +130,8 @@ public sealed class SkillsIndex
     {
         foreach (var skill in _skills.Values)
         {
-            // Via sub_skill heroMagicAddition bonuses
+            // Spells linked through sub-skills: a sub-skill's heroMagicAddition bonus grants the spell,
+            // so the parent skill is what the player actually learns to unlock it.
             foreach (var subSkillId in skill.AllSubSkills)
             {
                 if (!_subSkillToMagics.TryGetValue(subSkillId, out var magicIds))
@@ -143,7 +144,8 @@ public sealed class SkillsIndex
                 }
             }
 
-            // Via skill-level heroMagicAddition bonuses (e.g. skill_summoner → bonus_magic_astral_summon_*)
+            // Some skills also grant spells directly at the skill level, bypassing sub-skills entirely
+            // (e.g. skill_summoner grants bonus_magic_astral_summon_* at skill level, not through any sub-skill).
             foreach (var spellId in skill.DirectMagicIds)
             {
                 if (!_spellToSkill.ContainsKey(spellId))

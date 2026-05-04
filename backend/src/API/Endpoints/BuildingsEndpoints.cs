@@ -16,7 +16,6 @@ public static class BuildingsEndpoints
             .WithTags("Buildings")
             ;
 
-        // GET /api/buildings - List all buildings
         group.MapGet("/", GetBuildings)
             .WithName("GetBuildings")
             .WithSummary("List all buildings")
@@ -24,7 +23,6 @@ public static class BuildingsEndpoints
             .Produces<List<BuildingListItemDto>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/buildings/{id} - Get building details
         group.MapGet("/{id}", GetBuildingById)
             .WithName("GetBuildingById")
             .WithSummary("Get building details")

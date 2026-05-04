@@ -236,7 +236,6 @@ public static class ArtifactsEndpoints
                      ?? "Upgrade Cost: {0}";
 
         // Number only - dust icon is displayed in frontend
-        // First upgrade cost = costBase + costPerLevel (level 1 → 2)
         var firstUpgradeCost = artifact.CostBase + artifact.CostPerLevel;
         var upgradeCost = string.Format(costLabel, firstUpgradeCost);
 
