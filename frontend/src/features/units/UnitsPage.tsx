@@ -431,6 +431,9 @@ function UnitDetailPanel({ unit, selectedUnitId, error }: UnitDetailPanelProps) 
                     { label: unit.statLabels?.expBonus || 'Exp Bonus', value: unit.expBonus ?? '-', iconPath: STAT_ICONS.ExpBonus },
                     { label: unit.statLabels?.weeklyGrowth || 'Weekly Growth', value: unit.growth ?? '-', iconPath: STAT_ICONS.Growth },
                     { label: unit.statLabels?.cost || 'Cost', iconPath: STAT_ICONS.Cost, costEntries: unit.costEntries },
+                    ...(unit.upgradeCostEntries && unit.upgradeCostEntries.length > 0
+                      ? [{ label: 'Upgrade Cost', iconPath: STAT_ICONS.Cost, costEntries: unit.upgradeCostEntries }]
+                      : []),
                   ]} />
                 </div>
               </div>

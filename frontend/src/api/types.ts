@@ -50,6 +50,7 @@ export interface UnitDetailDto {
   passiveAbilities: AbilityDetailDto[] | null;
   activeAbilities: AbilityDetailDto[] | null;
   costEntries: UnitCostEntryDto[] | null;
+  upgradeCostEntries?: UnitCostEntryDto[] | null;
   usedByHeroes: UsedByHeroDto[] | null;
   statLabels: UnitStatLabelsDto | null;
 }

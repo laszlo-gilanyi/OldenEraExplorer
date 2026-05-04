@@ -38,7 +38,8 @@ public sealed class DbIndex
         string BaseClassIcon,
         IReadOnlyDictionary<string, string> Stats,
         int? Growth,
-        IReadOnlyList<UnitCostEntry> Cost
+        IReadOnlyList<UnitCostEntry> Cost,
+        string? UpgradeSid
     );
 
     public sealed record UnitCostEntry(string ResourceKey, int Amount);
@@ -296,7 +297,11 @@ public sealed class DbIndex
             var cost = lUnit is JsonElement le5 ? ExtractCost(le5) : Array.Empty<UnitCostEntry>();
             int? growth = null;
 
-            yield return new UnitRecord(key, fraction, tier, mesh, scale, abilities, passives, baseNameSid, baseDescSid, baseIcon, stats, growth, cost);
+            string? upgradeSid = null;
+            if (lUnit is JsonElement le6 && le6.TryGetProperty("upgradeSid", out var usEl) && usEl.ValueKind == JsonValueKind.String)
+                upgradeSid = usEl.GetString();
+
+            yield return new UnitRecord(key, fraction, tier, mesh, scale, abilities, passives, baseNameSid, baseDescSid, baseIcon, stats, growth, cost, upgradeSid);
         }
     }
 
