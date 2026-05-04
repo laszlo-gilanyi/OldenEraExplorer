@@ -88,6 +88,7 @@ public record UnitDetailDto(
     IReadOnlyList<AbilityDetailDto>? PassiveAbilities,
     IReadOnlyList<AbilityDetailDto>? ActiveAbilities,
     IReadOnlyList<UnitCostEntryDto>? CostEntries,
+    IReadOnlyList<UnitCostEntryDto>? UpgradeCostEntries,
     IReadOnlyList<UsedByHeroDto>? UsedByHeroes,
     UnitStatLabelsDto? StatLabels
 );

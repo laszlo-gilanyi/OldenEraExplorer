@@ -217,6 +217,36 @@ public static class UnitsEndpoints
             ))
             .ToList();
 
+        List<UnitCostEntryDto>? upgradeCostEntries = null;
+        bool isBaseUnit = !unit.Id.EndsWith("_upg", StringComparison.Ordinal) &&
+                          !unit.Id.EndsWith("_upg_alt", StringComparison.Ordinal);
+        if (isBaseUnit && unit.UpgradeSid != null)
+        {
+            var upgradeUnit = dataService.Data!.Units.FirstOrDefault(u =>
+                u.Id.Equals(unit.UpgradeSid, StringComparison.OrdinalIgnoreCase));
+            if (upgradeUnit != null && upgradeUnit.Cost.Count > 0)
+            {
+                var upgradeCostList = new List<UnitCostEntryDto>();
+                foreach (var upgCost in upgradeUnit.Cost)
+                {
+                    var baseAmount = unit.Cost
+                        .FirstOrDefault(c => c.ResourceKey.Equals(upgCost.ResourceKey, StringComparison.OrdinalIgnoreCase))
+                        ?.Amount ?? 0;
+                    var delta = upgCost.Amount - baseAmount;
+                    if (delta > 0)
+                    {
+                        upgradeCostList.Add(new UnitCostEntryDto(
+                            ResourceKey: upgCost.ResourceKey,
+                            DisplayName: TryResolveText(resolver, $"{upgCost.ResourceKey}_name", locale) ?? upgCost.ResourceKey,
+                            Amount: delta
+                        ));
+                    }
+                }
+                if (upgradeCostList.Count > 0)
+                    upgradeCostEntries = upgradeCostList;
+            }
+        }
+
         var usedByHeroes = referenceService
             .GetReferencedBy(unit.Id, EntityType.Unit)
             .Where(r => r.EntityType == EntityType.Hero)
@@ -283,6 +313,7 @@ public static class UnitsEndpoints
             PassiveAbilities: passiveAbilities.Count > 0 ? passiveAbilities : null,
             ActiveAbilities: activeAbilities.Count > 0 ? activeAbilities : null,
             CostEntries: costEntries.Count > 0 ? costEntries : null,
+            UpgradeCostEntries: upgradeCostEntries,
             UsedByHeroes: usedByHeroes.Count > 0 ? usedByHeroes : null,
             StatLabels: statLabels
         );
