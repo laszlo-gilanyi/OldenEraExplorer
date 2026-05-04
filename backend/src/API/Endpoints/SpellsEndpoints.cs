@@ -17,7 +17,6 @@ public static class SpellsEndpoints
             .WithTags("Spells")
             ;
 
-        // GET /api/spells - List all spells
         group.MapGet("/", GetSpells)
             .WithName("GetSpells")
             .WithSummary("List all spells")
@@ -25,7 +24,6 @@ public static class SpellsEndpoints
             .Produces<List<SpellListItemDto>>(200)
             .Produces<ErrorDto>(503);
 
-        // GET /api/spells/{id} - Get spell details
         group.MapGet("/{id}", GetSpellById)
             .WithName("GetSpellById")
             .WithSummary("Get spell details")
@@ -203,7 +201,6 @@ public static class SpellsEndpoints
         var localizedName = GetLocalizedSpellName(resolver, spell.NameSid, locale);
         var category = DetermineCategory(spell, data.Lang, locale);
 
-        // Determine if this is a Bonus spell
         bool isBonusSpell = !spell.IsSpecialMagic
                          && !(spell.UsedOnMap && spell.SettingPerLevelsCount > 1)
                          && !(spell.HasBattleMagic && spell.DealersPerLevelsCount > 1);
@@ -218,7 +215,7 @@ public static class SpellsEndpoints
 
         var levels = new List<SpellLevelDto>();
 
-        // Try to get mana costs and descriptions from spell JSON via DbAccessor
+        // Mana costs and per-level descriptions are only in the raw spell JSON, not the parsed index
         int[] manaCosts = new int[4];
         string?[] descriptions = new string?[4];
         string?[] bonusDescriptions = new string?[4];

@@ -4,9 +4,6 @@ using Localization.Resolution;
 
 namespace Localization.Scripting.Operations;
 
-/// <summary>
-/// Skill operations: CurrentSkillParameter, CurrentSubSkill
-/// </summary>
 public sealed class SkillAccessOperations : IScriptOperation
 {
     private readonly DbAccessor _db;
