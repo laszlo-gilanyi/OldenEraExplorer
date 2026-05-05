@@ -167,9 +167,9 @@ public static class HeroesEndpoints
         var specializationName = lang.ResolveText($"{hero.HeroId}_spec_name")
             ?? ResolveSpecNameFromIndex(lang, hero.SpecializationSid, heroSpecializationsIndex)
             ?? "";
-        var specializationDescription = TryResolveTextWithHeroContext(resolver, $"{hero.HeroId}_spec_description", locale, hero.SpecializationSid)
+        var specializationDescription = ResolveSpecDescFromIndex(lang, resolver, locale, hero.SpecializationSid, heroSpecializationsIndex)
+            ?? TryResolveTextWithHeroContext(resolver, $"{hero.HeroId}_spec_description", locale, hero.SpecializationSid)
             ?? lang.ResolveText($"{hero.HeroId}_spec_description")
-            ?? ResolveSpecDescFromIndex(lang, resolver, locale, hero.SpecializationSid, heroSpecializationsIndex)
             ?? "";
 
         var startingArmy = hero.StartSquad

@@ -138,7 +138,11 @@ public sealed class SearchService
 
             var heroCtx = CreateHeroResolutionContext(locale, hero.SpecializationSid);
             var specName = ResolveText(resolver, $"{hero.HeroId}_spec_name", locale);
-            var specDesc = ResolveTextWithContext(resolver, $"{hero.HeroId}_spec_description", heroCtx);
+            var specDescSid = data.HeroSpecializationsIndex.Specializations.TryGetValue(hero.SpecializationSid ?? "", out var heroSpecRecord)
+                && !string.IsNullOrWhiteSpace(heroSpecRecord.DescSid)
+                ? heroSpecRecord.DescSid
+                : $"{hero.HeroId}_spec_description";
+            var specDesc = ResolveTextWithContext(resolver, specDescSid, heroCtx);
             var description = ResolveTextWithContext(resolver, $"{hero.HeroId}_description", heroCtx);
             var motto = ResolveTextWithContext(resolver, $"{hero.HeroId}_motto", heroCtx);
 

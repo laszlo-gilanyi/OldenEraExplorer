@@ -62,7 +62,7 @@ public class HeroDetailsService
         cancellationToken.ThrowIfCancellationRequested();
 
         var (specializationName, specializationDescription) = ResolveSpecialization(
-            heroRecord, lang, ctx, placeholderResolverEnabled);
+            heroRecord, lang, ctx, placeholderResolverEnabled, heroSpecializationsIndex);
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -144,20 +144,21 @@ public class HeroDetailsService
         HeroesIndex.HeroRecord hero,
         LangIndex lang,
         ResolutionContext ctx,
-        bool placeholderResolverEnabled)
+        bool placeholderResolverEnabled,
+        HeroSpecializationsIndex? heroSpecializationsIndex)
     {
         var specializationName = lang.ResolveText($"{hero.HeroId}_spec_name") ?? "";
-        var specializationDescription = "";
         var descriptionSid = $"{hero.HeroId}_spec_description";
 
-        if (placeholderResolverEnabled)
+        if (heroSpecializationsIndex?.Specializations.TryGetValue(hero.SpecializationSid ?? "", out var specRecord) == true
+            && !string.IsNullOrWhiteSpace(specRecord.DescSid))
         {
-            specializationDescription = _textResolver.Resolve(descriptionSid, ctx, out _);
+            descriptionSid = specRecord.DescSid;
         }
-        else
-        {
-            specializationDescription = lang.ResolveText(descriptionSid) ?? "";
-        }
+
+        var specializationDescription = placeholderResolverEnabled
+            ? _textResolver.Resolve(descriptionSid, ctx, out _)
+            : lang.ResolveText(descriptionSid) ?? "";
 
         return (specializationName, specializationDescription);
     }
