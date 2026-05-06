@@ -11,7 +11,7 @@ namespace Localization.Resolution;
 
 /// <summary>
 /// Resolves placeholders ({0}, {1}) by evaluating game scripts and substituting calculated values.
-/// Resolution pipeline: FunctionOverrides -> ScriptInterpreter -> InfoScriptIndex -> &lt;funcName&gt; marker
+/// Resolution pipeline: ScriptInterpreter -> InfoScriptIndex -> &lt;funcName&gt; marker
 /// </summary>
 public sealed partial class PlaceholderResolver : ITextResolver
 {
@@ -19,7 +19,6 @@ public sealed partial class PlaceholderResolver : ITextResolver
 
     private readonly LangIndex _lang;
     private readonly InfoScriptIndex? _script;
-    private readonly FunctionOverrides? _overrides;
     private readonly ScriptInterpreter? _interpreter;
     private readonly DbAccessor? _db;
     private readonly OverlayService _overlays;
@@ -29,16 +28,12 @@ public sealed partial class PlaceholderResolver : ITextResolver
     [GeneratedRegex(@"\{(\d+)\}", RegexOptions.Compiled)]
     private static partial Regex PlaceholderRx();
 
-    public PlaceholderResolver(LangIndex lang) : this(lang, null, null, null, null, OverlayService.Instance) { }
-    public PlaceholderResolver(LangIndex lang, InfoScriptIndex? script) : this(lang, script, null, null, null, OverlayService.Instance) { }
-    public PlaceholderResolver(LangIndex lang, InfoScriptIndex? script, FunctionOverrides? overrides) : this(lang, script, overrides, null, null, OverlayService.Instance) { }
-    public PlaceholderResolver(LangIndex lang, InfoScriptIndex? script, FunctionOverrides? overrides, ScriptInterpreter? interpreter, DbAccessor? db) : this(lang, script, overrides, interpreter, db, OverlayService.Instance) { }
+    public PlaceholderResolver(LangIndex lang, InfoScriptIndex? script, ScriptInterpreter? interpreter, DbAccessor? db) : this(lang, script, interpreter, db, OverlayService.Instance) { }
 
-    public PlaceholderResolver(LangIndex lang, InfoScriptIndex? script, FunctionOverrides? overrides, ScriptInterpreter? interpreter, DbAccessor? db, OverlayService overlays)
+    public PlaceholderResolver(LangIndex lang, InfoScriptIndex? script, ScriptInterpreter? interpreter, DbAccessor? db, OverlayService overlays)
     {
         _lang = lang ?? throw new ArgumentNullException(nameof(lang));
         _script = script;
-        _overrides = overrides;
         _interpreter = interpreter;
         _db = db;
         _overlays = overlays ?? throw new ArgumentNullException(nameof(overlays));
@@ -161,9 +156,6 @@ public sealed partial class PlaceholderResolver : ITextResolver
             }
 
             usedFns.Add(expr);
-
-            var ov = _overrides?.TryGet(expr);
-            if (ov != null) return ov;
 
             if (_interpreter != null && _interpreter.TryEvaluate(expr, ctx, out var evalVal) && evalVal != null)
                 return evalVal!;

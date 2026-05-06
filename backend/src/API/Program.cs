@@ -11,8 +11,6 @@ if (args.Length > 0 && args[0] == "--extract")
 
 const string AppUrl = "http://localhost:5176";
 
-UpdateService.CleanupOldFiles();
-
 if (!SingleInstanceService.EnsureSingleInstance())
 {
     return 1;
@@ -79,7 +77,31 @@ app.MapAllEndpoints();
 if (!app.Environment.IsDevelopment())
 {
     app.UseEmbeddedStaticFiles();
-    BrowserLauncher.OpenWithRetry(AppUrl);
+
+    if (args.Contains("--from-update"))
+    {
+        // Auto-update relaunch: give the existing browser tab a chance to reconnect via SignalR
+        // before falling back to opening a fresh tab. Avoids leaving the user with two tabs.
+        var tracker = app.Services.GetRequiredService<ConnectionTracker>();
+        _ = Task.Run(async () =>
+        {
+            var connected = await tracker.WaitForConnectionAsync(TimeSpan.FromSeconds(5));
+            if (connected)
+            {
+                Console.WriteLine("[update] Existing tab reconnected — skipping fresh tab launch.");
+            }
+            else
+            {
+                Console.WriteLine("[update] No tab reconnected within 5s — opening fresh tab.");
+                BrowserLauncher.OpenWithRetry(AppUrl);
+            }
+        });
+    }
+    else
+    {
+        BrowserLauncher.OpenWithRetry(AppUrl);
+    }
+
     app.Services.GetRequiredService<TrayIconService>().Initialize(AppUrl);
 }
 

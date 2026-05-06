@@ -24,7 +24,9 @@ public class UpdateService
     private readonly ILogger<UpdateService> _logger;
     private readonly IWebHostEnvironment _env;
 
-    public volatile UpdateProgress? InstallProgress;
+    // Process-wide so the install task and progress-polling endpoint share state even though
+    // AddHttpClient<UpdateService>() registers the service as transient.
+    public static volatile UpdateProgress? InstallProgress;
 
     public UpdateService(HttpClient httpClient, ILogger<UpdateService> logger, IWebHostEnvironment env)
     {
@@ -69,6 +71,16 @@ public class UpdateService
                 }).ToList()
             };
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning("Update check failed: network unreachable ({Reason})", ex.Message);
+            throw;
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogWarning("Update check timed out");
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to check for updates");
@@ -81,6 +93,7 @@ public class UpdateService
         if (_env.IsDevelopment())
         {
             _logger.LogWarning("Update installation is disabled in development mode.");
+            InstallProgress = new UpdateProgress("error", "Update installation is disabled in development mode.");
             return;
         }
 
@@ -101,24 +114,26 @@ public class UpdateService
             _logger.LogInformation("Downloading {Url}", asset.BrowserDownloadUrl);
             InstallProgress = new UpdateProgress("downloading", "Downloading update...");
 
-            using var response = await _httpClient.GetAsync(asset.BrowserDownloadUrl, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-
-            var total = response.Content.Headers.ContentLength ?? -1;
-            await using var fs = File.Create(zipPath);
-            await using var stream = await response.Content.ReadAsStreamAsync();
-
-            var buffer = new byte[81920];
-            long downloaded = 0;
-            int read;
-            while ((read = await stream.ReadAsync(buffer)) > 0)
+            using (var response = await _httpClient.GetAsync(asset.BrowserDownloadUrl, HttpCompletionOption.ResponseHeadersRead))
             {
-                await fs.WriteAsync(buffer.AsMemory(0, read));
-                downloaded += read;
-                if (total > 0)
+                response.EnsureSuccessStatusCode();
+
+                var total = response.Content.Headers.ContentLength ?? -1;
+                await using var fs = File.Create(zipPath);
+                await using var stream = await response.Content.ReadAsStreamAsync();
+
+                var buffer = new byte[81920];
+                long downloaded = 0;
+                int read;
+                while ((read = await stream.ReadAsync(buffer)) > 0)
                 {
-                    var pct = (int)(downloaded * 100 / total);
-                    InstallProgress = new UpdateProgress("downloading", $"Downloading... {pct}%");
+                    await fs.WriteAsync(buffer.AsMemory(0, read));
+                    downloaded += read;
+                    if (total > 0)
+                    {
+                        var pct = (int)(downloaded * 100 / total);
+                        InstallProgress = new UpdateProgress("downloading", $"Downloading... {pct}%");
+                    }
                 }
             }
 
@@ -151,26 +166,6 @@ public class UpdateService
         }
     }
 
-    public static void CleanupOldFiles()
-    {
-        try
-        {
-            var currentPath = Process.GetCurrentProcess().MainModule?.FileName;
-            if (string.IsNullOrEmpty(currentPath)) return;
-
-            var oldPath = currentPath + ".old";
-            if (File.Exists(oldPath))
-            {
-                File.Delete(oldPath);
-                Console.WriteLine("Cleaned up leftover .old binary.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Cleanup of old binary failed: {ex.Message}");
-        }
-    }
-
     private void InstallUpdate(string packageRoot, string tempDir)
     {
         var currentPath = Process.GetCurrentProcess().MainModule?.FileName;
@@ -192,25 +187,42 @@ public class UpdateService
         var appDir = Path.GetDirectoryName(currentPath);
         if (string.IsNullOrEmpty(appDir)) return;
 
-        var batchPath = Path.Combine(Path.GetTempPath(), $"oee-update-{Guid.NewGuid():N}.bat");
-        var batch = $"""
-            @echo off
-            setlocal
-            timeout /t 2 /nobreak >nul
-            robocopy "{packageRoot}" "{appDir}" /E /R:3 /W:1 /XD "{appDir}\ExtractedAssets" "{appDir}\CustomAssets"
-            if %ERRORLEVEL% GEQ 8 (echo robocopy failed & exit /b 1)
-            rd /s /q "{tempDir}"
-            start "" "{currentPath}"
-            del "%~f0"
-            """;
+        var persistLogPath = Path.Combine(appDir, "logs", $"update-helper-{DateTime.Now:yyyyMMdd-HHmmss}.log");
 
-        File.WriteAllText(batchPath, batch);
+        // PowerShell handles UTF-8 paths and arbitrary Unicode cleanly via -EncodedCommand,
+        // unlike cmd.exe which would mangle characters outside the system OEM codepage.
+        // Transcript goes to %TEMP% during the run and is only promoted to logs/ on failure,
+        // so the logs/ directory stays empty on success — matches DiagnosticFileLogger's "log = something went wrong" convention.
+        var psScript = $@"
+$ErrorActionPreference = 'Continue'
+$tempLog = [System.IO.Path]::Combine($env:TEMP, ""oee-update-helper-$([guid]::NewGuid().ToString('N')).log"")
+$persistLog = '{persistLogPath.Replace("'", "''")}'
+Start-Transcript -Path $tempLog -Force | Out-Null
+Start-Sleep -Seconds 3
+$rc = robocopy '{packageRoot.Replace("'", "''")}' '{appDir.Replace("'", "''")}' /E /R:3 /W:1 /XD '{appDir.Replace("'", "''")}\ExtractedAssets' '{appDir.Replace("'", "''")}\CustomAssets'
+$rcExit = $LASTEXITCODE
+if ($rcExit -ge 8) {{
+    Write-Error ""robocopy failed with exit code $rcExit""
+    Stop-Transcript | Out-Null
+    New-Item -ItemType Directory -Force -Path (Split-Path $persistLog) | Out-Null
+    Move-Item $tempLog $persistLog -Force -ErrorAction SilentlyContinue
+    exit 1
+}}
+Remove-Item -Recurse -Force '{tempDir.Replace("'", "''")}' -ErrorAction SilentlyContinue
+Start-Process '{currentPath.Replace("'", "''")}' -ArgumentList '--from-update'
+Stop-Transcript | Out-Null
+Remove-Item $tempLog -Force -ErrorAction SilentlyContinue
+";
+
+        var encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(psScript));
+
         Process.Start(new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            Arguments = $"/c \"{batchPath}\"",
+            FileName = "powershell.exe",
+            Arguments = $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand {encoded}",
             CreateNoWindow = true,
             UseShellExecute = false,
+            WindowStyle = ProcessWindowStyle.Hidden,
         });
 
         Environment.Exit(0);
@@ -223,22 +235,54 @@ public class UpdateService
             var appDir = Path.GetDirectoryName(currentPath);
             if (string.IsNullOrEmpty(appDir)) return;
 
-            CopyDirectory(packageRoot, appDir);
+            var persistLogPath = Path.Combine(appDir, "logs", $"update-helper-{DateTime.Now:yyyyMMdd-HHmmss}.log");
+            var scriptPath = Path.Combine(Path.GetTempPath(), $"oee-update-{Guid.NewGuid():N}.sh");
+            // Helper waits for parent to exit (avoids ETXTBSY on the running binary), then copies,
+            // relaunches, and cleans up. Output goes to a temp log during the run and is only promoted
+            // to logs/ on failure, so the logs/ dir stays empty on success — matches DiagnosticFileLogger's
+            // "log = something went wrong" convention.
+            var script = $"""
+                #!/bin/bash
+                TEMP_LOG=$(mktemp /tmp/oee-update-helper-XXXXXX.log)
+                PERSIST_LOG="{persistLogPath}"
+                exec > "$TEMP_LOG" 2>&1
+                echo "[update-helper] Started at $(date)"
+                sleep 3
+                echo "[update-helper] Copying from {packageRoot} to {appDir}"
+                cp -rf "{packageRoot}/." "{appDir}/"
+                CP_EXIT=$?
+                if [ $CP_EXIT -ne 0 ]; then
+                    echo "[update-helper] ERROR: cp failed with exit code $CP_EXIT"
+                    mkdir -p "$(dirname "$PERSIST_LOG")"
+                    mv "$TEMP_LOG" "$PERSIST_LOG"
+                    exit 1
+                fi
+                chmod +x "{currentPath}"
+                rm -rf "{tempDir}"
+                echo "[update-helper] Launching {currentPath} --from-update"
+                nohup "{currentPath}" --from-update > /dev/null 2>&1 &
+                disown
+                rm -f "{scriptPath}"
+                echo "[update-helper] Done"
+                rm -f "$TEMP_LOG"
+                """;
+
+            File.WriteAllText(scriptPath, script);
 
             var chmod = Process.Start(new ProcessStartInfo
             {
                 FileName = "chmod",
-                Arguments = $"+x \"{currentPath}\"",
+                Arguments = $"+x \"{scriptPath}\"",
                 UseShellExecute = false,
             });
             chmod?.WaitForExit();
 
-            try { Directory.Delete(tempDir, recursive: true); } catch { }
-
             Process.Start(new ProcessStartInfo
             {
-                FileName = currentPath,
-                UseShellExecute = true,
+                FileName = "/bin/bash",
+                Arguments = $"\"{scriptPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
             });
 
             Environment.Exit(0);
@@ -249,33 +293,6 @@ public class UpdateService
             InstallProgress = new UpdateProgress("error", $"Install failed: {ex.Message}");
         }
     }
-
-    private static void CopyDirectory(string src, string dst)
-    {
-        var excluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ExtractedAssets", "CustomAssets" };
-
-        Directory.CreateDirectory(dst);
-
-        foreach (var dir in Directory.GetDirectories(src, "*", SearchOption.AllDirectories))
-        {
-            var rel = Path.GetRelativePath(src, dir);
-            if (HasExcludedSegment(rel, excluded)) continue;
-            Directory.CreateDirectory(Path.Combine(dst, rel));
-        }
-
-        foreach (var file in Directory.GetFiles(src, "*", SearchOption.AllDirectories))
-        {
-            var rel = Path.GetRelativePath(src, file);
-            if (HasExcludedSegment(rel, excluded)) continue;
-
-            var target = Path.Combine(dst, rel);
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(file, target, overwrite: true);
-        }
-    }
-
-    private static bool HasExcludedSegment(string rel, HashSet<string> excluded) =>
-        rel.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(excluded.Contains);
 
     private static ReleaseAsset? FindMatchingAsset(ReleaseInfo release)
     {

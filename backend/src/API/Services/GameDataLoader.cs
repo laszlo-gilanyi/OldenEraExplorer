@@ -82,7 +82,6 @@ public class GameDataLoader
         {
             cancellationToken.ThrowIfCancellationRequested();
             var info = new InfoScriptIndex(effectiveLang.StreamingAssetsRoot);
-            var overrides = new FunctionOverrides();
             var scriptRegistry = new ScriptRegistry(effectiveLang.StreamingAssetsRoot);
             dbAccessor = new DbAccessor(effectiveLang.StreamingAssetsRoot);
             var scriptSettings = new ScriptSettings
@@ -93,7 +92,7 @@ public class GameDataLoader
             var interpreter = new ScriptInterpreter(scriptRegistry, dbAccessor, scriptSettings);
 
             var basic = new BasicResolver(effectiveLang);
-            var spec = new PlaceholderResolver(effectiveLang, info, overrides, interpreter, dbAccessor);
+            var spec = new PlaceholderResolver(effectiveLang, info, interpreter, dbAccessor);
             resolver = new TextResolverFacade(_settings.PlaceholderResolverEnabled ? spec : basic);
         }, beginStageCallback, endStageCallback);
 

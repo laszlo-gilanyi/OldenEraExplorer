@@ -1,2 +1,2 @@
 export { SettingsPanel } from './SettingsPanel';
-export { useSettings, useUpdateSettings, useLocales } from './useSettings';
+export { useSettings, useUpdateSettings, useLocales, useAutoUpdateChecker } from './useSettings';

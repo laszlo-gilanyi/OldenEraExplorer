@@ -84,7 +84,32 @@ export function useCheckUpdate() {
     queryFn: () => settingsApi.checkUpdate(),
     enabled: false,
     staleTime: 300_000,
+    retry: false,
   });
+}
+
+const AUTO_UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
+export function useAutoUpdateChecker() {
+  const { data: settings } = useSettings();
+  const queryClient = useQueryClient();
+  const enabled = settings?.autoUpdateEnabled ?? false;
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const trigger = () => {
+      queryClient.fetchQuery({
+        queryKey: ['check-update'],
+        queryFn: () => settingsApi.checkUpdate(),
+        retry: false,
+      }).catch(() => {});
+    };
+
+    trigger();
+    const interval = setInterval(trigger, AUTO_UPDATE_CHECK_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [enabled, queryClient]);
 }
 
 export function useInstallUpdate() {

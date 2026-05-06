@@ -39,6 +39,23 @@ public class ConnectionTracker
         }
     }
 
+    public async Task<bool> WaitForConnectionAsync(TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            lock (_lock)
+            {
+                if (_count > 0) return true;
+            }
+            await Task.Delay(100);
+        }
+        lock (_lock)
+        {
+            return _count > 0;
+        }
+    }
+
     public void Decrement()
     {
         lock (_lock)

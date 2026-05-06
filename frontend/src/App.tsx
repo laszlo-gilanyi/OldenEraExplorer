@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useExtractionProgress, useExtractionStore } from '@/features/extraction';
 import { useGameStatus, useLoadGameData, useSetGamePath, useGameDetect, useLabels } from '@/hooks';
-import { useSettings } from '@/features/settings';
+import { useSettings, useAutoUpdateChecker } from '@/features/settings';
 import { useGameStore } from '@/stores';
 import { extractionApi } from '@/api/client';
 import { AssetExtractionPanel } from '@/features/extraction';
@@ -18,6 +18,7 @@ function App() {
   const autoExtractTriggeredRef = useRef(false);
 
   useExtractionProgress();
+  useAutoUpdateChecker();
 
   const { data: settings, isLoading: settingsLoading } = useSettings();
 

@@ -222,6 +222,15 @@
   }
 }
 
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;

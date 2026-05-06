@@ -12,7 +12,7 @@ public sealed class SettingsService
     public bool ExtractPng { get; set; } = true;
     public bool ExtractGlb { get; set; } = true;
     public bool MinimizeToTray { get; set; } = true;
-    public bool AutoUpdateEnabled { get; set; } = false;
+    public bool AutoUpdateEnabled { get; set; } = true;
     public bool VerboseLogging { get; set; } = false;
 
     private static string GetSettingsFilePath()

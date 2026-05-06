@@ -38,8 +38,19 @@ public static class SettingsEndpoints
         // GET /api/settings/check-update
         group.MapGet("/check-update", async (UpdateService updateService) =>
         {
-            var release = await updateService.CheckForUpdatesAsync();
-            return Results.Ok(release);
+            try
+            {
+                var release = await updateService.CheckForUpdatesAsync();
+                return Results.Ok(release);
+            }
+            catch (HttpRequestException)
+            {
+                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+            catch (TaskCanceledException)
+            {
+                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
         })
         .WithName("CheckUpdate")
         .WithSummary("Check for a newer release on GitHub")
@@ -56,9 +67,9 @@ public static class SettingsEndpoints
         .Produces(202);
 
         // GET /api/settings/update-progress
-        group.MapGet("/update-progress", (UpdateService updateService) =>
+        group.MapGet("/update-progress", () =>
         {
-            return Results.Ok(updateService.InstallProgress);
+            return Results.Ok(UpdateService.InstallProgress);
         })
         .WithName("GetUpdateProgress")
         .WithSummary("Poll installation progress")
