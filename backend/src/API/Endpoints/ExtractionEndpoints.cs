@@ -29,6 +29,13 @@ public static class ExtractionEndpoints
             .Produces(204)
             .Produces<ErrorDto>(400);
 
+        // POST /api/extraction/dismiss - Reset terminal state to Idle
+        group.MapPost("/dismiss", DismissExtraction)
+            .WithName("DismissExtraction")
+            .WithSummary("Dismiss terminal extraction state")
+            .WithDescription("Resets a Failed/Completed/Cancelled status back to Idle. No-op while extracting.")
+            .Produces(204);
+
         // GET /api/extraction/status - Get status
         group.MapGet("/status", GetStatus)
             .WithName("GetExtractionStatus")
@@ -102,6 +109,12 @@ public static class ExtractionEndpoints
             logger.LogError(ex, "Failed to cancel extraction");
             return Results.BadRequest(new ErrorDto("Failed to cancel extraction", ex.Message));
         }
+    }
+
+    private static IResult DismissExtraction(IAssetExtractionService extractionService)
+    {
+        extractionService.DismissTerminalState();
+        return Results.NoContent();
     }
 
     private static IResult GetStatus(IAssetExtractionService extractionService)

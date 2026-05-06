@@ -1,3 +1,4 @@
+using API.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
@@ -6,7 +7,7 @@ namespace API.Hosting;
 
 public static class LoggingExtensions
 {
-    public static void ConfigureLogging(this WebApplicationBuilder builder)
+    public static DiagnosticFileLogger ConfigureLogging(this WebApplicationBuilder builder, SettingsService settings)
     {
         builder.Logging.ClearProviders();
         builder.Logging.AddConsoleFormatter<CleanFormatter, SimpleConsoleFormatterOptions>(options =>
@@ -15,7 +16,8 @@ public static class LoggingExtensions
         });
         builder.Logging.AddConsole(options => options.FormatterName = "clean");
 
-        builder.Logging.AddProvider(new ErrorTriggeredFileLogger());
+        var diagnosticLogger = new DiagnosticFileLogger(settings);
+        builder.Logging.AddProvider(diagnosticLogger);
 
         builder.Logging.SetMinimumLevel(
             builder.Environment.IsDevelopment() ? LogLevel.Debug : LogLevel.Information);
@@ -24,6 +26,8 @@ public static class LoggingExtensions
         builder.Logging.AddFilter("System", LogLevel.Warning);
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Error);
+
+        return diagnosticLogger;
     }
 }
 

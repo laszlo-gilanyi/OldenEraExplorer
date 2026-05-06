@@ -79,6 +79,7 @@ public static class SettingsEndpoints
             ExtractGlb: settings.ExtractGlb,
             MinimizeToTray: settings.MinimizeToTray,
             AutoUpdateEnabled: settings.AutoUpdateEnabled,
+            VerboseLogging: settings.VerboseLogging,
             Version: UpdateService.CurrentVersion
         );
 
@@ -91,7 +92,8 @@ public static class SettingsEndpoints
         TrayIconService trayIconService,
         IGamePathService pathService,
         IGameDataService dataService,
-        IDataCatalog dataCatalog)
+        IDataCatalog dataCatalog,
+        DiagnosticFileLogger diagnosticLogger)
     {
         bool localeChanged = false;
         bool resolverChanged = false;
@@ -163,6 +165,12 @@ public static class SettingsEndpoints
             settings.AutoUpdateEnabled = request.AutoUpdateEnabled.Value;
         }
 
+        if (request.VerboseLogging.HasValue && settings.VerboseLogging != request.VerboseLogging.Value)
+        {
+            settings.VerboseLogging = request.VerboseLogging.Value;
+            diagnosticLogger.SetVerbose(settings.VerboseLogging);
+        }
+
         // Save settings to disk
         settings.Save();
 
@@ -191,6 +199,7 @@ public static class SettingsEndpoints
             ExtractGlb: settings.ExtractGlb,
             MinimizeToTray: settings.MinimizeToTray,
             AutoUpdateEnabled: settings.AutoUpdateEnabled,
+            VerboseLogging: settings.VerboseLogging,
             Version: UpdateService.CurrentVersion
         );
 
@@ -245,6 +254,7 @@ public static class SettingsEndpoints
 /// <param name="ExtractGlb">Whether to extract GLB models during auto-extraction.</param>
 /// <param name="MinimizeToTray">Whether to keep the app running in the system tray after all browser tabs are closed.</param>
 /// <param name="AutoUpdateEnabled">Whether to automatically install updates on next launch.</param>
+/// <param name="VerboseLogging">Whether to write a full diagnostic log file from app start. For bug reproduction only.</param>
 /// <param name="Version">Current application version.</param>
 public record SettingsDto(
     string Theme,
@@ -256,6 +266,7 @@ public record SettingsDto(
     bool ExtractGlb,
     bool MinimizeToTray,
     bool AutoUpdateEnabled,
+    bool VerboseLogging,
     string Version
 );
 
@@ -268,6 +279,7 @@ public record SettingsDto(
 /// <param name="ExtractGlb">Optional: Whether to extract GLB models.</param>
 /// <param name="MinimizeToTray">Optional: Whether to minimize to tray on tab close.</param>
 /// <param name="AutoUpdateEnabled">Optional: Whether to enable automatic updates.</param>
+/// <param name="VerboseLogging">Optional: Whether to enable verbose diagnostic file logging.</param>
 public record UpdateSettingsRequest(
     string? Theme = null,
     string? Locale = null,
@@ -277,7 +289,8 @@ public record UpdateSettingsRequest(
     bool? ExtractPng = null,
     bool? ExtractGlb = null,
     bool? MinimizeToTray = null,
-    bool? AutoUpdateEnabled = null
+    bool? AutoUpdateEnabled = null,
+    bool? VerboseLogging = null
 );
 
 /// <param name="Locales">List of available locale codes.</param>

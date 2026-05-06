@@ -2,6 +2,7 @@ using API.Hosting;
 using API.Services;
 using GameData.Loading;
 using GameData.Services;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace API.Extensions;
 
@@ -9,7 +10,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddGameServices(this IServiceCollection services)
     {
-        services.AddSingleton<SettingsService>(sp =>
+        // Settings are pre-registered in Program.cs so the logger can read VerboseLogging
+        // at startup. TryAdd preserves whichever instance was registered first.
+        services.TryAddSingleton<SettingsService>(sp =>
         {
             var settings = new SettingsService();
             settings.Load();

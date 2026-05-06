@@ -182,6 +182,10 @@ export function SettingsPanel() {
     updateSettings.mutate({ autoUpdateEnabled: !currentAutoUpdate });
   };
 
+  const handleVerboseLoggingToggle = () => {
+    updateSettings.mutate({ verboseLogging: !currentVerboseLogging });
+  };
+
   const handleInstallUpdate = () => {
     if (!availableRelease) return;
     setIsInstalling(true);
@@ -193,6 +197,7 @@ export function SettingsPanel() {
   const currentAutoExtract = settings?.autoExtractEnabled ?? false;
   const currentMinimizeToTray = settings?.minimizeToTray ?? true;
   const currentAutoUpdate = settings?.autoUpdateEnabled ?? true;
+  const currentVerboseLogging = settings?.verboseLogging ?? false;
 
   const candidates = detectMutation.data?.candidates || [];
   const isDetecting = detectMutation.isPending;
@@ -358,6 +363,23 @@ export function SettingsPanel() {
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-foreground">{label('settings_auto_update')}</div>
                   <Switch checked={currentAutoUpdate} onCheckedChange={handleAutoUpdateToggle} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-foreground">{label('settings_verbose_logging')}</span>
+                    <span
+                      title={label('settings_verbose_logging_tooltip')}
+                      className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4" />
+                        <path d="M12 8h.01" />
+                      </svg>
+                    </span>
+                  </div>
+                  <Switch checked={currentVerboseLogging} onCheckedChange={handleVerboseLoggingToggle} />
                 </div>
               </div>
 

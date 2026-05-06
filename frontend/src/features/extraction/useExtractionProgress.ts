@@ -58,6 +58,14 @@ export function useExtractionProgress() {
         error: data.error ?? null,
       });
 
+      // Mirror failure-state events to the dev console so they show up where developers
+      // reflexively look. The crash log file remains the comprehensive deliverable.
+      if (data.status === 'Failed' && prevStatus !== 'Failed') {
+        console.error('[OldenEraExplorer] Extraction failed:', data.error ?? '(no error message)');
+      } else if (data.status === 'Cancelled' && prevStatus !== 'Cancelled') {
+        console.warn('[OldenEraExplorer] Extraction cancelled');
+      }
+
       if (data.status === 'Extracting' && prevStatus !== 'Extracting') {
         lastRefreshAtRef.current = 0;
       }
@@ -109,7 +117,7 @@ export function useExtractionProgress() {
       setConnected(true);
       console.log('SignalR connected');
     } catch (err) {
-      console.error('SignalR connection failed:', err);
+      console.error('[OldenEraExplorer] SignalR connection failed:', err);
       setError(err instanceof Error ? err.message : 'Connection failed');
       setConnected(false);
     }

@@ -51,10 +51,14 @@ export function AssetExtractionPanel() {
 
   const [forceReExtract, setForceReExtract] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [showErrorPanel, setShowErrorPanel] = useState(false);
+  const [copiedFlash, setCopiedFlash] = useState(false);
   const optionsPanelRef = useRef<HTMLDivElement>(null);
   const progressPanelRef = useRef<HTMLDivElement>(null);
+  const errorPanelRef = useRef<HTMLDivElement>(null);
   const optionsButtonRef = useRef<HTMLButtonElement>(null);
   const progressButtonRef = useRef<HTMLButtonElement>(null);
+  const failedButtonRef = useRef<HTMLButtonElement>(null);
 
   const setExtractPng = (value: boolean) => {
     updateSettings.mutate({ extractPng: value });
@@ -82,6 +86,9 @@ export function AssetExtractionPanel() {
 
   useOnClickOutside(optionsPanelRef, () => setShowOptions(false), [optionsButtonRef]);
   useOnClickOutside(progressPanelRef, () => setPanelOpen(false), [progressButtonRef]);
+  // Click-outside closes the error panel but does NOT clear the error or the Failed state.
+  // The user can reopen the panel via the Failed button. Only Dismiss clears the error.
+  useOnClickOutside(errorPanelRef, () => setShowErrorPanel(false), [failedButtonRef]);
 
   useEffect(() => {
     if (isExtracting) {
@@ -106,7 +113,9 @@ export function AssetExtractionPanel() {
   }, [isExtracting]);
 
   useEffect(() => {
-    if (status === 'Completed' || status === 'Cancelled' || status === 'Failed') {
+    // Failed is sticky: the user must explicitly dismiss it via the error panel so the
+    // failure (and its diagnostics) does not silently disappear behind a 300ms timer.
+    if (status === 'Completed' || status === 'Cancelled') {
       const timeout = 300;
       const timeoutId = setTimeout(() => {
         useExtractionStore.getState().setStatus('Idle');
@@ -115,6 +124,30 @@ export function AssetExtractionPanel() {
       return () => clearTimeout(timeoutId);
     }
   }, [status]);
+
+  const handleCopyError = async () => {
+    if (!lastError) return;
+    try {
+      await navigator.clipboard.writeText(lastError);
+      setCopiedFlash(true);
+      setTimeout(() => setCopiedFlash(false), 1500);
+    } catch (err) {
+      console.error('[OldenEraExplorer] Failed to copy error to clipboard:', err);
+    }
+  };
+
+  const handleDismissError = () => {
+    setShowErrorPanel(false);
+    useExtractionStore.getState().setError(null);
+    useExtractionStore.getState().setStatus('Idle');
+    useExtractionStore.getState().setCompletionStats(null);
+    // Backend keeps the terminal status until something resets it; without this call,
+    // a SignalR reconnect (tab refresh, network blip) would re-push Failed and revive
+    // the panel the user just dismissed.
+    extractionApi.dismiss().catch(() => {
+      // Backend reset is best-effort: the local UI is already cleared.
+    });
+  };
 
   const handleStart = () => {
     setShowOptions(false);
@@ -196,7 +229,14 @@ export function AssetExtractionPanel() {
 
     if (status === 'Failed') {
       return (
-        <button className="h-[47px] px-3 rounded-xl text-lg flex items-center gap-2">
+        <button
+          ref={failedButtonRef}
+          onClick={() => setShowErrorPanel(!showErrorPanel)}
+          className={cn(
+            "h-[47px] px-3 rounded-xl text-lg flex items-center gap-2 transition-colors border-none bg-transparent cursor-pointer",
+            showErrorPanel ? "bg-accent" : "hover:bg-accent"
+          )}
+        >
           <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 21l-8 -4.5v-9l8 -4.5l8 4.5v4.5" />
             <path d="M12 12l8 -4.5" />
@@ -452,9 +492,56 @@ export function AssetExtractionPanel() {
         </>
       )}
 
-      {status === 'Failed' && lastError && (
-        <div className="absolute top-full right-0 mt-2 p-3 bg-destructive/10 border border-destructive rounded text-sm text-destructive max-w-[300px] z-[100]">
-          {lastError}
+      {status === 'Failed' && lastError && showErrorPanel && (
+        <div
+          ref={errorPanelRef}
+          className="absolute top-full right-0 mt-2 bg-popover border border-destructive rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-[100] w-[520px] max-w-[90vw] overflow-hidden"
+        >
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-destructive/10">
+            <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{label('extraction_failed')}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleCopyError}
+                className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                aria-label="Copy"
+                title="Copy"
+              >
+                {copiedFlash ? (
+                  <svg className="w-4 h-4 text-semantic-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={handleDismissError}
+                className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                aria-label="Dismiss"
+                title="Dismiss"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="p-4 max-h-[400px] overflow-auto">
+            <pre className="text-xs text-foreground whitespace-pre-wrap break-words font-mono select-text">
+              {lastError}
+            </pre>
+          </div>
         </div>
       )}
     </div>

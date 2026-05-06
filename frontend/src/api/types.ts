@@ -705,6 +705,7 @@ export interface SettingsDto {
   extractGlb: boolean;
   minimizeToTray: boolean;
   autoUpdateEnabled: boolean;
+  verboseLogging: boolean;
   version: string;
 }
 
@@ -718,6 +719,7 @@ export interface UpdateSettingsRequest {
   extractGlb?: boolean;
   minimizeToTray?: boolean;
   autoUpdateEnabled?: boolean;
+  verboseLogging?: boolean;
 }
 
 export interface ReleaseInfo {

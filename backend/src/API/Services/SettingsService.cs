@@ -13,6 +13,7 @@ public sealed class SettingsService
     public bool ExtractGlb { get; set; } = true;
     public bool MinimizeToTray { get; set; } = true;
     public bool AutoUpdateEnabled { get; set; } = false;
+    public bool VerboseLogging { get; set; } = false;
 
     private static string GetSettingsFilePath()
     {
@@ -40,6 +41,7 @@ public sealed class SettingsService
             ExtractGlb = dto.ExtractGlb;
             MinimizeToTray = dto.MinimizeToTray;
             AutoUpdateEnabled = dto.AutoUpdateEnabled;
+            VerboseLogging = dto.VerboseLogging;
         }
         catch { }
     }

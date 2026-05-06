@@ -98,6 +98,8 @@
   "extraction_auto_extract": "Auto extract game assets",
   "settings_minimize_to_tray": "Keep running in system tray",
   "settings_auto_update": "Automatic updates",
+  "settings_verbose_logging": "Verbose diagnostic log",
+  "settings_verbose_logging_tooltip": "Writes a full log file to logs/verbose-*.log from app start. Enable only when reproducing a bug.",
   "settings_version": "Version",
   "settings_update_available": "Update available: {0}",
   "settings_update_install": "Install {0} and restart",

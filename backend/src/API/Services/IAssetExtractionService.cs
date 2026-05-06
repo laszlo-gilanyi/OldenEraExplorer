@@ -8,6 +8,8 @@ public interface IAssetExtractionService
 
     void CancelExtraction();
 
+    void DismissTerminalState();
+
     ExtractionStatusDto GetStatus();
 
     bool IsRunning { get; }

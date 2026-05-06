@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using AssetExtractor.Models.Manifest;
 using AssetExtractor.Pipeline;
@@ -260,6 +262,8 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         {
             _logger.LogInformation("Extraction job {JobId} started (subprocess). Game path: {GamePath}", job.JobId, job.GamePath);
 
+            LogPreflightContext(job);
+
             var extractionArgs = MapToExtractionArgs(job);
             _logger.LogInformation("Extraction args: {Args}", string.Join(" ", extractionArgs));
 
@@ -287,7 +291,16 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
                 _currentProcess = process;
             }
 
-            process.Start();
+            try
+            {
+                process.Start();
+            }
+            catch (Exception startEx)
+            {
+                LogProcessStartFailure(startInfo, startEx);
+                FailExtraction(job, $"Failed to start extractor subprocess: {startEx.Message}");
+                return;
+            }
 
             var stdoutTail = new Queue<string>();
             var stderrTail = new Queue<string>();
@@ -422,7 +435,17 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
                 EnqueueTail(tail, line);
-                _logger.LogWarning("CLI stderr: {Line}", line);
+
+                // Escalate exception/stack-frame lines to Error so they trigger the diagnostic
+                // file flush. Plain stderr noise stays at Warning to avoid spurious crash files.
+                if (IsExceptionLine(line))
+                {
+                    _logger.LogError("CLI stderr (exception): {Line}", line);
+                }
+                else
+                {
+                    _logger.LogWarning("CLI stderr: {Line}", line);
+                }
             }
         }
         catch (OperationCanceledException) { }
@@ -430,6 +453,15 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         {
             _logger.LogWarning(ex, "Error reading CLI stderr");
         }
+    }
+
+    private static bool IsExceptionLine(string line)
+    {
+        if (line.Contains("Exception", StringComparison.Ordinal)) return true;
+
+        // Stack frame: leading whitespace + "at " (e.g., "   at Some.Method(...)").
+        var trimmed = line.AsSpan().TrimStart();
+        return trimmed.StartsWith("at ");
     }
 
     private static void EnqueueTail(Queue<string> queue, string line)
@@ -473,6 +505,7 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         }
         catch (Exception ex)
         {
+            LogValidationFailure(job, "(version detection failed)", 0, 0, manifestExists: false);
             return $"Game version detection failed after extraction: {ex.Message}";
         }
 
@@ -495,8 +528,220 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
 
         if (missing.Count == 0) return null;
 
+        var manifestExists = File.Exists(Path.Combine(job.OutputPath, "cache_manifest.json"));
+        LogValidationFailure(job, version, pngCount, glbCount, manifestExists);
+
         return $"Extractor exited successfully but produced no {string.Join(" or ", missing)} for game version {version}. " +
                $"Check that the game path is correct and the game files are intact.";
+    }
+
+    private void LogValidationFailure(ExtractionJob job, string version, int pngCount, int glbCount, bool manifestExists)
+    {
+        try
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Extraction validation failed for {job.JobId}.");
+            sb.AppendLine($"  ExpectedVersion:   {version}");
+            sb.AppendLine($"  OutputPath:        {job.OutputPath}");
+            sb.AppendLine($"  OutputExists:      {Directory.Exists(job.OutputPath)}");
+            sb.AppendLine($"  ManifestExists:    {manifestExists}");
+            sb.AppendLine($"  AssetsForVersion:  PNG={pngCount}  GLB={glbCount}");
+
+            if (Directory.Exists(job.OutputPath))
+            {
+                long totalBytes = 0;
+                long totalFiles = 0;
+                var listing = new List<string>();
+                const int maxEntries = 50;
+
+                foreach (var entry in Directory.EnumerateFileSystemEntries(job.OutputPath, "*", SearchOption.TopDirectoryOnly))
+                {
+                    if (listing.Count < maxEntries)
+                    {
+                        var name = Path.GetFileName(entry);
+                        if (Directory.Exists(entry))
+                        {
+                            // Drill one level for top-level directories so the user can see
+                            // partial extraction state (e.g. Assets-{version}/Assets/...)
+                            var subFiles = SafeEnumerate(entry).Take(10).ToList();
+                            listing.Add($"    {name}/  ({SafeCount(entry)} entries, {SafeBytes(entry):N0} bytes)");
+                            foreach (var sub in subFiles)
+                            {
+                                listing.Add($"      {Path.GetFileName(sub)}");
+                            }
+                        }
+                        else
+                        {
+                            var info = new FileInfo(entry);
+                            listing.Add($"    {name}  ({info.Length:N0} bytes)");
+                        }
+                    }
+                }
+
+                foreach (var entry in Directory.EnumerateFiles(job.OutputPath, "*", SearchOption.AllDirectories))
+                {
+                    totalFiles++;
+                    try { totalBytes += new FileInfo(entry).Length; } catch { }
+                }
+
+                sb.AppendLine($"  TotalFiles:        {totalFiles}");
+                sb.AppendLine($"  TotalBytes:        {totalBytes:N0}");
+                sb.AppendLine("  TopLevelEntries:");
+                foreach (var line in listing) sb.AppendLine(line);
+                if (listing.Count == 0) sb.AppendLine("    (output directory is empty)");
+            }
+
+            _logger.LogError("{Block}", sb.ToString().TrimEnd());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to build validation failure diagnostic block for job {JobId}", job.JobId);
+        }
+    }
+
+    private static IEnumerable<string> SafeEnumerate(string path)
+    {
+        try { return Directory.EnumerateFileSystemEntries(path); }
+        catch { return Array.Empty<string>(); }
+    }
+
+    private static int SafeCount(string path)
+    {
+        try { return Directory.EnumerateFileSystemEntries(path).Count(); }
+        catch { return 0; }
+    }
+
+    private static long SafeBytes(string path)
+    {
+        try
+        {
+            long total = 0;
+            foreach (var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            {
+                try { total += new FileInfo(f).Length; } catch { }
+            }
+            return total;
+        }
+        catch { return 0; }
+    }
+
+    private void LogPreflightContext(ExtractionJob job)
+    {
+        try
+        {
+            var execExists = File.Exists(_executablePath);
+            long execSize = 0;
+            try { if (execExists) execSize = new FileInfo(_executablePath).Length; } catch { }
+
+            var execBit = "N/A (Windows)";
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                try
+                {
+                    var mode = File.GetUnixFileMode(_executablePath);
+                    execBit = (mode & UnixFileMode.UserExecute) != 0 ? "set" : "NOT SET";
+                }
+                catch (Exception ex)
+                {
+                    execBit = $"check failed: {ex.Message}";
+                }
+            }
+
+            var outputWritable = ProbeWritable(job.OutputPath, out var writeError);
+            var streamingAssets = Path.Combine(job.GamePath, "StreamingAssets");
+            var coreZip = Path.Combine(streamingAssets, "Core.zip");
+
+            _logger.LogInformation(
+                "Pre-flight: Executable={ExePath} (exists={ExeExists}, size={ExeSize:N0}, execBit={ExecBit}); " +
+                "OutputPath={OutputPath} (exists={OutExists}, writable={OutWritable}{WriteError}); " +
+                "GamePath={GamePath} (exists={GameExists}, hasStreamingAssets={HasSA}, hasCoreZip={HasCore}); " +
+                "FreeDisk={FreeDisk}",
+                _executablePath, execExists, execSize, execBit,
+                job.OutputPath, Directory.Exists(job.OutputPath), outputWritable, writeError,
+                job.GamePath, Directory.Exists(job.GamePath), Directory.Exists(streamingAssets), File.Exists(coreZip),
+                FormatFreeDisk(job.OutputPath));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Pre-flight context logging failed (non-fatal)");
+        }
+    }
+
+    private void LogProcessStartFailure(ProcessStartInfo info, Exception ex)
+    {
+        var execBit = "N/A (Windows)";
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            try
+            {
+                var mode = File.GetUnixFileMode(_executablePath);
+                execBit = (mode & UnixFileMode.UserExecute) != 0 ? "set" : "NOT SET";
+            }
+            catch (Exception bitEx)
+            {
+                execBit = $"check failed: {bitEx.Message}";
+            }
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Failed to start extractor subprocess.");
+        sb.AppendLine($"  Path:           {_executablePath}");
+        sb.AppendLine($"  Exists:         {File.Exists(_executablePath)}");
+        sb.AppendLine($"  ExecBit:        {execBit}");
+        sb.AppendLine($"  WorkingDir:     {info.WorkingDirectory}");
+        sb.AppendLine($"  Args:           {string.Join(" ", info.ArgumentList)}");
+        sb.AppendLine($"  Exception:      {ex.GetType().FullName}: {ex.Message}");
+        if (ex.StackTrace != null)
+        {
+            sb.AppendLine("  Stack:");
+            sb.AppendLine(ex.StackTrace);
+        }
+
+        _logger.LogError(ex, "{Block}", sb.ToString().TrimEnd());
+    }
+
+    private static bool ProbeWritable(string path, out string errorSuffix)
+    {
+        errorSuffix = "";
+        try
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+            var probe = Path.Combine(path, ".write_test");
+            File.WriteAllText(probe, "");
+            File.Delete(probe);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            errorSuffix = $", writeError={ex.GetType().Name}: {ex.Message}";
+            return false;
+        }
+    }
+
+    private static string FormatFreeDisk(string path)
+    {
+        try
+        {
+            var fullPath = Path.GetFullPath(path);
+            DriveInfo? best = null;
+            var bestLen = -1;
+            foreach (var drive in DriveInfo.GetDrives())
+            {
+                if (!drive.IsReady) continue;
+                if (fullPath.StartsWith(drive.Name, StringComparison.OrdinalIgnoreCase) && drive.Name.Length > bestLen)
+                {
+                    best = drive;
+                    bestLen = drive.Name.Length;
+                }
+            }
+            if (best == null) return "unknown";
+            var freeGb = best.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+            return $"{freeGb:F2} GB on {best.Name}";
+        }
+        catch { return "unknown"; }
     }
 
     private static bool AssetBelongsToVersion(AssetInfoV3 asset, string version)
@@ -530,7 +775,13 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
                     break;
 
                 case "error":
-                    _logger.LogError("CLI error: {Message}", message.Message);
+                    // Per-item CLI failures (e.g. one prefab missing, one unit's wrapper selection
+                    // failing) are not extraction-level errors — extraction continues and usually
+                    // completes successfully. ValidateExtractionOutput is the authoritative signal
+                    // for whether the run as a whole failed. Logging these as Warning keeps them
+                    // in the crash buffer if a real failure later triggers a flush, without
+                    // creating a crash file on every healthy extraction.
+                    _logger.LogWarning("CLI item error: {Message}", message.Message);
                     break;
 
                 default:
@@ -625,6 +876,34 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         if (toSend != null)
         {
             OnProgressChanged?.Invoke(toSend);
+        }
+    }
+
+    /// <summary>
+    /// Reset terminal state (Failed/Completed/Cancelled) back to Idle. The user dismissing
+    /// the failure panel must clear the backend state too, otherwise reconnect/refresh
+    /// would revive the dismissed Failed state from the backend's last-status snapshot.
+    /// No-op while extraction is running.
+    /// </summary>
+    public void DismissTerminalState()
+    {
+        bool changed = false;
+        lock (_lock)
+        {
+            if (_status == "Extracting") return;
+            if (_status != "Idle" || _lastError != null)
+            {
+                _status = "Idle";
+                _lastError = null;
+                _currentProgress = null;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            _logger.LogInformation("Extraction terminal state dismissed by user; reset to Idle");
+            OnStatusChanged?.Invoke("Idle");
         }
     }
 
