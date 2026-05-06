@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using API.Hosting;
 using API.Models;
 using API.Services;
 
@@ -7,19 +8,23 @@ namespace API.Hubs;
 public class ExtractionHub : Hub
 {
     private readonly IAssetExtractionService _extractionService;
+    private readonly ConnectionTracker _connectionTracker;
     private readonly ILogger<ExtractionHub> _logger;
 
     public ExtractionHub(
         IAssetExtractionService extractionService,
+        ConnectionTracker connectionTracker,
         ILogger<ExtractionHub> logger)
     {
         _extractionService = extractionService;
+        _connectionTracker = connectionTracker;
         _logger = logger;
     }
 
     public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("Client connected to ExtractionHub: {ConnectionId}", Context.ConnectionId);
+        _connectionTracker.Increment();
 
         var status = _extractionService.GetStatus();
         await Clients.Caller.SendAsync("ExtractionStatus", status);
@@ -27,10 +32,11 @@ public class ExtractionHub : Hub
         await base.OnConnectedAsync();
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
         _logger.LogInformation("Client disconnected from ExtractionHub: {ConnectionId}", Context.ConnectionId);
-        return base.OnDisconnectedAsync(exception);
+        _connectionTracker.Decrement();
+        await base.OnDisconnectedAsync(exception);
     }
 }
 

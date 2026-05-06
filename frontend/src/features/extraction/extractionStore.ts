@@ -24,6 +24,7 @@ export interface ManifestInfo {
   iconCount: number;
   modelCount: number;
   gameVersion: string | null;
+  error: string | null;
 }
 
 interface ExtractionState {
@@ -50,6 +51,7 @@ const defaultManifestInfo: ManifestInfo = {
   iconCount: 0,
   modelCount: 0,
   gameVersion: null,
+  error: null,
 };
 
 export const useExtractionStore = create<ExtractionState>((set) => ({

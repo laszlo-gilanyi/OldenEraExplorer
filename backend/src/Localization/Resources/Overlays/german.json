@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "vor {0} T.",
   "extraction_icons_count": "{0} Bilder, {1} Modelle",
   "extraction_auto_extract": "Spielressourcen automatisch extrahieren",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "Suchen...",
   "search_placeholder_entity": "{0} durchsuchen...",
   "search_no_results": "Keine Ergebnisse für \"{0}\" gefunden",

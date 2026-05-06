@@ -8,6 +8,15 @@ if (args.Length > 0 && args[0] == "--extract")
     return ExtractionMode.Run(args);
 }
 
+const string AppUrl = "http://localhost:5176";
+
+UpdateService.CleanupOldFiles();
+
+if (!SingleInstanceService.EnsureSingleInstance())
+{
+    return 1;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Environment.ApplicationName = "Olden Era Explorer";
@@ -32,10 +41,12 @@ builder.Services.AddSingleton<ExtractionHubBroadcaster>();
 // Bind to localhost only (no network exposure)
 if (!builder.Environment.IsDevelopment())
 {
-    builder.WebHost.UseUrls("http://localhost:5176");
+    builder.WebHost.UseUrls(AppUrl);
 }
 
 var app = builder.Build();
+
+SingleInstanceService.StartIpcListener(AppUrl);
 
 app.Services.GetRequiredService<ExtractionHubBroadcaster>();
 
@@ -54,7 +65,8 @@ app.MapAllEndpoints();
 if (!app.Environment.IsDevelopment())
 {
     app.UseEmbeddedStaticFiles();
-    app.UseTrayIcon();
+    BrowserLauncher.OpenWithRetry(AppUrl);
+    app.Services.GetRequiredService<TrayIconService>().Initialize(AppUrl);
 }
 
 app.Run();

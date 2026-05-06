@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "{0}天前",
   "extraction_icons_count": "{0}个图像，{1}个模型",
   "extraction_auto_extract": "自动提取游戏资源",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "搜索...",
   "search_placeholder_entity": "搜索{0}...",
   "search_no_results": "未找到\"{0}\"的结果",

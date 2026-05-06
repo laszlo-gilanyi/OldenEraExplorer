@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { settingsApi, gameApi } from '@/api/client';
-import type { UpdateSettingsRequest } from '@/api/types';
+import type { UpdateSettingsRequest, ReleaseInfo } from '@/api/types';
 
 export function useSettings() {
   const query = useQuery({
@@ -75,6 +75,30 @@ export function useUpdateSettings() {
         }
       }
     },
+  });
+}
+
+export function useCheckUpdate() {
+  return useQuery({
+    queryKey: ['check-update'],
+    queryFn: () => settingsApi.checkUpdate(),
+    enabled: false,
+    staleTime: 300_000,
+  });
+}
+
+export function useInstallUpdate() {
+  return useMutation({
+    mutationFn: (release: ReleaseInfo) => settingsApi.installUpdate(release),
+  });
+}
+
+export function useUpdateProgress(enabled: boolean) {
+  return useQuery({
+    queryKey: ['update-progress'],
+    queryFn: () => settingsApi.getUpdateProgress(),
+    enabled,
+    refetchInterval: 1000,
   });
 }
 

@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "{0} дн. назад",
   "extraction_icons_count": "{0} изображений, {1} моделей",
   "extraction_auto_extract": "Автоматически извлекать ресурсы игры",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "Поиск...",
   "search_placeholder_entity": "Поиск {0}...",
   "search_no_results": "Нет результатов для «{0}»",

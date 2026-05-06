@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "{0}日前",
   "extraction_icons_count": "{0}個の画像、{1}個のモデル",
   "extraction_auto_extract": "ゲームアセットを自動抽出",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "検索...",
   "search_placeholder_entity": "{0}を検索...",
   "search_no_results": "\"{0}\"の検索結果はありません",

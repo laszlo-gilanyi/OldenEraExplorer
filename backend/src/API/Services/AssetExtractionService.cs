@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using AssetExtractor.Models.Manifest;
 using AssetExtractor.Pipeline;
 using API.Models;
 
@@ -46,6 +47,7 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
     private CancellationTokenSource? _cts;
     private string? _currentJobId;
     private string _status = "Idle";
+    private string? _lastError;
     private ExtractionProgressDto? _currentProgress;
     private Stopwatch? _stopwatch;
     private Task? _extractionTask;
@@ -223,7 +225,8 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         {
             "--extract",
             "--game-path", job.GamePath,
-            "--output-path", job.OutputPath
+            "--output-path", job.OutputPath,
+            "--json-progress"
         };
 
         if (job.ExtractPng && job.ExtractGlb)
@@ -286,8 +289,10 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
 
             process.Start();
 
-            var stdoutTask = ReadStdoutAsync(process.StandardOutput, job.JobId, job.CancellationToken);
-            var stderrTask = ReadStderrAsync(process.StandardError, job.CancellationToken);
+            var stdoutTail = new Queue<string>();
+            var stderrTail = new Queue<string>();
+            var stdoutTask = ReadStdoutAsync(process.StandardOutput, job.JobId, stdoutTail, job.CancellationToken);
+            var stderrTask = ReadStderrAsync(process.StandardError, stderrTail, job.CancellationToken);
 
             try
             {
@@ -323,7 +328,21 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
             }
             else
             {
-                SetStatus(exitCode == 0 ? "Completed" : "Completed with errors");
+                var validationError = ValidateExtractionOutput(job);
+                if (validationError != null)
+                {
+                    var errorMsg = exitCode != 0
+                        ? $"Extractor exited with code {exitCode}. {BuildCliDiagnostics(stdoutTail, stderrTail)}"
+                        : validationError;
+                    FailExtraction(job, errorMsg);
+                    return;
+                }
+
+                if (exitCode != 0)
+                    _logger.LogWarning("CLI exited with code {ExitCode} but extraction output is valid — treating as completed.", exitCode);
+
+                _lastError = null;
+                SetStatus("Completed");
 
                 var gamePath = _gamePathService.HeroesOeDataPath;
                 if (!string.IsNullOrEmpty(gamePath))
@@ -346,6 +365,7 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         }
         catch (Exception ex)
         {
+            _lastError = ex.Message;
             SetStatus("Failed");
             _logger.LogError(ex, "Extraction job {JobId} failed", job.JobId);
 
@@ -370,7 +390,7 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         }
     }
 
-    private async Task ReadStdoutAsync(StreamReader reader, string jobId, CancellationToken ct)
+    private async Task ReadStdoutAsync(StreamReader reader, string jobId, Queue<string> tail, CancellationToken ct)
     {
         try
         {
@@ -379,19 +399,18 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
                 var line = await reader.ReadLineAsync(ct);
                 if (line == null) break;
 
+                EnqueueTail(tail, line);
                 ParseJsonProgress(line, jobId);
             }
         }
-        catch (OperationCanceledException)
-        {
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error reading CLI stdout");
         }
     }
 
-    private async Task ReadStderrAsync(StreamReader reader, CancellationToken ct)
+    private async Task ReadStderrAsync(StreamReader reader, Queue<string> tail, CancellationToken ct)
     {
         try
         {
@@ -400,19 +419,90 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
                 var line = await reader.ReadLineAsync(ct);
                 if (line == null) break;
 
-                if (!string.IsNullOrWhiteSpace(line))
-                {
-                    _logger.LogWarning("CLI stderr: {Line}", line);
-                }
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                EnqueueTail(tail, line);
+                _logger.LogWarning("CLI stderr: {Line}", line);
             }
         }
-        catch (OperationCanceledException)
-        {
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error reading CLI stderr");
         }
+    }
+
+    private static void EnqueueTail(Queue<string> queue, string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return;
+        queue.Enqueue(line);
+        while (queue.Count > 40) queue.Dequeue();
+    }
+
+    private static string BuildCliDiagnostics(Queue<string> stdoutTail, Queue<string> stderrTail)
+    {
+        var stderr = string.Join(" | ", stderrTail.TakeLast(5));
+        if (!string.IsNullOrWhiteSpace(stderr)) return $"Last stderr: {stderr}";
+
+        var stdout = string.Join(" | ", stdoutTail.TakeLast(5));
+        if (!string.IsNullOrWhiteSpace(stdout)) return $"Last stdout: {stdout}";
+
+        return "No CLI output captured.";
+    }
+
+    private void FailExtraction(ExtractionJob job, string error)
+    {
+        _lastError = error;
+
+        lock (_lock)
+        {
+            if (_currentProgress != null)
+                _currentProgress = _currentProgress with { CurrentAsset = $"Error: {error}" };
+        }
+
+        SetStatus("Failed");
+        _logger.LogError("Extraction job {JobId} failed: {Error}", job.JobId, error);
+    }
+
+    private string? ValidateExtractionOutput(ExtractionJob job)
+    {
+        string version;
+        try
+        {
+            version = ManifestManager.DetectGameVersion(job.GamePath);
+        }
+        catch (Exception ex)
+        {
+            return $"Game version detection failed after extraction: {ex.Message}";
+        }
+
+        _manifestService.ReloadManifest();
+
+        var pngCount = 0;
+        var glbCount = 0;
+
+        foreach (var (relativePath, asset) in _manifestService.Manifest.Assets)
+        {
+            if (!AssetBelongsToVersion(asset, version)) continue;
+
+            if (asset.Extension?.Equals(".png", StringComparison.OrdinalIgnoreCase) == true) pngCount++;
+            else if (asset.Extension?.Equals(".glb", StringComparison.OrdinalIgnoreCase) == true) glbCount++;
+        }
+
+        var missing = new List<string>();
+        if (job.ExtractPng && pngCount == 0) missing.Add("PNG textures");
+        if (job.ExtractGlb && glbCount == 0) missing.Add("GLB models");
+
+        if (missing.Count == 0) return null;
+
+        return $"Extractor exited successfully but produced no {string.Join(" or ", missing)} for game version {version}. " +
+               $"Check that the game path is correct and the game files are intact.";
+    }
+
+    private static bool AssetBelongsToVersion(AssetInfoV3 asset, string version)
+    {
+        return asset.Versions?.Contains(version) == true
+            || asset.Variants?.ContainsKey(version) == true;
     }
 
     private void ParseJsonProgress(string line, string jobId)
@@ -572,7 +662,7 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
         lock (_lock)
         {
             var (lastExtractedAt, iconCount, modelCount, gameVersion) = GetManifestInfo();
-            return new ExtractionStatusDto(_status, _currentProgress, lastExtractedAt, iconCount, modelCount, gameVersion);
+            return new ExtractionStatusDto(_status, _currentProgress, lastExtractedAt, iconCount, modelCount, gameVersion, _lastError);
         }
     }
 

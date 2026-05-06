@@ -272,8 +272,6 @@ export function AssetExtractionPanel() {
             <div className="text-xs mt-1 space-y-0.5">
               {!isConnected ? (
                 <div className="text-destructive font-semibold">{label('extraction_offline')}</div>
-              ) : lastError ? (
-                <div className="text-destructive font-semibold">{label('extraction_error')}</div>
               ) : hasAssets ? (
                 <>
                   <div>
@@ -291,6 +289,8 @@ export function AssetExtractionPanel() {
                     </div>
                   )}
                 </>
+              ) : lastError ? (
+                <div className="text-destructive font-semibold">{label('extraction_error')}</div>
               ) : (
                 <div className="text-semantic-orange font-semibold">{label('extraction_not_extracted')}</div>
               )}

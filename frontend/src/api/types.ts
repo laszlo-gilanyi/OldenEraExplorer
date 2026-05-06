@@ -703,6 +703,9 @@ export interface SettingsDto {
   autoExtractEnabled: boolean;
   extractPng: boolean;
   extractGlb: boolean;
+  minimizeToTray: boolean;
+  autoUpdateEnabled: boolean;
+  version: string;
 }
 
 export interface UpdateSettingsRequest {
@@ -713,6 +716,24 @@ export interface UpdateSettingsRequest {
   autoExtractEnabled?: boolean;
   extractPng?: boolean;
   extractGlb?: boolean;
+  minimizeToTray?: boolean;
+  autoUpdateEnabled?: boolean;
+}
+
+export interface ReleaseInfo {
+  tagName: string;
+  htmlUrl: string;
+  assets: ReleaseAsset[];
+}
+
+export interface ReleaseAsset {
+  name: string;
+  browserDownloadUrl: string;
+}
+
+export interface UpdateProgress {
+  stage: 'downloading' | 'installing' | 'error';
+  message: string;
 }
 
 export interface LocalesDto {

@@ -11,6 +11,8 @@ public sealed class SettingsService
     public bool AutoExtractEnabled { get; set; } = true;
     public bool ExtractPng { get; set; } = true;
     public bool ExtractGlb { get; set; } = true;
+    public bool MinimizeToTray { get; set; } = true;
+    public bool AutoUpdateEnabled { get; set; } = false;
 
     private static string GetSettingsFilePath()
     {
@@ -36,6 +38,8 @@ public sealed class SettingsService
             AutoExtractEnabled = dto.AutoExtractEnabled;
             ExtractPng = dto.ExtractPng;
             ExtractGlb = dto.ExtractGlb;
+            MinimizeToTray = dto.MinimizeToTray;
+            AutoUpdateEnabled = dto.AutoUpdateEnabled;
         }
         catch { }
     }

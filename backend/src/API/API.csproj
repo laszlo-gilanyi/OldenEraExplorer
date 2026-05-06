@@ -26,6 +26,15 @@
     <ApplicationIcon>..\..\..\frontend\public\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!-- Release version is scoped to this project so it doesn't override the vendored AssetRipper
+       projects' versions (which would mismatch deps.json vs DLL metadata in the single-file bundle). -->
+  <PropertyGroup Condition="'$(AppReleaseVersion)' != ''">
+    <Version>$(AppReleaseVersion)</Version>
+    <AssemblyVersion>$(AppAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(AppAssemblyVersion)</FileVersion>
+    <InformationalVersion>$(AppReleaseVersion)</InformationalVersion>
+  </PropertyGroup>
+
   <!-- Build frontend and copy to wwwroot (Release only) -->
   <Target Name="BuildFrontend" BeforeTargets="ResolveAssemblyReferences" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>

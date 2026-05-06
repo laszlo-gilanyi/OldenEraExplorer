@@ -44,25 +44,25 @@ export function useExtractionProgress() {
       iconCount: number;
       modelCount: number;
       gameVersion: string | null;
+      error: string | null;
     }) => {
       const prevStatus = useExtractionStore.getState().status;
       setStatus(data.status as ExtractionStatus);
       setProgress(data.progress);
+      setError(data.error ?? null);
       setManifestInfo({
         lastExtractedAt: data.lastExtractedAt,
         iconCount: data.iconCount,
         modelCount: data.modelCount,
         gameVersion: data.gameVersion,
+        error: data.error ?? null,
       });
 
       if (data.status === 'Extracting' && prevStatus !== 'Extracting') {
         lastRefreshAtRef.current = 0;
       }
 
-      if (
-        (data.status === 'Completed' || data.status === 'Completed with errors') &&
-        prevStatus === 'Extracting'
-      ) {
+      if (data.status === 'Completed' && prevStatus === 'Extracting') {
         useImageStore.getState().triggerRetry();
       }
     });

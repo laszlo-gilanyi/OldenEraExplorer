@@ -32,6 +32,8 @@ import type {
   SearchResponse,
   SettingsDto,
   UpdateSettingsRequest,
+  ReleaseInfo,
+  UpdateProgress,
   LocalesDto,
   LabelsDto,
 } from './types';
@@ -557,6 +559,32 @@ export const settingsApi = {
   getLocales: async (): Promise<LocalesDto> => {
     try {
       const response = await api.get<LocalesDto>('/settings/locales');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  checkUpdate: async (): Promise<ReleaseInfo | null> => {
+    try {
+      const response = await api.get<ReleaseInfo | null>('/settings/check-update');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  installUpdate: async (release: ReleaseInfo): Promise<void> => {
+    try {
+      await api.post('/settings/install-update', release);
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getUpdateProgress: async (): Promise<UpdateProgress | null> => {
+    try {
+      const response = await api.get<UpdateProgress | null>('/settings/update-progress');
       return response.data;
     } catch (error) {
       handleApiError(error);

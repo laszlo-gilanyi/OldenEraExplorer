@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "{0} 天前",
   "extraction_icons_count": "{0} 張圖片，{1} 個模型",
   "extraction_auto_extract": "自動解壓縮遊戲資源",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "搜尋...",
   "search_placeholder_entity": "搜尋 {0}...",
   "search_no_results": "找不到「{0}」的結果",

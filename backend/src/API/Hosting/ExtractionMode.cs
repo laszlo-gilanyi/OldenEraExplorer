@@ -65,7 +65,10 @@ public static class ExtractionMode
             if (extractPng && extractGlb)
             {
                 var result = orchestrator.ExtractEverything(gamePath, force);
-                return result.FailedCount > 0 ? 1 : 0;
+                var errors = result.Results.Where(r => !r.Success && r.ErrorMessage != null).ToList();
+                foreach (var err in errors)
+                    OutputJson("error", null, err.ErrorMessage);
+                return (result.FailedCount > 0 || errors.Count > 0) ? 1 : 0;
             }
             else if (extractGlb)
             {

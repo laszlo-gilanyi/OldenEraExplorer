@@ -5,8 +5,21 @@ const path = require('path');
 const os = require('os');
 
 const APP_NAME = 'OldenEraExplorer';
-const VERSION = process.argv[2] || process.env.VERSION || '';
+const RAW_VERSION = process.argv[2] || process.env.VERSION || '';
+const VERSION = RAW_VERSION.replace(/^v/i, '');
 const PACKAGE_BASE = VERSION ? `${APP_NAME}-v${VERSION}` : APP_NAME;
+
+// Compute a valid 4-part AssemblyVersion from the semver string
+const VERSION_PARTS = VERSION ? VERSION.split(/[+-]/)[0].split('.').slice(0, 3) : [];
+while (VERSION_PARTS.length < 3) VERSION_PARTS.push('0');
+const ASSEMBLY_VERSION = VERSION ? `${VERSION_PARTS.join('.')}.0` : '';
+// Use app-specific properties so the version is scoped to API.csproj only.
+// Passing -p:Version globally overrides the vendored AssetRipper Directory.Build.props,
+// causing a deps.json / DLL metadata version mismatch that breaks the single-file bundle.
+const VERSION_PROPS = VERSION
+    ? `-p:AppReleaseVersion=${VERSION} -p:AppAssemblyVersion=${ASSEMBLY_VERSION}`
+    : '';
+
 const RIDS = ['win-x64', 'linux-x64'];
 
 const ROOT = path.resolve(__dirname, '..');
@@ -36,7 +49,10 @@ fs.mkdirSync('dist', { recursive: true });
 console.log('\nStep 2: Building for all platforms...');
 for (const rid of RIDS) {
     console.log(`\n  Building for ${rid}...`);
-    run(`dotnet publish backend/src/API/API.csproj -c Release -r ${rid} --self-contained true -o dist/${rid} -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -p:DebugSymbols=false`);
+    // Clean shared intermediates between RID builds to prevent cross-platform obj/ contamination
+    rmrf('backend/src/API/obj/Release');
+    rmrf('backend/src/API/wwwroot');
+    run(`dotnet publish backend/src/API/API.csproj -c Release -r ${rid} --self-contained true -o dist/${rid} -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -p:DebugSymbols=false ${VERSION_PROPS}`.trim());
 
     console.log(`  Cleaning up ${rid}...`);
     const distRid = path.join('dist', rid);

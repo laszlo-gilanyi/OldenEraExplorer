@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "{0}일 전",
   "extraction_icons_count": "{0}개 이미지, {1}개 모델",
   "extraction_auto_extract": "게임 에셋 자동 추출",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "검색...",
   "search_placeholder_entity": "{0} 검색...",
   "search_no_results": "\"{0}\"에 대한 결과가 없습니다",

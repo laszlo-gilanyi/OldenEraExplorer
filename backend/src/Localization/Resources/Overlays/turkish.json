@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "{0}g önce",
   "extraction_icons_count": "{0} görsel, {1} model",
   "extraction_auto_extract": "Oyun varlıklarını otomatik çıkar",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "Ara...",
   "search_placeholder_entity": "{0} ara...",
   "search_no_results": "\"{0}\" için sonuç bulunamadı",

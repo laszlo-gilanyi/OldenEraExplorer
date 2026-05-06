@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSettings, useUpdateSettings, useLocales } from './useSettings';
+import { useSettings, useUpdateSettings, useLocales, useCheckUpdate, useInstallUpdate, useUpdateProgress } from './useSettings';
 import { useGameStatus, useGameDetect, useSetGamePath, useLoadGameData } from '@/hooks/useGameStatus';
 import { FolderPickerModal } from '@/components/ui/FolderPickerModal';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
@@ -53,6 +53,20 @@ export function SettingsPanel() {
   const { data: gameStatus } = useGameStatus();
   const updateSettings = useUpdateSettings();
   const { label } = useLabels();
+
+  const { data: availableRelease, refetch: checkUpdate, isFetching: isCheckingUpdate } = useCheckUpdate();
+  const installUpdate = useInstallUpdate();
+  const [isInstalling, setIsInstalling] = useState(false);
+  const { data: installProgress } = useUpdateProgress(isInstalling);
+
+  const hasUpdate = !!availableRelease;
+  const appVersion = settings?.version ?? '';
+
+  useEffect(() => {
+    if (installProgress?.stage === 'error') {
+      setIsInstalling(false);
+    }
+  }, [installProgress?.stage]);
 
   const detectMutation = useGameDetect();
   const setPathMutation = useSetGamePath();
@@ -160,9 +174,25 @@ export function SettingsPanel() {
     updateSettings.mutate({ autoExtractEnabled: !currentAutoExtract });
   };
 
+  const handleMinimizeToTrayToggle = () => {
+    updateSettings.mutate({ minimizeToTray: !currentMinimizeToTray });
+  };
+
+  const handleAutoUpdateToggle = () => {
+    updateSettings.mutate({ autoUpdateEnabled: !currentAutoUpdate });
+  };
+
+  const handleInstallUpdate = () => {
+    if (!availableRelease) return;
+    setIsInstalling(true);
+    installUpdate.mutate(availableRelease);
+  };
+
   const currentLocale = settings?.locale ?? 'english';
   const currentUsePlaceholderResolver = settings?.usePlaceholderResolver ?? false;
   const currentAutoExtract = settings?.autoExtractEnabled ?? false;
+  const currentMinimizeToTray = settings?.minimizeToTray ?? true;
+  const currentAutoUpdate = settings?.autoUpdateEnabled ?? true;
 
   const candidates = detectMutation.data?.candidates || [];
   const isDetecting = detectMutation.isPending;
@@ -312,45 +342,74 @@ export function SettingsPanel() {
               <div className="p-3 border-t border-border space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-foreground">{label('settings_resolver')}</div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={currentUsePlaceholderResolver}
-                    onClick={handleResolverToggle}
-                    className={cn(
-                      "relative w-9 h-5 rounded-full transition-colors flex items-center px-0.5 cursor-pointer",
-                      currentUsePlaceholderResolver ? "bg-primary" : "bg-muted-foreground/40"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "w-3.5 h-3.5 bg-white rounded-full shadow transition-transform",
-                        currentUsePlaceholderResolver && "translate-x-[18px]"
-                      )}
-                    />
-                  </button>
+                  <Switch checked={currentUsePlaceholderResolver} onCheckedChange={handleResolverToggle} />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-foreground">{label('extraction_auto_extract')}</div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={currentAutoExtract}
-                    onClick={handleAutoExtractToggle}
-                    className={cn(
-                      "relative w-9 h-5 rounded-full transition-colors flex items-center px-0.5 cursor-pointer",
-                      currentAutoExtract ? "bg-primary" : "bg-muted-foreground/40"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "w-3.5 h-3.5 bg-white rounded-full shadow transition-transform",
-                        currentAutoExtract && "translate-x-[18px]"
-                      )}
-                    />
-                  </button>
+                  <Switch checked={currentAutoExtract} onCheckedChange={handleAutoExtractToggle} />
                 </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-foreground">{label('settings_minimize_to_tray')}</div>
+                  <Switch checked={currentMinimizeToTray} onCheckedChange={handleMinimizeToTrayToggle} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-foreground">{label('settings_auto_update')}</div>
+                  <Switch checked={currentAutoUpdate} onCheckedChange={handleAutoUpdateToggle} />
+                </div>
+              </div>
+
+              <div className="p-3 border-t border-border space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{label('settings_version')}</span>
+                  <span>{appVersion || '—'}</span>
+                </div>
+
+                {isInstalling ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Spinner size="sm" />
+                      <span>{installProgress?.message ?? 'Installing...'}</span>
+                    </div>
+                    {installProgress?.stage === 'error' && (
+                      <div className="text-xs text-destructive">{installProgress.message}</div>
+                    )}
+                  </div>
+                ) : hasUpdate ? (
+                  <div className="space-y-1.5">
+                    <div className="text-xs text-blue-500 font-medium">
+                      {label('settings_update_available', availableRelease!.tagName)}
+                    </div>
+                    <button
+                      onClick={handleInstallUpdate}
+                      className="w-full py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      {label('settings_update_install', availableRelease!.tagName)}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => checkUpdate()}
+                    disabled={isCheckingUpdate}
+                    className="w-full py-1.5 border border-border hover:bg-accent text-muted-foreground hover:text-foreground text-xs font-medium rounded transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isCheckingUpdate ? (
+                      <>
+                        <Spinner size="sm" />
+                        <span>{label('settings_update_checking')}</span>
+                      </>
+                    ) : (
+                      <span>{label('settings_update_check')}</span>
+                    )}
+                  </button>
+                )}
               </div>
 
               <div className="border-t border-border">
@@ -489,6 +548,28 @@ export function SettingsPanel() {
         title={label('welcome_browse_btn')}
       />
     </div>
+  );
+}
+
+function Switch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onCheckedChange}
+      className={cn(
+        "relative w-9 h-5 rounded-full transition-colors flex items-center px-0.5 cursor-pointer flex-shrink-0",
+        checked ? "bg-primary" : "bg-muted-foreground/40"
+      )}
+    >
+      <span
+        className={cn(
+          "w-3.5 h-3.5 bg-white rounded-full shadow transition-transform",
+          checked && "translate-x-[18px]"
+        )}
+      />
+    </button>
   );
 }
 

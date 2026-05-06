@@ -25,7 +25,8 @@ public record ExtractionStatusDto(
     DateTime? LastExtractedAt = null,
     int IconCount = 0,
     int ModelCount = 0,
-    string? GameVersion = null
+    string? GameVersion = null,
+    string? Error = null
 );
 
 public record AutoExtractSettingDto(bool Enabled);

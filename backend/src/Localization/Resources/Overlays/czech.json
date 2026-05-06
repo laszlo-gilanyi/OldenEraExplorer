@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "před {0} d",
   "extraction_icons_count": "{0} obrázků, {1} modelů",
   "extraction_auto_extract": "Automaticky extrahovat herní zdroje",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "Hledat...",
   "search_placeholder_entity": "Hledat {0}...",
   "search_no_results": "Žádné výsledky pro \"{0}\"",

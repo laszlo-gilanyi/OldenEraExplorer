@@ -1,3 +1,4 @@
+using API.Hosting;
 using API.Services;
 using GameData.Loading;
 using GameData.Services;
@@ -34,6 +35,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAssetExtractionService, AssetExtractionService>();
         services.AddSingleton<SearchService>();
         services.AddScoped<MapObjectDetailsService>();
+
+        services.AddSingleton<ConnectionTracker>();
+        services.AddSingleton<TrayIconService>();
+        services.AddHttpClient<UpdateService>();
 
         return services;
     }

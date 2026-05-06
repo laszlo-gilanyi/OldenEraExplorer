@@ -96,6 +96,7 @@
   "extraction_time_days_ago": "{0} napja",
   "extraction_icons_count": "{0} kép, {1} modell",
   "extraction_auto_extract": "Játékelemek automatikus kicsomagolása",
+  "settings_minimize_to_tray": "Keep running in system tray",
   "search_placeholder": "Keresés...",
   "search_placeholder_entity": "{0} keresése...",
   "search_no_results": "Nincs találat erre: \"{0}\"",
