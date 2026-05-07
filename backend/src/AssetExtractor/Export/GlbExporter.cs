@@ -205,7 +205,7 @@ public class GlbExporter
         }
 
         _logger.LogInformation("Adding {MeshCount} meshes", unitData.Meshes.Count);
-        _meshExporter.AddMeshes(scene, unitData, nodeBuilders);
+        _meshExporter.AddMeshes(scene, unitData, nodeBuilders, isUnit: true);
 
         if (unitData.Animations.Count > 0 && unitData.Skeleton != null)
         {

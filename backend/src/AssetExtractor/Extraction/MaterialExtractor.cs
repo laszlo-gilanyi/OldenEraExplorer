@@ -172,6 +172,8 @@ public class MaterialExtractor
             // Handle VFX materials
             HandleVFXMaterial(materialData);
 
+            ApplyContentWorkaround(materialData, prefabData, assetLoader);
+
             _logger.LogDebug(
                 "Material properties: BaseColor=({R:F2}, {G:F2}, {B:F2}, {A:F2})",
                 materialData.BaseColor.X, materialData.BaseColor.Y, materialData.BaseColor.Z, materialData.BaseColor.W);
@@ -349,6 +351,49 @@ public class MaterialExtractor
         // {
         //     // Apply other_object texture fallback
         // }
+    }
+
+    private void ApplyContentWorkaround(MaterialData materialData, PrefabData prefabData, AssetLoader assetLoader)
+    {
+        var ovr = ContentWorkarounds.Lookup(prefabData.Name, materialData.Name);
+        if (ovr == null)
+            return;
+
+        var matches = assetLoader.SearchTextures(ovr.TextureName);
+        var texture = matches.FirstOrDefault(t => string.Equals(t.Name, ovr.TextureName, StringComparison.OrdinalIgnoreCase)).Texture;
+        if (texture == null)
+        {
+            _logger.LogWarning(
+                "Content workaround for {Prefab}/{Material}: texture '{TextureName}' not found",
+                prefabData.Name, materialData.Name, ovr.TextureName);
+            return;
+        }
+
+        var textureData = _textureCache.GetOrLoad(texture);
+        if (textureData == null)
+        {
+            _logger.LogWarning(
+                "Content workaround for {Prefab}/{Material}: failed to load texture '{TextureName}'",
+                prefabData.Name, materialData.Name, ovr.TextureName);
+            return;
+        }
+
+        lock (prefabData.Textures)
+        {
+            if (!prefabData.Textures.Any(t => t.Name == textureData.Name))
+            {
+                prefabData.Textures.Add(textureData);
+            }
+        }
+
+        materialData.MainTextureName = textureData.Name;
+        materialData.BaseColor = new Vector4(ovr.BaseColorR, ovr.BaseColorG, ovr.BaseColorB, ovr.BaseColorA);
+        materialData.AlphaMode = 3;
+
+        _logger.LogInformation(
+            "Applied content workaround for {Prefab}/{Material}: texture={TextureName}, color=({R:F2},{G:F2},{B:F2},{A:F2})",
+            prefabData.Name, materialData.Name, textureData.Name,
+            ovr.BaseColorR, ovr.BaseColorG, ovr.BaseColorB, ovr.BaseColorA);
     }
 
     private string? GetPrefabResourcePath(PrefabData prefabData, AssetLoader assetLoader)

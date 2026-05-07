@@ -147,7 +147,7 @@ public static class ArtifactsEndpoints
             Id: artifact.Id,
             Name: artifact.NameSid,
             LocalizedName: localizedName,
-            Icon: string.IsNullOrEmpty(artifact.Icon) ? null : Artifact(artifact.Icon),
+            Icon: string.IsNullOrEmpty(artifact.Icon) ? null : ArtifactIcon(artifact.Id, artifact.Icon),
             Rarity: string.IsNullOrEmpty(artifact.Rarity) ? null : artifact.Rarity,
             Slot: string.IsNullOrEmpty(artifact.Slot) ? null : artifact.Slot,
             SlotIcon: slotIcon,
@@ -206,7 +206,7 @@ public static class ArtifactsEndpoints
                 setItems.Add(new SetItemEntryDto(
                     ArtifactId: itemId,
                     Name: itemName,
-                    Icon: string.IsNullOrEmpty(artifact.Icon) ? null : Artifact(artifact.Icon),
+                    Icon: string.IsNullOrEmpty(artifact.Icon) ? null : ArtifactIcon(artifact.Id, artifact.Icon),
                     Slot: artifact.Slot
                 ));
             }

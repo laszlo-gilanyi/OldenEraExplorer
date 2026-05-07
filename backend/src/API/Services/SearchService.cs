@@ -406,7 +406,7 @@ public sealed class SearchService
                     "Artifact",
                     name,
                     matchedField,
-                    string.IsNullOrEmpty(artifact.Icon) ? null : $"icons/artifacts/{artifact.Icon}",
+                    string.IsNullOrEmpty(artifact.Icon) ? null : API.Helpers.IconPaths.ArtifactIcon(artifact.Id, artifact.Icon),
                     matchLocation
                 ), relevance));
             }

@@ -41,17 +41,6 @@ public sealed class ArtifactsIndex
             .ToList();
     }
 
-    private static string NormalizeIcon(string artifactId, string icon)
-    {
-        // Scroll artifact IDs don't match their icon asset names
-        if (artifactId.StartsWith("mythic_magic_scroll_artifact", StringComparison.OrdinalIgnoreCase))
-            return "mythic_scroll_box_artifact";
-        if (artifactId.StartsWith("enchanted_magic_scroll_artifact", StringComparison.OrdinalIgnoreCase))
-            return "enchanted_magic_scroll_artifact";
-
-        return icon;
-    }
-
     public void Scan(string streamingAssetsRoot)
     {
         _artifacts.Clear();
@@ -90,7 +79,6 @@ public sealed class ArtifactsIndex
                     var costPerLevel = el.TryGetProperty("costPerLevel", out var costPerLvlP) && costPerLvlP.TryGetInt32(out var cPerLvl) ? cPerLvl : 0;
                     var rewardForDestroy = el.TryGetProperty("rewardForDestroy", out var rewardP) && rewardP.TryGetInt32(out var reward) ? reward : 0;
                     var isSpecialItem = el.TryGetProperty("isSpecialItem", out var specialP) && specialP.GetBoolean();
-                    icon = NormalizeIcon(id, icon);
 
                     if (!string.IsNullOrWhiteSpace(id) && !_artifacts.ContainsKey(id))
                         _artifacts[id] = new ArtifactRecord(id, name, desc, rarity, slot, icon, itemSetId, narrativeDescSid, upgradeDescSid, maxLevel, costBase, costPerLevel, rewardForDestroy, isSpecialItem);

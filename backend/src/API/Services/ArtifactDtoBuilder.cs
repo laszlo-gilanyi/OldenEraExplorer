@@ -23,7 +23,7 @@ public static class ArtifactDtoBuilder
             Rarity: string.IsNullOrEmpty(artifact.Rarity) ? null : artifact.Rarity,
             Slot: string.IsNullOrEmpty(artifact.Slot) ? null : artifact.Slot,
             RaritySlotText: raritySlotText,
-            Icon: string.IsNullOrEmpty(artifact.Icon) ? null : Artifact(artifact.Icon)
+            Icon: string.IsNullOrEmpty(artifact.Icon) ? null : ArtifactIcon(artifact.Id, artifact.Icon)
         );
     }
 
@@ -46,7 +46,7 @@ public static class ArtifactDtoBuilder
             artifact.Id,
             name,
             artifact.Rarity,
-            Artifact(artifact.Icon)
+            ArtifactIcon(artifact.Id, artifact.Icon)
         );
     }
 

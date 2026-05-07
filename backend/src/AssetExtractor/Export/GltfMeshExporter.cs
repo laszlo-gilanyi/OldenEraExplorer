@@ -28,9 +28,10 @@ public class GltfMeshExporter : IMeshExporter
     public void AddMeshes(
         SceneBuilder scene,
         UnitData unitData,
-        Dictionary<string, NodeBuilder> nodeBuilders)
+        Dictionary<string, NodeBuilder> nodeBuilders,
+        bool isUnit = false)
     {
-        var materialBuilders = CreateMaterials(unitData);
+        var materialBuilders = CreateMaterials(unitData, isUnit);
 
         var defaultMaterial = new MaterialBuilder("DefaultMaterial")
             .WithDoubleSide(true)
@@ -81,13 +82,13 @@ public class GltfMeshExporter : IMeshExporter
         }
     }
 
-    public Dictionary<string, MaterialBuilder> CreateMaterials(UnitData unitData)
+    public Dictionary<string, MaterialBuilder> CreateMaterials(UnitData unitData, bool isUnit = false)
     {
         var materialBuilders = new Dictionary<string, MaterialBuilder>();
 
         foreach (var materialData in unitData.Materials)
         {
-            var material = CreateMaterialFromData(materialData, unitData.Textures);
+            var material = CreateMaterialFromData(materialData, unitData.Textures, isUnit);
             materialBuilders[materialData.Name] = material;
         }
 
@@ -575,7 +576,7 @@ public class GltfMeshExporter : IMeshExporter
         return result;
     }
 
-    private MaterialBuilder CreateMaterialFromData(MaterialData materialData, List<TextureData> textures)
+    private MaterialBuilder CreateMaterialFromData(MaterialData materialData, List<TextureData> textures, bool isUnit = false)
     {
         static float Clamp01(float value) => float.IsFinite(value) ? Math.Clamp(value, 0f, 1f) : 0f;
 
@@ -639,14 +640,14 @@ public class GltfMeshExporter : IMeshExporter
                 var matNameLower = materialData.Name.ToLowerInvariant();
                 var emissiveNameLower = materialData.EmissiveTextureName.ToLowerInvariant();
 
-                // Unity lets artists assign any emissive to any material. When a base unit's emissive
-                // lands on an upgrade variant, the UVs don't match — different mesh, different UV layout —
-                // so the emissive renders as stripes or noise instead of the intended subtle glow.
-                // Asset naming convention mirrors material naming, so prefix mismatch reliably catches this.
+                // Variant unit materials (e.g. abyssal_envoy_upg_alt_mt) sometimes inherit a base unit's emissive
+                // whose UVs don't match the variant mesh, producing stripe artifacts. Unit material names mirror
+                // their texture names, so prefix mismatch reliably catches this. Non-unit prefabs use looser naming
+                // (e.g. witchspell_dagger_mt + dagger_emissive) where the filter would produce false positives.
                 var matBase = matNameLower.EndsWith("_mt") ? matNameLower[..^3] : matNameLower;
-                bool emissiveMismatchesMaterial = !emissiveNameLower.StartsWith(matBase);
+                bool emissiveMismatchesMaterial = isUnit && !emissiveNameLower.StartsWith(matBase);
 
-                // Some textures named like emissives are actually alpha/transparency masks (e.g. olgoi_transparent).
+                // *_transparent textures look like emissives by name but are alpha masks (e.g. olgoi_transparent).
                 bool isTransparencyTexture = emissiveNameLower.Contains("_transparent") &&
                                              !emissiveNameLower.Contains("emissive");
 

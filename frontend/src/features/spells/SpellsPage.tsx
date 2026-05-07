@@ -263,7 +263,7 @@ function SpellDetailPanel({
                   {level.starDustCost != null && (
                     <span className="flex items-center gap-1 text-semantic-gold font-semibold">
                       <img
-                        src="/api/assets/png/Assets/Texture2D/Mana_icon.png"
+                        src="/api/assets/png/Assets/Resources/icons/resources/stardust.png"
                         alt="astrology"
                         className="w-8 h-8"
                       />

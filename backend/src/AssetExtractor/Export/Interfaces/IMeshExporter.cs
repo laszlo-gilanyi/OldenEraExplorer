@@ -16,10 +16,11 @@ public interface IMeshExporter
     void AddMeshes(
         SceneBuilder scene,
         UnitData unitData,
-        Dictionary<string, SharpGLTF.Scenes.NodeBuilder> nodeBuilders);
+        Dictionary<string, SharpGLTF.Scenes.NodeBuilder> nodeBuilders,
+        bool isUnit = false);
 
     /// <summary>
     /// Create materials from unit data.
     /// </summary>
-    Dictionary<string, MaterialBuilder> CreateMaterials(UnitData unitData);
+    Dictionary<string, MaterialBuilder> CreateMaterials(UnitData unitData, bool isUnit = false);
 }

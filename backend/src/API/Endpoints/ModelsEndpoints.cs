@@ -470,13 +470,16 @@ public static class ModelsEndpoints
                 ? prefabPath.Substring("artifact/".Length)
                 : prefabPath;
 
+            var iconPath = ArtifactGenericScrollIcon(item.Artifact.Id)
+                ?? $"icons/artifacts/{item.Artifact.Icon}";
+
             items.Add(new ArtifactListItemDto(
                 cleanId,
                 localizedName ?? item.Artifact.Id,
                 item.Artifact.Rarity,
                 item.Artifact.Slot,
                 raritySlotText,
-                $"icons/artifacts/{item.Artifact.Icon}",
+                iconPath,
                 IsOrphan: false,
                 PrefabPath: prefabPath));
         }
