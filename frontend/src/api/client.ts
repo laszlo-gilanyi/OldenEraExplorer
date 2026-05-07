@@ -66,13 +66,15 @@ api.interceptors.request.use((config) => {
 function handleApiError(error: unknown): never {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<ErrorDto>;
-    const message = axiosError.response?.data?.error || axiosError.message;
+    // Prefer `detail` (the user-facing explanation) over the short `error` label so the UI
+    // can show the actionable message instead of a generic "Extraction error".
+    const detail = axiosError.response?.data?.detail;
+    const shortError = axiosError.response?.data?.error;
+    const message = detail || shortError || axiosError.message;
     const method = (axiosError.config?.method ?? 'GET').toUpperCase();
     const path = axiosError.config?.url ?? '(unknown)';
     const status = axiosError.response?.status ?? 0;
     const body = axiosError.response?.data;
-    // Dev console mirror so non-OK API responses surface where developers look first.
-    // The thrown error still flows through React Query / mutations as before.
     console.error('[OldenEraExplorer] API error:', method, path, status, body ?? message);
     throw new Error(message);
   }

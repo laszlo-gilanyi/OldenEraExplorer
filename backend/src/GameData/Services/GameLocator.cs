@@ -35,9 +35,12 @@ public static class GameLocator
             try { p = Path.GetFullPath(p); } catch { }
             if (!Directory.Exists(p)) return "";
 
+            // Acceptance is gated only by Core.zip + Lang. Asset bundles are intentionally
+            // NOT required here: JSON data browsing must work on installs that lack
+            // sharedassets/resources.assets. Extraction has its own bundle check at start-time.
             var candidates = new List<string>();
 
-            if (Directory.Exists(Path.Combine(p, "Lang")))
+            if (Directory.Exists(Path.Combine(p, "Lang")) || FindCoreZip(p) != null)
                 candidates.Add(p);
 
             if (p.EndsWith("_Data", StringComparison.OrdinalIgnoreCase))
@@ -46,8 +49,7 @@ public static class GameLocator
                 if (Directory.Exists(sa)) candidates.Add(sa);
             }
 
-            var dataDir = Directory.EnumerateDirectories(p, "*_Data", SearchOption.TopDirectoryOnly).FirstOrDefault();
-            if (dataDir is not null)
+            foreach (var dataDir in EnumerateDataDirsPreferringEA(p))
             {
                 var sa = Path.Combine(dataDir, "StreamingAssets");
                 if (Directory.Exists(sa)) candidates.Add(sa);
@@ -66,6 +68,75 @@ public static class GameLocator
         }
     }
 
+    /// <summary>
+    /// True if the given *_Data directory contains the Unity asset bundles required for extraction.
+    /// Demo/EA leftovers with only Core.zip and lang files will fail this check.
+    /// </summary>
+    public static bool IsValidDataDirectory(string dataDir)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(dataDir) || !Directory.Exists(dataDir)) return false;
+            if (!Directory.EnumerateFiles(dataDir, "sharedassets*.assets", SearchOption.TopDirectoryOnly).Any())
+                return false;
+            if (!File.Exists(Path.Combine(dataDir, "resources.assets")))
+                return false;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Return *_Data subdirectories of gameRoot, ordered so a bundle-rich EA folder wins
+    /// over leftovers. Sort key: bundle-present beats bundle-missing; within each tier, EA
+    /// (HeroesOldenEra_Data) beats demo (HeroesOE_Data) beats others (alphabetical).
+    /// Bundle-missing dirs are still returned: data browsing should work even on incomplete installs.
+    /// </summary>
+    public static List<string> EnumerateDataDirsPreferringEA(string gameRoot)
+    {
+        var dirs = new List<string>();
+        try
+        {
+            dirs.AddRange(Directory.EnumerateDirectories(gameRoot, "*_Data", SearchOption.TopDirectoryOnly));
+        }
+        catch { return dirs; }
+
+        dirs.Sort((a, b) =>
+        {
+            int ra = Rank(a);
+            int rb = Rank(b);
+            if (ra != rb) return ra - rb;
+            return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+        });
+        return dirs;
+
+        static int Rank(string dir)
+        {
+            var name = Path.GetFileName(dir);
+            bool bundle = IsValidDataDirectory(dir);
+            bool ea = name.Equals("HeroesOldenEra_Data", StringComparison.OrdinalIgnoreCase);
+            bool oe = name.Equals("HeroesOE_Data", StringComparison.OrdinalIgnoreCase);
+
+            if (bundle && ea) return 0;
+            if (bundle && oe) return 1;
+            if (bundle) return 2;
+            if (ea) return 3;
+            if (oe) return 4;
+            return 5;
+        }
+    }
+
+    private static string? FindCoreZip(string streamingAssets)
+    {
+        try
+        {
+            // Case-insensitive lookup so "core.zip" works on Linux too.
+            return Directory.EnumerateFiles(streamingAssets, "*.zip", SearchOption.TopDirectoryOnly)
+                .FirstOrDefault(f => Path.GetFileName(f).Equals("Core.zip", StringComparison.OrdinalIgnoreCase));
+        }
+        catch { return null; }
+    }
+
     public static bool IsValidStreamingAssets(string? streamingAssets, string preferredLocale)
     {
         try
@@ -74,8 +145,8 @@ public static class GameLocator
             var root = streamingAssets!;
             if (!Directory.Exists(root)) return false;
 
-            var coreZip = Path.Combine(root, "Core.zip");
-            if (!File.Exists(coreZip)) return false;
+            var coreZip = FindCoreZip(root);
+            if (coreZip is null) return false;
 
             // Demo: Lang is on disk
             foreach (var loc in BuildLocaleProbeOrder(preferredLocale))
@@ -151,12 +222,10 @@ public static class GameLocator
         try
         {
             string? streamingAssets = null;
-
-            var dataDir = Directory.EnumerateDirectories(gameRoot, "*_Data", SearchOption.TopDirectoryOnly).FirstOrDefault();
-            if (dataDir is not null)
+            foreach (var dataDir in EnumerateDataDirsPreferringEA(gameRoot))
             {
                 var sa = Path.Combine(dataDir, "StreamingAssets");
-                if (Directory.Exists(sa)) streamingAssets = sa;
+                if (Directory.Exists(sa)) { streamingAssets = sa; break; }
             }
 
             if (streamingAssets is null)
@@ -190,8 +259,8 @@ public static class GameLocator
             // EA: Lang inside Core.zip
             if (!localeOk)
             {
-                var coreZip = Path.Combine(streamingAssets, "Core.zip");
-                if (File.Exists(coreZip))
+                var coreZip = FindCoreZip(streamingAssets);
+                if (coreZip is not null)
                 {
                     try
                     {

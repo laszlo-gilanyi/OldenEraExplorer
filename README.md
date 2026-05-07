@@ -7,6 +7,8 @@
 Fan-made browser for Heroes of Might and Magic: Olden Era game data.
 Browse units, heroes, spells, artifacts, buildings, and 3D models without opening the game.
 
+> Builds are released only on this project's [Releases page](https://github.com/laszlo-gilanyi/OldenEraExplorer/releases). The in-app updater (since v1.0.2) pulls from the same place. If you have a build from anywhere else, it's not mine, and I don't recommend running it.
+
 ## What's the point?
 
 In-game, you can only see what's currently available to you - units in your army, heroes you own, skills offered at level-up, spells you've unlocked.

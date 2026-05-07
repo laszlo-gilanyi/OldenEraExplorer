@@ -24,7 +24,9 @@ public record SetPathResult(
     string? Error,
     string? GameRoot,
     string? HeroesOeDataPath,
-    string? StreamingAssetsPath
+    string? StreamingAssetsPath,
+    bool HasAssetBundles = true,
+    string? Warning = null
 );
 
 public interface IGamePathService
@@ -235,21 +237,23 @@ public class GamePathService : IGamePathService
 
             if (string.IsNullOrEmpty(streamingAssets))
             {
-                _logger.LogWarning("Path validation failed: no valid StreamingAssets found at {Path}", normalizedPath);
+                var errorMessage = BuildPathRejectionMessage(normalizedPath, locale);
+                _logger.LogWarning("Path validation failed: {Reason} (path: {Path})", errorMessage, normalizedPath);
                 return new SetPathResult(
                     Success: false,
-                    Error: "No valid StreamingAssets directory found. Ensure the path contains Core.zip and Lang/<locale>/texts/*.json",
+                    Error: errorMessage,
                     GameRoot: null,
                     HeroesOeDataPath: null,
                     StreamingAssetsPath: null
                 );
             }
 
-            var resolvedGameRoot = ResolveGameRootFromStreamingAssets(streamingAssets) ?? normalizedPath;
-
             var previousGameRoot = _gameRoot;
 
-            _gameRoot = resolvedGameRoot;
+            // Persist exactly what the caller picked so a manual browse to a *_Data or
+            // StreamingAssets dir is visibly reflected in the UI (acts as override confirmation).
+            // Auto-detect already passes a game root, so its display is unchanged.
+            _gameRoot = normalizedPath;
             _heroesOeDataPath = heroesOeData;
             _streamingAssetsPath = streamingAssets;
             _currentLocale = locale;
@@ -270,12 +274,27 @@ public class GamePathService : IGamePathService
 
             OnPathChanged(previousGameRoot, _gameRoot);
 
+            bool hasBundles = !string.IsNullOrEmpty(_heroesOeDataPath) &&
+                              GameLocator.IsValidDataDirectory(_heroesOeDataPath);
+            string? warning = hasBundles
+                ? null
+                : "This install has no Unity asset bundles (sharedassets*.assets / resources.assets), " +
+                  "so JSON data browsing works but image and 3D model extraction will not. " +
+                  "This usually means an incomplete install or a leftover folder.";
+
+            if (warning != null)
+            {
+                _logger.LogWarning("Path accepted but asset bundles missing in {DataPath}", _heroesOeDataPath);
+            }
+
             return new SetPathResult(
                 Success: true,
                 Error: null,
                 GameRoot: _gameRoot,
                 HeroesOeDataPath: _heroesOeDataPath,
-                StreamingAssetsPath: _streamingAssetsPath
+                StreamingAssetsPath: _streamingAssetsPath,
+                HasAssetBundles: hasBundles,
+                Warning: warning
             );
         }
     }
@@ -299,6 +318,29 @@ public class GamePathService : IGamePathService
         }
     }
 
+    private static string BuildPathRejectionMessage(string gameRoot, string locale)
+    {
+        try
+        {
+            if (!Directory.Exists(gameRoot))
+                return $"Directory does not exist: {gameRoot}";
+
+            var dataDirs = GameLocator.EnumerateDataDirsPreferringEA(gameRoot);
+            bool isDataDirItself = Path.GetFileName(gameRoot).EndsWith("_Data", StringComparison.OrdinalIgnoreCase);
+
+            if (dataDirs.Count == 0 && !isDataDirItself)
+            {
+                return "No *_Data directory found. Point this at the game's install root (the folder containing HeroesOldenEra.exe).";
+            }
+
+            return "No Core.zip or Lang folder found. The selected install looks empty or corrupted; reinstall the game or point Browse at the correct folder.";
+        }
+        catch
+        {
+            return "Could not validate the selected folder as a Heroes Olden Era install.";
+        }
+    }
+
     private static string? FindHeroesOeDataPath(string gameRoot)
     {
         if (string.IsNullOrEmpty(gameRoot) || !Directory.Exists(gameRoot))
@@ -306,42 +348,13 @@ public class GamePathService : IGamePathService
 
         try
         {
-            if (Path.GetFileName(gameRoot).Equals("HeroesOE_Data", StringComparison.OrdinalIgnoreCase))
+            if (Path.GetFileName(gameRoot).EndsWith("_Data", StringComparison.OrdinalIgnoreCase))
             {
                 return gameRoot;
             }
 
-            var heroesDataPath = Path.Combine(gameRoot, "HeroesOE_Data");
-            if (Directory.Exists(heroesDataPath))
-            {
-                return heroesDataPath;
-            }
-
-            var dataDirectories = Directory.GetDirectories(gameRoot, "*_Data");
-            var heroesData = dataDirectories.FirstOrDefault(d =>
-                Path.GetFileName(d).EndsWith("_Data", StringComparison.OrdinalIgnoreCase));
-
-            return heroesData;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static string? ResolveGameRootFromStreamingAssets(string streamingAssetsPath)
-    {
-        try
-        {
-            var parent = Directory.GetParent(streamingAssetsPath);
-            if (parent == null) return null;
-
-            if (parent.Name.EndsWith("_Data", StringComparison.OrdinalIgnoreCase))
-            {
-                return parent.Parent?.FullName;
-            }
-
-            return parent.FullName;
+            var ordered = GameLocator.EnumerateDataDirsPreferringEA(gameRoot);
+            return ordered.FirstOrDefault(GameLocator.IsValidDataDirectory) ?? ordered.FirstOrDefault();
         }
         catch
         {

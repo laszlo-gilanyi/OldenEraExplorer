@@ -24,6 +24,7 @@ function App() {
 
   const { data: gameStatus, isLoading: gameStatusLoading } = useGameStatus();
   const setGameReady = useGameStore((state) => state.setGameReady);
+  const isGameReady = useGameStore((state) => state.isGameReady);
 
   // API client request interceptor blocks calls when game not ready, so sync this state
   useEffect(() => {
@@ -147,8 +148,11 @@ function App() {
     return <LoadingScreen message={loadingMessage} />;
   }
 
-  // Child routes expect game data to be available - show loading until ready to prevent API errors
-  if (!gameStatus?.dataLoaded) {
+  // Both flags must agree: dataLoaded comes from the query, isGameReady is the Zustand
+  // mirror the API interceptor reads, and that mirror is set in a useEffect (one render
+  // late). Without checking both, a quick click during that one frame triggers a spurious
+  // "game data not loaded" error from the interceptor.
+  if (!gameStatus?.dataLoaded || !isGameReady) {
     return <LoadingScreen message={label('loading_game_data')} />;
   }
   return (

@@ -101,20 +101,58 @@ public sealed class GamePathDetector
             if (!Directory.Exists(path))
                 return null;
 
-            // If path itself is a *_Data directory, use it directly
             if (Path.GetFileName(path).EndsWith("_Data", StringComparison.OrdinalIgnoreCase))
             {
                 return ValidateDataDirectory(path) ? path : null;
             }
 
-            // Check for any *_Data subdirectory
-            var dataDir = Directory.EnumerateDirectories(path, "*_Data", SearchOption.TopDirectoryOnly)
-                .FirstOrDefault(d => ValidateDataDirectory(d));
-            return dataDir;
+            // EA-preferred ordering keeps an empty leftover HeroesOE_Data from shadowing
+            // the real HeroesOldenEra_Data when both exist side by side.
+            return EnumerateDataDirsPreferringEA(path)
+                .FirstOrDefault(ValidateDataDirectory);
         }
         catch
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Return *_Data subdirectories of gameRoot, ordered so a bundle-rich EA folder wins
+    /// over leftovers. Tier 1: bundles present, EA > demo > other. Tier 2: bundles missing,
+    /// EA > demo > other. Bundle-missing dirs are still returned so data browsing works.
+    /// </summary>
+    private List<string> EnumerateDataDirsPreferringEA(string gameRoot)
+    {
+        var dirs = new List<string>();
+        try
+        {
+            dirs.AddRange(Directory.EnumerateDirectories(gameRoot, "*_Data", SearchOption.TopDirectoryOnly));
+        }
+        catch { return dirs; }
+
+        dirs.Sort((a, b) =>
+        {
+            int ra = Rank(a);
+            int rb = Rank(b);
+            if (ra != rb) return ra - rb;
+            return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+        });
+        return dirs;
+
+        int Rank(string dir)
+        {
+            var name = Path.GetFileName(dir);
+            bool bundle = ValidateDataDirectory(dir);
+            bool ea = name.Equals("HeroesOldenEra_Data", StringComparison.OrdinalIgnoreCase);
+            bool oe = name.Equals("HeroesOE_Data", StringComparison.OrdinalIgnoreCase);
+
+            if (bundle && ea) return 0;
+            if (bundle && oe) return 1;
+            if (bundle) return 2;
+            if (ea) return 3;
+            if (oe) return 4;
+            return 5;
         }
     }
 
@@ -339,8 +377,7 @@ public sealed class GamePathDetector
             if (!dirNameLower.Contains("olden") && !dirNameLower.Contains("heroes"))
                 return null;
 
-            var dataPath = Directory.EnumerateDirectories(directory, "*_Data", SearchOption.TopDirectoryOnly)
-                .FirstOrDefault();
+            var dataPath = EnumerateDataDirsPreferringEA(directory).FirstOrDefault();
             if (dataPath is null)
                 return null;
 

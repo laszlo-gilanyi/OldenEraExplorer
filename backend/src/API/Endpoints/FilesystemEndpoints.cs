@@ -95,16 +95,21 @@ public static class FilesystemEndpoints
 
         try
         {
+            // On Linux, .NET maps any dot-prefixed name to FileAttributes.Hidden by convention,
+            // but those are normal locations the user often needs (e.g. ~/.steam, ~/.local/share/Steam,
+            // ~/.var/app for Flatpak). Only filter Hidden on Windows, where the attribute is an
+            // explicit user/OS marker rather than a naming convention.
+            bool isWindows = OperatingSystem.IsWindows();
+
             foreach (var dir in Directory.GetDirectories(path))
             {
                 try
                 {
                     var info = new DirectoryInfo(dir);
-                    if ((info.Attributes & FileAttributes.Hidden) != 0 ||
-                        (info.Attributes & FileAttributes.System) != 0)
-                    {
+                    if ((info.Attributes & FileAttributes.System) != 0)
                         continue;
-                    }
+                    if (isWindows && (info.Attributes & FileAttributes.Hidden) != 0)
+                        continue;
 
                     entries.Add(new DirectoryEntryDto(
                         Id: dir,

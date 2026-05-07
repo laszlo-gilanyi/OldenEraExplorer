@@ -74,6 +74,15 @@ export function AssetExtractionPanel() {
 
   const startMutation = useMutation({
     mutationFn: () => extractionApi.start({ extractPng, extractGlb, forceReExtract }),
+    onError: (error: Error) => {
+      // The backend rejects with 409/400 when extraction can't start (e.g. missing asset
+      // bundles). Surface the message in the same Failed/error panel that mid-run failures use.
+      const message = error.message || 'Failed to start extraction.';
+      useExtractionStore.getState().setError(message);
+      useExtractionStore.getState().setStatus('Failed');
+      setShowErrorPanel(true);
+      setPanelOpen(false);
+    },
   });
 
   const cancelMutation = useMutation({

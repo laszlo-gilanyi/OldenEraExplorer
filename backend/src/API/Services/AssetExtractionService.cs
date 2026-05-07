@@ -161,6 +161,15 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
                 throw new InvalidOperationException("Game path not configured. Please set the game path first.");
             }
 
+            if (!GameData.Services.GameLocator.IsValidDataDirectory(gamePath))
+            {
+                throw new InvalidOperationException(
+                    $"Asset extraction requires Unity asset bundles (sharedassets*.assets and resources.assets) in '{gamePath}', " +
+                    "but they are missing. This usually means the install is incomplete or this is a leftover folder. " +
+                    "Reinstall the game or point Browse at the correct install. " +
+                    "JSON data browsing still works without bundles.");
+            }
+
             if (!request.ForceReExtract)
             {
                 try
@@ -651,14 +660,29 @@ public class AssetExtractionService : IAssetExtractionService, IDisposable
             var streamingAssets = Path.Combine(job.GamePath, "StreamingAssets");
             var coreZip = Path.Combine(streamingAssets, "Core.zip");
 
+            int sharedAssetsCount = 0;
+            bool hasResourcesAssets = false;
+            try
+            {
+                if (Directory.Exists(job.GamePath))
+                {
+                    sharedAssetsCount = Directory.EnumerateFiles(job.GamePath, "sharedassets*.assets",
+                        SearchOption.TopDirectoryOnly).Count();
+                    hasResourcesAssets = File.Exists(Path.Combine(job.GamePath, "resources.assets"));
+                }
+            }
+            catch { }
+
             _logger.LogInformation(
                 "Pre-flight: Executable={ExePath} (exists={ExeExists}, size={ExeSize:N0}, execBit={ExecBit}); " +
                 "OutputPath={OutputPath} (exists={OutExists}, writable={OutWritable}{WriteError}); " +
-                "GamePath={GamePath} (exists={GameExists}, hasStreamingAssets={HasSA}, hasCoreZip={HasCore}); " +
+                "GamePath={GamePath} (exists={GameExists}, hasStreamingAssets={HasSA}, hasCoreZip={HasCore}, " +
+                "sharedAssetsCount={SharedAssetsCount}, hasResourcesAssets={HasResourcesAssets}); " +
                 "FreeDisk={FreeDisk}",
                 _executablePath, execExists, execSize, execBit,
                 job.OutputPath, Directory.Exists(job.OutputPath), outputWritable, writeError,
                 job.GamePath, Directory.Exists(job.GamePath), Directory.Exists(streamingAssets), File.Exists(coreZip),
+                sharedAssetsCount, hasResourcesAssets,
                 FormatFreeDisk(job.OutputPath));
         }
         catch (Exception ex)
