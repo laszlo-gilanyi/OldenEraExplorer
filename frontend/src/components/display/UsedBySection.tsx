@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { EntityReferenceDto, EntityReferencesResponse } from '@/api/types';
 import { useLabels } from '@/hooks/useLabels';
+import EntityChip from '@/components/display/EntityChip';
+import { cn } from '@/lib/utils';
 
 interface UsedBySectionProps {
   entityType: string;
   entityId: string;
   title?: string;  // Optional localized title that overrides the default
+  className?: string;
 }
 
-export default function UsedBySection({ entityType, entityId, title }: UsedBySectionProps) {
+export default function UsedBySection({ entityType, entityId, title, className }: UsedBySectionProps) {
   const [references, setReferences] = useState<EntityReferencesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -110,21 +113,20 @@ export default function UsedBySection({ entityType, entityId, title }: UsedBySec
   const allReferences = references.referencedBy;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className={cn("bg-card border border-border rounded-2xl p-5", className)}>
       <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
         {title || getSectionTitle()}
       </h3>
 
       {useSimplifiedDisplay ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,11.5rem))] gap-3">
           {allReferences.map((ref, index) => (
-            <button
+            <EntityChip
               key={`${ref.entityId}-${index}`}
+              iconPath={ref.iconPath}
+              name={ref.displayName || ref.entityId}
               onClick={() => handleReferenceClick(ref)}
-              className="px-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              {ref.displayName || ref.entityId}
-            </button>
+            />
           ))}
         </div>
       ) : (

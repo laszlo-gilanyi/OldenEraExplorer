@@ -4,7 +4,8 @@ public record EntityReferenceDto(
     string EntityId,
     string EntityType,
     string? DisplayName,
-    string PropertyPath
+    string PropertyPath,
+    string? IconPath
 );
 
 public record EntityReferencesResponse(

@@ -471,7 +471,7 @@ public static class ModelsEndpoints
                 : prefabPath;
 
             var iconPath = ArtifactGenericScrollIcon(item.Artifact.Id)
-                ?? $"icons/artifacts/{item.Artifact.Icon}";
+                ?? ArtifactIcon(item.Artifact.Id, item.Artifact.Icon);
 
             items.Add(new ArtifactListItemDto(
                 cleanId,
@@ -531,7 +531,7 @@ public static class ModelsEndpoints
                     null,
                     null,
                     null,
-                    $"icons/artifacts/{glbFileName}",
+                    Artifact(glbFileName),
                     IsOrphan: true,
                     PrefabPath: prefabPath));
             }

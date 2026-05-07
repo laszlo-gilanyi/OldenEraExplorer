@@ -11,7 +11,7 @@ import type { ArtifactListItemDto, ArtifactDetailDto } from '@/api/types';
 import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import CurrencyBadge from '@/components/display/CurrencyBadge';
 import SortableColumnHeader, { type SortDirection } from '@/components/display/SortableColumnHeader';
-import DetailContainer from '@/components/display/DetailContainer';
+import DetailContainer, { CARD_WIDTH } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 /**
@@ -329,8 +329,8 @@ function ArtifactDetailPanel({ artifact, selectedArtifactId, error, onNavigateTo
   }
 
   return (
-    <DetailContainer className="flex flex-col gap-5">
-        <div className="bg-card border border-border rounded-2xl p-5">
+    <DetailContainer>
+        <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
           <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4">
             <ProgressiveIcon
               iconPath={artifact.icon}
@@ -423,7 +423,7 @@ function ArtifactDetailPanel({ artifact, selectedArtifactId, error, onNavigateTo
         </div>
 
         {artifact.setBonus && (
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
             <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5">
               <SetItemsGrid
                 setItems={artifact.setBonus.setItems}

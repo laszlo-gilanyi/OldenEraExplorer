@@ -4,6 +4,8 @@ using Localization.Resolution;
 using Localization.Services;
 using API.Contracts;
 using API.Helpers;
+using static API.Helpers.IconPaths;
+using static API.Helpers.StringHelpers;
 using API.Services;
 
 namespace API.Endpoints;
@@ -276,6 +278,7 @@ public static class BuildingsEndpoints
                     {
                         var reqKey = $"{building.Faction}_{r.Sid}";
                         var reqBuildingName = r.Sid;
+                        string? reqIconPath = null;
 
                         if (buildingsIndex.Buildings.TryGetValue(reqKey, out var reqBuilding))
                         {
@@ -289,11 +292,12 @@ public static class BuildingsEndpoints
                                     reqBuildingName = resolvedName;
                                 }
                             }
+                            reqIconPath = GetIconPath(reqBuilding, r.Level);
                         }
 
                         var reqBuildingId = $"{building.Faction}_{r.Sid}_L{r.Level}";
 
-                        return new BuildingRequirementDto(reqBuildingName, reqBuildingId);
+                        return new BuildingRequirementDto(reqBuildingName, reqBuildingId, reqIconPath);
                     })
                     .ToList();
             }
@@ -307,7 +311,7 @@ public static class BuildingsEndpoints
                 .Select(unitSid =>
                 {
                     var unitName = lang.ResolveText($"{unitSid}_name") ?? unitSid;
-                    return new RecruitableUnitDto(unitSid, unitName);
+                    return new RecruitableUnitDto(unitSid, unitName, UnitHexPortrait(unitSid));
                 })
                 .ToList();
         }
@@ -346,7 +350,7 @@ public static class BuildingsEndpoints
             CostLabel: lang.ResolveText("tooltipBuildingRequireResources"),
             Effects: effects,
             Requirements: requirements,
-            RequirementsLabel: lang.ResolveText("tooltipBuildingRequire"),
+            RequirementsLabel: TrimTrailingColon(lang.ResolveText("tooltipBuildingRequire")),
             RecruitableUnits: recruitableUnits,
             RecruitableUnitsLabel: lang.ResolveText("hire_city_lable"),
             UpgradeOptions: upgradeOptions,

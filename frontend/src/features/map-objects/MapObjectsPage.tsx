@@ -11,9 +11,9 @@ import SearchBox from '@/features/search/SearchBox';
 import ErrorBoundary from '@/components/feedback/ErrorBoundary';
 import SortableColumnHeader, { type SortDirection } from '@/components/display/SortableColumnHeader';
 import ProgressiveIcon from '@/components/display/ProgressiveIcon';
-import DetailContainer from '@/components/display/DetailContainer';
 import CurrencyBadge from '@/components/display/CurrencyBadge';
 import UnitHexCard from '@/components/display/UnitHexCard';
+import DetailContainer, { FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 const DROPDOWN_CONFIG = {
@@ -357,7 +357,7 @@ function MapObjectDetailPanel({ mapObject, selectedMapObjectId, error }: MapObje
 
   return (
     <DetailContainer>
-        <div className="bg-card border border-border rounded-lg p-4 grid grid-cols-1 md:grid-cols-[112px_1fr] gap-4">
+        <div className={cn(FULL_WIDTH_CARD, "bg-card border border-border rounded-lg p-4 grid grid-cols-1 md:grid-cols-[112px_1fr] gap-4")}>
         <div>
           <ProgressiveIcon
             iconPath={mapObject.icon}
@@ -389,7 +389,9 @@ function MapObjectDetailPanel({ mapObject, selectedMapObjectId, error }: MapObje
       </div>
 
       {mapObject.creatureBankInfo && (
-        <RewardDetails bankInfo={mapObject.creatureBankInfo} />
+        <div className={FULL_WIDTH_CARD}>
+          <RewardDetails bankInfo={mapObject.creatureBankInfo} />
+        </div>
       )}
     </DetailContainer>
   );
@@ -432,7 +434,7 @@ function RewardDetails({ bankInfo }: RewardDetailsProps) {
   const difficultyPower = hasDifficultyLevels ? bankInfo.difficultyLevels![selectedDifficultyIndex].power : undefined;
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="space-y-4">
       <div className="bg-card border border-border rounded-lg overflow-visible p-4">
         {actuallyHasGuards && hasDifficultyLevels && (
           <div className="flex items-center justify-end mb-3">

@@ -12,7 +12,8 @@ import FactionBadge from '@/components/display/FactionBadge';
 import ClassBadge from '@/components/display/ClassBadge';
 import RichText from '@/components/display/RichText';
 import SortableColumnHeader, { type SortDirection } from '@/components/display/SortableColumnHeader';
-import DetailContainer from '@/components/display/DetailContainer';
+import EntityChip from '@/components/display/EntityChip';
+import DetailContainer, { CARD_WIDTH, FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 /**
@@ -128,17 +129,12 @@ function SubclassList({
 
 function RequiredSkillCard({ skill, onNavigate }: { skill: RequiredSkillDto; onNavigate: (skillId: string) => void }) {
   return (
-    <button
+    <EntityChip
+      iconPath={skill.icon}
+      name={skill.skillName}
       onClick={() => onNavigate(skill.skillId)}
-      className="flex items-center gap-3 p-3 bg-card rounded-md border border-border cursor-pointer text-left w-full transition-colors hover:border-muted-foreground hover:bg-accent"
-    >
-      <ProgressiveIcon iconPath={skill.icon} alt={skill.skillName} size={48} />
-      <div className="flex-1">
-        <div className="font-medium text-foreground">
-          {skill.skillName}
-        </div>
-      </div>
-    </button>
+      className="w-[11.5rem]"
+    />
   );
 }
 
@@ -177,8 +173,8 @@ function SubclassDetailPanel({
   }
 
   return (
-    <DetailContainer className="flex flex-col gap-7">
-        <div className="bg-card border border-border rounded-2xl p-5">
+    <DetailContainer>
+        <div className={cn(FULL_WIDTH_CARD, "bg-card border border-border rounded-2xl p-5")}>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <ProgressiveIcon iconPath={subclass.icon} alt={subclass.name} size={80} className="shrink-0" />
             <div className="flex-1">
@@ -213,11 +209,11 @@ function SubclassDetailPanel({
         </div>
 
         {subclass.requiredSkills.length > 0 && (
-          <div>
-            <h3 className="m-0 mb-4 text-lg text-foreground">
-              {subclass.statLabels?.requiredSkills || 'Required Skills'} ({subclass.requiredSkills.length})
+          <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
+            <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
+              {subclass.statLabels?.requiredSkills || 'Required Skills'}
             </h3>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3">
+            <div className="flex flex-wrap justify-center gap-3 max-w-[calc(11.5rem*3+1.5rem)] mx-auto">
               {subclass.requiredSkills.map((skill) => (
                 <RequiredSkillCard
                   key={skill.skillId}

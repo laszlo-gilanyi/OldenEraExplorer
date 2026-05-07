@@ -10,7 +10,7 @@ import SortableColumnHeader from '@/components/display/SortableColumnHeader';
 import UsedBySection from '@/components/display/UsedBySection';
 import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import RichText from '@/components/display/RichText';
-import DetailContainer from '@/components/display/DetailContainer';
+import DetailContainer, { FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 import type { SkillListItemDto, SkillDetailDto, SkillLevelDto, SubSkillDto, SpellLinkDto, BattleAbilityLinkDto } from '@/api/types';
 
@@ -174,16 +174,18 @@ function SkillLevelSection({
   level,
   levelNumber,
   skillTypeBgClass,
+  className,
 }: {
   level: SkillLevelDto;
   levelNumber: number;
   skillTypeBgClass: string;
+  className?: string;
 }) {
   const levelNames: Record<number, string> = { 1: 'Basic', 2: 'Advanced', 3: 'Expert' };
   const defaultLevelName = levelNames[levelNumber] || `Level ${levelNumber}`;
 
   return (
-    <div className="py-5 px-6 bg-card rounded-xl border border-border">
+    <div className={cn("py-5 px-6 bg-card rounded-xl border border-border", className)}>
       <div className={cn(
         "flex flex-col md:flex-row gap-4",
         (level.description || level.subSkillChoices.length > 0) && "mb-4"
@@ -267,9 +269,14 @@ function SkillDetailPanel({
   const skillTypeBgClass = getSkillTypeBgClass(skill.skillType);
 
   return (
-    <DetailContainer className="flex flex-col gap-7">
+    <DetailContainer>
         {skill.level1 && (
-          <SkillLevelSection level={skill.level1} levelNumber={1} skillTypeBgClass={skillTypeBgClass} />
+          <SkillLevelSection
+            level={skill.level1}
+            levelNumber={1}
+            skillTypeBgClass={skillTypeBgClass}
+            className={FULL_WIDTH_CARD}
+          />
         )}
         {skill.level2 && (
           <SkillLevelSection level={skill.level2} levelNumber={2} skillTypeBgClass={skillTypeBgClass} />
@@ -282,6 +289,7 @@ function SkillDetailPanel({
           entityType="skill"
           entityId={skill.id}
           title={skill.statLabels?.heroesStartingWithSkill}
+          className={FULL_WIDTH_CARD}
         />
     </DetailContainer>
   );

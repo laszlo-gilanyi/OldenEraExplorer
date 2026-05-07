@@ -2,6 +2,7 @@ using GameData.Indexing;
 using API.Contracts;
 using API.Models;
 using API.Services;
+using static API.Helpers.IconPaths;
 
 namespace API.Endpoints;
 
@@ -67,7 +68,8 @@ public static class ReferencesEndpoints
                 EntityId: r.EntityId,
                 EntityType: EntityTypeToString(r.EntityType),
                 DisplayName: r.DisplayName,
-                PropertyPath: r.PropertyPath
+                PropertyPath: r.PropertyPath,
+                IconPath: GetIconPathForReference(r.EntityType, r.EntityId, dataService.Data!)
             ))
             .ToList();
 
@@ -127,6 +129,21 @@ public static class ReferencesEndpoints
             "unit", "hero", "skill", "ability", "spell",
             "artifact", "building", "subclass", "mapobject", "text"
         };
+    }
+
+    private static string? GetIconPathForReference(EntityType entityType, string id, GameDataLoadResult data)
+    {
+        switch (entityType)
+        {
+            case EntityType.Hero:
+                if (data.HeroesIndex.Heroes.TryGetValue(id, out var hero) && !string.IsNullOrEmpty(hero.Icon))
+                    return HeroLargePortrait(hero.Icon);
+                return null;
+            case EntityType.Unit:
+                return UnitHexPortrait(id);
+            default:
+                return null;
+        }
     }
 
     private static bool EntityExists(EntityType entityType, string id, IGameDataService dataService)

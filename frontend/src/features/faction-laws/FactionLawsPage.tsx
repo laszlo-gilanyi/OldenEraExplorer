@@ -12,7 +12,7 @@ import type { FactionLawListItemDto, FactionLawDetailDto } from '@/api/types';
 import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import FactionBadge from '@/components/display/FactionBadge';
 import CurrencyBadge from '@/components/display/CurrencyBadge';
-import DetailContainer from '@/components/display/DetailContainer';
+import DetailContainer, { CARD_WIDTH, FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 function FactionLawList({
@@ -119,8 +119,8 @@ function FactionLawDetailPanel({
   }
 
   return (
-    <DetailContainer className="flex flex-col gap-7">
-        <div className="bg-card border border-border rounded-2xl p-5">
+    <DetailContainer>
+        <div className={cn(FULL_WIDTH_CARD, "bg-card border border-border rounded-2xl p-5")}>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <ProgressiveIcon iconPath={factionLaw.icon} alt={factionLaw.localizedName || factionLaw.name} size={80} className="shrink-0" />
             <div>
@@ -141,39 +141,37 @@ function FactionLawDetailPanel({
         </div>
 
         {factionLaw.levels && factionLaw.levels.length > 0 && (
-          <div className="flex flex-col gap-5">
-            {factionLaw.levels.map((level) => (
-              <div
-                key={level.level}
-                className="p-5 bg-card rounded-xl border border-border"
-              >
-                <div className="font-semibold text-semantic-gold text-lg mb-2">
-                  {label('detail_level', level.level)}
-                </div>
-
-                {level.description && (
-                  <RichText
-                    text={level.description}
-                    className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap mb-3 block"
-                  />
-                )}
-
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-muted-foreground">
-                    {factionLaw.statLabels?.cost || 'Cost'}:
-                  </span>
-                  <CurrencyBadge
-                    amount={level.cost < 0 ? '?' : level.cost}
-                    iconPath="Icon_LawsPoint"
-                    displayName="Laws Point"
-                    iconSize={32}
-                    gap="gap-[5px]"
-                    amountClassName="text-muted-foreground"
-                  />
-                </div>
+          factionLaw.levels.map((level) => (
+            <div
+              key={level.level}
+              className={cn(CARD_WIDTH, "p-5 bg-card rounded-xl border border-border flex flex-col")}
+            >
+              <div className="font-semibold text-semantic-gold text-lg mb-2">
+                {label('detail_level', level.level)}
               </div>
-            ))}
-          </div>
+
+              {level.description && (
+                <RichText
+                  text={level.description}
+                  className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap mb-3 block"
+                />
+              )}
+
+              <div className="mt-auto pt-3 flex items-center gap-1.5">
+                <span className="font-semibold text-foreground">
+                  {factionLaw.statLabels?.cost || 'Cost'}:
+                </span>
+                <CurrencyBadge
+                  amount={level.cost < 0 ? '?' : level.cost}
+                  iconPath="Icon_LawsPoint"
+                  displayName="Laws Point"
+                  iconSize={32}
+                  gap="gap-[5px]"
+                  amountClassName="text-muted-foreground"
+                />
+              </div>
+            </div>
+          ))
         )}
     </DetailContainer>
   );

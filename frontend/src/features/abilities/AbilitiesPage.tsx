@@ -10,7 +10,8 @@ import RichText from '@/components/display/RichText';
 import SortableColumnHeader from '@/components/display/SortableColumnHeader';
 import type { AbilityListItemDto, AbilityDetailDto } from '@/api/types';
 import ProgressiveIcon from '@/components/display/ProgressiveIcon';
-import DetailContainer from '@/components/display/DetailContainer';
+import EntityChip from '@/components/display/EntityChip';
+import DetailContainer, { CARD_WIDTH, FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 interface AbilityListProps {
@@ -95,6 +96,7 @@ interface AbilityDetailPanelProps {
 
 function AbilityDetailPanel({ ability, selectedAbilityId, error }: AbilityDetailPanelProps) {
   const { label } = useLabels();
+  const navigate = useNavigate();
 
   if (error) {
     return (
@@ -148,8 +150,8 @@ function AbilityDetailPanel({ ability, selectedAbilityId, error }: AbilityDetail
   );
 
   return (
-    <DetailContainer className="flex flex-col gap-5">
-        <div className="bg-card border border-border rounded-2xl p-5">
+    <DetailContainer>
+        <div className={cn(FULL_WIDTH_CARD, "bg-card border border-border rounded-2xl p-5")}>
           {isActive ? (
             <div className="grid grid-cols-1 md:grid-cols-[100px_140px_1fr] gap-4">
               <ProgressiveIcon iconPath={ability.icon} alt={ability.name} size={100} className="shrink-0" />
@@ -200,21 +202,20 @@ function AbilityDetailPanel({ ability, selectedAbilityId, error }: AbilityDetail
           )}
         </div>
         {ability.sourceUnitIds && ability.sourceUnitIds.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
             <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
               {ability.statLabels?.creaturesWithAbility || 'Creatures with this Ability'}
             </h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,11.5rem))] gap-3">
               {ability.sourceUnitIds.map((unitId, index) => {
                 const unitName = ability.sourceUnitNames?.[index] || unitId;
                 return (
-                  <a
+                  <EntityChip
                     key={unitId}
-                    href={`/units/${unitId}`}
-                    className="px-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground no-underline cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    {unitName}
-                  </a>
+                    iconPath={`icons/units/hex_portraits/${unitId}`}
+                    name={unitName}
+                    onClick={() => navigate(`/units/${unitId}`)}
+                  />
                 );
               })}
             </div>

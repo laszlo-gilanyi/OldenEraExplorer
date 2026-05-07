@@ -12,7 +12,8 @@ import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import FactionBadge from '@/components/display/FactionBadge';
 import CurrencyBadge from '@/components/display/CurrencyBadge';
 import SortableColumnHeader from '@/components/display/SortableColumnHeader';
-import DetailContainer from '@/components/display/DetailContainer';
+import EntityChip from '@/components/display/EntityChip';
+import DetailContainer, { CARD_WIDTH, FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 
@@ -122,8 +123,8 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
   }
 
   return (
-    <DetailContainer className="flex flex-col gap-7">
-        <div className="bg-card border border-border rounded-2xl p-5">
+    <DetailContainer>
+        <div className={cn(FULL_WIDTH_CARD, "bg-card border border-border rounded-2xl p-5")}>
           <div className="flex flex-col md:flex-row items-start gap-4">
             <div className="overflow-hidden rounded shrink-0" style={{ width: 100, height: 100 }}>
               <ProgressiveIcon
@@ -158,7 +159,7 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
 
               {building.costs && building.costs.length > 0 && (
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-muted-foreground">
+                  <span className="font-semibold text-foreground">
                     {building.costLabel}
                   </span>
                   {building.costs.map((cost, index) => (
@@ -178,65 +179,62 @@ function BuildingDetailPanel({ building, selectedBuildingId, error }: BuildingDe
         </div>
 
         {building.effects && building.effects.length > 0 && (
-          <div className="space-y-3">
-            {building.effects.map((effect, idx) => (
-              <div
-                key={idx}
-                className="bg-card border border-border rounded-2xl p-5"
-              >
-                <div className="flex flex-col md:flex-row items-start gap-4">
-                  <ProgressiveIcon
-                    iconPath={effect.iconPath}
-                    size={80}
-                    className="shrink-0"
-                  />
-                  <RichText
-                    text={effect.description}
-                    className="text-muted-foreground leading-normal block"
-                  />
-                </div>
+          building.effects.map((effect, idx) => (
+            <div
+              key={`effect-${idx}`}
+              className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}
+            >
+              <div className="flex flex-col md:flex-row items-start gap-4">
+                <ProgressiveIcon
+                  iconPath={effect.iconPath}
+                  size={80}
+                  className="shrink-0"
+                />
+                <RichText
+                  text={effect.description}
+                  className="text-muted-foreground leading-normal block"
+                />
               </div>
-            ))}
-          </div>
+            </div>
+          ))
         )}
 
         {building.upgradeOptions && building.upgradeOptions.length > 0 && (
           <BuildingUpgradeOptions options={building.upgradeOptions} label={building.upgradesLabel} />
         )}
 
-        {building.requirements && building.requirements.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl p-5">
+        {building.recruitableUnits && building.recruitableUnits.length > 0 && (
+          <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
             <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
-              {building.requirementsLabel}
+              {building.recruitableUnitsLabel}
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {building.requirements.map((req) => (
-                <button
-                  key={req.buildingId}
-                  onClick={() => navigate(`/buildings/${req.buildingId}`)}
-                  className="px-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  {req.buildingName}
-                </button>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,11.5rem))] gap-3">
+              {building.recruitableUnits.map((unit) => (
+                <EntityChip
+                  key={unit.unitId}
+                  iconPath={unit.iconPath}
+                  name={unit.unitName}
+                  onClick={() => navigate(`/units/${unit.unitId}`)}
+                />
               ))}
             </div>
           </div>
         )}
 
-        {building.recruitableUnits && building.recruitableUnits.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl p-5">
+        {building.requirements && building.requirements.length > 0 && (
+          <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
             <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
-              {building.recruitableUnitsLabel}
+              {building.requirementsLabel}
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {building.recruitableUnits.map((unit) => (
-                <button
-                  key={unit.unitId}
-                  onClick={() => navigate(`/units/${unit.unitId}`)}
-                  className="px-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  {unit.unitName}
-                </button>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,11.5rem))] gap-3">
+              {building.requirements.map((req) => (
+                <EntityChip
+                  key={req.buildingId}
+                  iconPath={req.iconPath}
+                  name={req.buildingName}
+                  iconScale={1.35}
+                  onClick={() => navigate(`/buildings/${req.buildingId}`)}
+                />
               ))}
             </div>
           </div>
@@ -252,7 +250,7 @@ interface BuildingUpgradeOptionsProps {
 
 function BuildingUpgradeOptions({ options, label }: BuildingUpgradeOptionsProps) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
       <h3 className="m-0 mb-3 text-base font-semibold text-foreground">
         {label}
       </h3>

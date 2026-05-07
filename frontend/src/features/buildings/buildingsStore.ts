@@ -25,7 +25,7 @@ export const useBuildingsStore = create<BuildingsState>()(
       searchQuery: '',
       setSearchQuery: (query) => set({ searchQuery: query }),
 
-      sortField: 'name',
+      sortField: 'faction',
       sortDirection: 'asc',
       setSort: (field, direction) => set({ sortField: field, sortDirection: direction }),
     }),

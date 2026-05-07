@@ -2,9 +2,11 @@ import { cn } from '@/lib/utils';
 
 interface DetailContainerProps {
   children: React.ReactNode;
-  /** Additional class names for the inner container */
   className?: string;
 }
+
+export const CARD_WIDTH = 'w-[40rem] max-w-full';
+export const FULL_WIDTH_CARD = 'col-span-full justify-self-center w-full max-w-[calc(40rem*2+1.25rem)]';
 
 export default function DetailContainer({ children, className }: DetailContainerProps) {
   return (
@@ -12,8 +14,7 @@ export default function DetailContainer({ children, className }: DetailContainer
       <div
         data-detail-container
         className={cn(
-          "w-full max-w-300 mx-auto px-5 py-5",
-          "lg:px-0",
+          'px-5 py-5 grid grid-cols-[repeat(auto-fill,minmax(0,40rem))] gap-5 justify-center content-start',
           className
         )}
       >

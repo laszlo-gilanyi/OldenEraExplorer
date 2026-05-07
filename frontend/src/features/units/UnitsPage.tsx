@@ -12,7 +12,8 @@ import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import FactionBadge from '@/components/display/FactionBadge';
 import CurrencyBadge from '@/components/display/CurrencyBadge';
 import RichText from '@/components/display/RichText';
-import DetailContainer from '@/components/display/DetailContainer';
+import EntityChip from '@/components/display/EntityChip';
+import DetailContainer, { CARD_WIDTH, FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 /**
@@ -84,38 +85,35 @@ function PrimaryStatsGrid({ stats }: { stats: StatItem[] }) {
 
   return (
     <div
-      className="bg-card border border-border"
+      className="flex-1 bg-card"
       style={{
         display: 'grid',
-        gridTemplateColumns: '48px 9px min-content 9px auto',
-        width: 'fit-content'
+        gridTemplateColumns: '48px 9px 1fr 9px auto',
       }}
     >
       {filteredStats.map((stat, idx) => {
-        const isLast = idx === filteredStats.length - 1;
         const isStaticIcon = stat.iconPath.startsWith('/');
-        const borderClass = isLast ? '' : 'border-b border-border';
 
         return (
           <React.Fragment key={idx}>
-            <div className={borderClass} style={{ padding: '8px', display: 'flex', alignItems: 'center' }}>
+            <div style={{ padding: '8px', display: 'flex', alignItems: 'center' }}>
               {isStaticIcon
                 ? <img src={stat.iconPath} alt={stat.label} style={{ width: ICON_STAT_SIZE, height: ICON_STAT_SIZE, objectFit: 'contain' }} />
                 : <ProgressiveIcon iconPath={stat.iconPath} alt={stat.label} size={ICON_STAT_SIZE} />
               }
             </div>
 
-            <div className={`bg-border ${borderClass}`} style={{ width: '1px', margin: '8px 8px 8px 0' }} />
+            <div style={{ width: '1px', margin: '8px 8px 8px 0' }} />
 
-            <div className={borderClass} style={{ padding: '8px 8px 8px 0', display: 'flex', alignItems: 'center' }}>
+            <div style={{ padding: '8px 8px 8px 0', display: 'flex', alignItems: 'center' }}>
               <span className="text-muted-foreground font-semibold" style={{ textAlign: 'left', display: 'block', overflowWrap: 'break-word', wordBreak: 'keep-all', lineHeight: '1.3' }}>
                 {stat.label}
               </span>
             </div>
 
-            <div className={`bg-border ${borderClass}`} style={{ width: '1px', margin: '8px 8px 8px 0' }} />
+            <div style={{ width: '1px', margin: '8px 8px 8px 0' }} />
 
-            <div className={borderClass} style={{ padding: '8px', textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '8px', textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
               <span className="font-semibold text-muted-foreground" style={{ whiteSpace: 'nowrap' }}>
                 {stat.value}
               </span>
@@ -137,39 +135,38 @@ interface SecondaryStatItem {
 function SecondaryStatsGrid({ stats }: { stats: SecondaryStatItem[] }) {
   return (
     <div
-      className="bg-card border border-border"
+      className="flex-1 bg-card"
       style={{
         display: 'grid',
-        gridTemplateColumns: '48px 9px min-content 9px auto',
-        width: 'fit-content'
+        gridTemplateColumns: '48px 9px 1fr 9px auto',
+        gridTemplateRows: `repeat(${stats.length}, 1fr)`,
       }}
     >
       {stats.map((stat, idx) => {
-        const isLast = idx === stats.length - 1;
         const isStaticIcon = stat.iconPath.startsWith('/');
         const hasCostEntries = stat.costEntries && stat.costEntries.length > 0;
-        const borderClass = isLast ? '' : 'border-b border-border';
+        const verticalAlign = hasCostEntries ? 'flex-start' : 'center';
 
         return (
           <React.Fragment key={idx}>
-            <div className={borderClass} style={{ padding: '8px', display: 'flex', alignItems: 'center' }}>
+            <div style={{ padding: '8px', display: 'flex', alignItems: verticalAlign }}>
               {isStaticIcon
                 ? <img src={stat.iconPath} alt={stat.label} style={{ width: ICON_STAT_SIZE, height: ICON_STAT_SIZE, objectFit: 'contain' }} />
                 : <ProgressiveIcon iconPath={stat.iconPath} alt={stat.label} size={ICON_STAT_SIZE} />
               }
             </div>
 
-            <div className={`bg-border ${borderClass}`} style={{ width: '1px', margin: '8px 8px 8px 0' }} />
+            <div style={{ width: '1px', margin: '8px 8px 8px 0' }} />
 
-            <div className={borderClass} style={{ padding: '8px 8px 8px 0', display: 'flex', alignItems: 'center' }}>
+            <div style={{ padding: '8px 8px 8px 0', display: 'flex', alignItems: verticalAlign }}>
               <span className="text-muted-foreground font-semibold" style={{ textAlign: 'left', display: 'block', overflowWrap: 'break-word', wordBreak: 'keep-all', lineHeight: '1.3' }}>
                 {stat.label}
               </span>
             </div>
 
-            <div className={`bg-border ${borderClass}`} style={{ width: '1px', margin: '8px 8px 8px 0' }} />
+            <div style={{ width: '1px', margin: '8px 8px 8px 0' }} />
 
-            <div className={borderClass} style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '8px', display: 'flex', alignItems: verticalAlign, justifyContent: 'flex-end' }}>
               {hasCostEntries ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
                   {stat.costEntries!.map((entry, entryIdx) => (
@@ -246,7 +243,7 @@ function AbilityCard({ ability, onAbilityClick }: { ability: AbilityDetailDto; o
   );
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 mb-3">
+    <div className={cn(CARD_WIDTH, "bg-card border border-border rounded-2xl p-5")}>
       {isActive ? (
         <div className="grid grid-cols-1 md:grid-cols-[80px_140px_1fr] gap-4">
           {ability.icon && (
@@ -309,21 +306,20 @@ function AbilityCard({ ability, onAbilityClick }: { ability: AbilityDetailDto; o
   );
 }
 
-function HeroesSection({ heroes, headerLabel, navigate }: { heroes: UsedByHeroDto[] | null; headerLabel: string; navigate: (path: string) => void }) {
+function HeroesSection({ heroes, headerLabel, navigate, className }: { heroes: UsedByHeroDto[] | null; headerLabel: string; navigate: (path: string) => void; className?: string }) {
   if (!heroes || heroes.length === 0) return null;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className={cn("bg-card border border-border rounded-2xl p-5", className)}>
       <h3 className="m-0 mb-3 text-base font-semibold text-foreground">{headerLabel}</h3>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,11.5rem))] gap-3">
         {heroes.map((hero) => (
-          <button
+          <EntityChip
             key={hero.heroId}
+            iconPath={hero.iconPath}
+            name={hero.heroName}
             onClick={() => navigate(`/heroes/${hero.heroId}`)}
-            className="px-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            {hero.heroName}
-          </button>
+          />
         ))}
       </div>
     </div>
@@ -368,8 +364,12 @@ function UnitDetailPanel({ unit, selectedUnitId, error }: UnitDetailPanelProps) 
   }
 
   return (
-    <DetailContainer className="flex flex-col gap-7">
-        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row gap-6 items-start md:items-center">
+    <DetailContainer>
+        <div className={cn(
+          FULL_WIDTH_CARD,
+          "min-[1760px]:col-span-1 min-[1760px]:col-start-1 min-[1760px]:row-start-1 min-[1760px]:max-w-[40rem]",
+          "bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row gap-6 items-start md:items-center"
+        )}>
           {unit.iconPath && (
             <ProgressiveIcon
               iconPath={unit.iconPath}
@@ -407,108 +407,122 @@ function UnitDetailPanel({ unit, selectedUnitId, error }: UnitDetailPanelProps) 
           </div>
         </div>
 
-        <div>
-          <h3 className="m-0 mb-3 text-lg text-foreground font-semibold">
-            {unit.statLabels?.creatureStatsHeader || 'Stats'}
-          </h3>
-              <div className="flex flex-wrap gap-2 items-start">
-                <div className="self-center">
-                  <PrimaryStatsGrid stats={[
-                    { label: unit.statLabels?.health || 'Health', value: unit.health, iconPath: STAT_ICONS.Health },
-                    { label: unit.statLabels?.attack || 'Attack', value: unit.attack, iconPath: STAT_ICONS.Attack },
-                    { label: unit.statLabels?.defence || 'Defence', value: unit.defense, iconPath: STAT_ICONS.Defence },
-                    { label: unit.statLabels?.damage || 'Damage', value: unit.minDamage && unit.maxDamage ? `${unit.minDamage} - ${unit.maxDamage}` : null, iconPath: STAT_ICONS.Damage },
-                    { label: unit.statLabels?.initiative || 'Initiative', value: unit.initiative, iconPath: STAT_ICONS.Initiative },
-                    { label: unit.statLabels?.speed || 'Speed', value: unit.speed, iconPath: STAT_ICONS.Speed },
-                    { label: unit.statLabels?.luck || 'Luck', value: unit.luck, iconPath: STAT_ICONS.Luck },
-                    { label: unit.statLabels?.morale || 'Morale', value: unit.morale, iconPath: STAT_ICONS.Morale },
-                  ]} />
-                </div>
-
-                <div className="self-start">
-                  <SecondaryStatsGrid stats={[
-                    { label: unit.statLabels?.squadValue || 'Squad Value', value: unit.squadValue ?? '-', iconPath: STAT_ICONS.SquadValue },
-                    { label: unit.statLabels?.expBonus || 'Exp Bonus', value: unit.expBonus ?? '-', iconPath: STAT_ICONS.ExpBonus },
-                    { label: unit.statLabels?.weeklyGrowth || 'Weekly Growth', value: unit.growth ?? '-', iconPath: STAT_ICONS.Growth },
-                    { label: unit.statLabels?.cost || 'Cost', iconPath: STAT_ICONS.Cost, costEntries: unit.costEntries },
-                    ...(unit.upgradeCostEntries && unit.upgradeCostEntries.length > 0
-                      ? [{ label: 'Upgrade Cost', iconPath: STAT_ICONS.Cost, costEntries: unit.upgradeCostEntries }]
-                      : []),
-                  ]} />
-                </div>
-              </div>
-        </div>
+          <div className={cn(CARD_WIDTH, "min-[1760px]:col-start-2 min-[1760px]:row-start-1 min-[1760px]:row-span-2 bg-card border border-border rounded-2xl p-5 flex flex-col gap-3")}>
+            <h3 className="m-0 text-lg text-foreground font-semibold">
+              {unit.statLabels?.creatureStatsHeader || 'Stats'}
+            </h3>
+            <div className="flex-1 flex flex-wrap gap-6 items-stretch justify-start">
+              <PrimaryStatsGrid stats={[
+                { label: unit.statLabels?.health || 'Health', value: unit.health, iconPath: STAT_ICONS.Health },
+                { label: unit.statLabels?.attack || 'Attack', value: unit.attack, iconPath: STAT_ICONS.Attack },
+                { label: unit.statLabels?.defence || 'Defence', value: unit.defense, iconPath: STAT_ICONS.Defence },
+                { label: unit.statLabels?.damage || 'Damage', value: unit.minDamage && unit.maxDamage ? `${unit.minDamage} - ${unit.maxDamage}` : null, iconPath: STAT_ICONS.Damage },
+                { label: unit.statLabels?.initiative || 'Initiative', value: unit.initiative, iconPath: STAT_ICONS.Initiative },
+                { label: unit.statLabels?.speed || 'Speed', value: unit.speed, iconPath: STAT_ICONS.Speed },
+                { label: unit.statLabels?.luck || 'Luck', value: unit.luck, iconPath: STAT_ICONS.Luck },
+                { label: unit.statLabels?.morale || 'Morale', value: unit.morale, iconPath: STAT_ICONS.Morale },
+              ]} />
+              <SecondaryStatsGrid stats={[
+                { label: unit.statLabels?.squadValue || 'Squad Value', value: unit.squadValue ?? '-', iconPath: STAT_ICONS.SquadValue },
+                { label: unit.statLabels?.expBonus || 'Exp Bonus', value: unit.expBonus ?? '-', iconPath: STAT_ICONS.ExpBonus },
+                { label: unit.statLabels?.weeklyGrowth || 'Weekly Growth', value: unit.growth ?? '-', iconPath: STAT_ICONS.Growth },
+                { label: unit.statLabels?.cost || 'Cost', iconPath: STAT_ICONS.Cost, costEntries: unit.costEntries },
+                ...(unit.upgradeCostEntries && unit.upgradeCostEntries.length > 0
+                  ? [{ label: 'Upgrade Cost', iconPath: STAT_ICONS.Cost, costEntries: unit.upgradeCostEntries }]
+                  : []),
+              ]} />
+            </div>
+          </div>
 
           {unit.creatureType && (
-            <div>
-              <h3 className="m-0 mb-3 text-lg text-foreground font-semibold">
+            <div className={cn(CARD_WIDTH, "min-[1760px]:col-start-1 min-[1760px]:row-start-2 flex flex-col gap-3")}>
+              <h3 className="m-0 text-lg text-foreground font-semibold">
                 {unit.statLabels?.creatureTypeHeader || 'Creature Type'}
               </h3>
-              <div className="bg-card border border-border rounded-2xl p-5">
-                <div className="grid grid-cols-1 md:grid-cols-[80px_1fr] gap-4">
-                  {unit.creatureType.icon && (
-                    <ProgressiveIcon
-                      iconPath={unit.creatureType.icon}
-                      alt={unit.creatureType.name}
-                      size={80}
-                      className="shrink-0"
+              <div className="flex-1 bg-card border border-border rounded-2xl p-5 grid grid-cols-1 md:grid-cols-[80px_1fr] gap-4">
+                {unit.creatureType.icon && (
+                  <ProgressiveIcon
+                    iconPath={unit.creatureType.icon}
+                    alt={unit.creatureType.name}
+                    size={80}
+                    className="shrink-0"
+                  />
+                )}
+
+                <div className="flex flex-col justify-center">
+                  {(() => {
+                    const navigationId = unit.creatureType!.id || unit.creatureType!.nameSid;
+                    return navigationId ? (
+                      <button
+                        onClick={() => handleAbilityClick(navigationId)}
+                        className="text-lg font-semibold text-semantic-gold bg-transparent border-0 p-0 cursor-pointer hover:opacity-80 transition-opacity text-left"
+                      >
+                        {unit.creatureType!.name}
+                      </button>
+                    ) : (
+                      <div className="text-lg font-semibold text-semantic-gold">
+                        {unit.creatureType!.name}
+                      </div>
+                    );
+                  })()}
+                  {unit.creatureType.description && (
+                    <RichText
+                      text={unit.creatureType.description}
+                      className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap m-0 mt-2 block"
                     />
                   )}
-
-                  <div className="flex flex-col justify-center">
-                    {(() => {
-                      const navigationId = unit.creatureType!.id || unit.creatureType!.nameSid;
-                      return navigationId ? (
-                        <button
-                          onClick={() => handleAbilityClick(navigationId)}
-                          className="text-lg font-semibold text-semantic-gold bg-transparent border-0 p-0 cursor-pointer hover:opacity-80 transition-opacity text-left"
-                        >
-                          {unit.creatureType!.name}
-                        </button>
-                      ) : (
-                        <div className="text-lg font-semibold text-semantic-gold">
-                          {unit.creatureType!.name}
-                        </div>
-                      );
-                    })()}
-                    {unit.creatureType.description && (
-                      <RichText
-                        text={unit.creatureType.description}
-                        className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap m-0 mt-2 block"
-                      />
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {unit.passiveAbilities && unit.passiveAbilities.length > 0 && (
-            <div>
-              <h3 className="m-0 mb-3 text-lg text-foreground font-semibold">
-                {unit.statLabels?.passiveAbilitiesHeader || 'Passive Abilities'}
-              </h3>
-              {unit.passiveAbilities.map((ability, index) => (
-                <AbilityCard key={index} ability={ability} onAbilityClick={handleAbilityClick} />
-              ))}
-            </div>
-          )}
-
-          {unit.activeAbilities && unit.activeAbilities.length > 0 && (
-            <div>
-              <h3 className="m-0 mb-3 text-lg text-foreground font-semibold">
-                {unit.statLabels?.activeAbilitiesHeader || 'Active Abilities'}
-              </h3>
-              {unit.activeAbilities.map((ability, index) => (
-                <AbilityCard key={index} ability={ability} onAbilityClick={handleAbilityClick} />
-              ))}
-            </div>
-          )}
+          {(() => {
+            const passives = unit.passiveAbilities ?? [];
+            const actives = unit.activeAbilities ?? [];
+            if (passives.length === 0 && actives.length === 0) return null;
+            // Subgrid + display:contents at ≥1760px keeps paired ability cards row-aligned across the two columns.
+            const rowSpan = Math.max(
+              passives.length > 0 ? passives.length + 1 : 0,
+              actives.length > 0 ? actives.length + 1 : 0
+            );
+            const bothPresent = passives.length > 0 && actives.length > 0;
+            const sectionClass = "contents min-[1760px]:grid min-[1760px]:grid-rows-subgrid min-[1760px]:gap-5";
+            return (
+              <div
+                className={cn(
+                  "col-span-full grid grid-cols-1 gap-5 justify-self-center w-full max-w-[calc(40rem*2+1.25rem)]",
+                  bothPresent && "min-[1760px]:grid-cols-2"
+                )}
+              >
+                {passives.length > 0 && (
+                  <div className={sectionClass} style={{ gridRow: `span ${rowSpan}` }}>
+                    <h3 className="m-0 text-lg text-foreground font-semibold">
+                      {unit.statLabels?.passiveAbilitiesHeader || 'Passive Abilities'}
+                    </h3>
+                    {passives.map((ability, index) => (
+                      <AbilityCard key={`passive-${index}`} ability={ability} onAbilityClick={handleAbilityClick} />
+                    ))}
+                  </div>
+                )}
+                {actives.length > 0 && (
+                  <div className={sectionClass} style={{ gridRow: `span ${rowSpan}` }}>
+                    <h3 className="m-0 text-lg text-foreground font-semibold">
+                      {unit.statLabels?.activeAbilitiesHeader || 'Active Abilities'}
+                    </h3>
+                    {actives.map((ability, index) => (
+                      <AbilityCard key={`active-${index}`} ability={ability} onAbilityClick={handleAbilityClick} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <HeroesSection
             heroes={unit.usedByHeroes}
             headerLabel={unit.statLabels?.heroesWithUnitHeader || 'Heroes starting with this Unit'}
             navigate={navigate}
+            className={FULL_WIDTH_CARD}
           />
     </DetailContainer>
   );

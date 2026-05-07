@@ -4,6 +4,7 @@ export { default as ClassBadge } from './ClassBadge';
 export { default as CurrencyBadge } from './CurrencyBadge';
 export { default as HexagonFrame } from './HexagonFrame';
 export { default as ProgressiveIcon } from './ProgressiveIcon';
+export { default as EntityChip } from './EntityChip';
 export { default as UsedBySection } from './UsedBySection';
-export { default as DetailContainer } from './DetailContainer';
+export { default as DetailContainer, CARD_WIDTH, FULL_WIDTH_CARD } from './DetailContainer';
 export { default as SortableColumnHeader, type SortDirection } from './SortableColumnHeader';

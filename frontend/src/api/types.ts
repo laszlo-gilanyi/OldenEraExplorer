@@ -658,11 +658,13 @@ export interface BuildingEffectDto {
 export interface BuildingRequirementDto {
   buildingName: string;
   buildingId: string;
+  iconPath: string | null;
 }
 
 export interface RecruitableUnitDto {
   unitId: string;
   unitName: string;
+  iconPath: string | null;
 }
 
 // Search types
@@ -749,6 +751,7 @@ export interface EntityReferenceDto {
   entityType: string;
   displayName: string | null;
   propertyPath: string;
+  iconPath: string | null;
 }
 
 export interface EntityReferencesResponse {

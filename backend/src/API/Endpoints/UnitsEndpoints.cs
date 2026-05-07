@@ -256,11 +256,19 @@ public static class UnitsEndpoints
                 }
                 return false;
             })
-            .Select(r => new UsedByHeroDto(
-                HeroId: r.EntityId,
-                HeroName: r.DisplayName ?? r.EntityId,
-                IconPath: HeroLargePortrait(r.EntityId)
-            ))
+            .Select(r =>
+            {
+                string? iconPath = null;
+                if (dataService.Data?.HeroesIndex.Heroes.TryGetValue(r.EntityId, out var hero) == true && !string.IsNullOrEmpty(hero.Icon))
+                {
+                    iconPath = HeroLargePortrait(hero.Icon);
+                }
+                return new UsedByHeroDto(
+                    HeroId: r.EntityId,
+                    HeroName: r.DisplayName ?? r.EntityId,
+                    IconPath: iconPath
+                );
+            })
             .ToList();
 
         var statLabels = new UnitStatLabelsDto(

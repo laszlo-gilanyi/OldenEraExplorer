@@ -372,7 +372,8 @@ public record BuildingEffectDto(
 
 public record BuildingRequirementDto(
     string BuildingName,
-    string BuildingId
+    string BuildingId,
+    string? IconPath
 );
 
 public record BuildingUpgradeOptionDto(
@@ -383,5 +384,6 @@ public record BuildingUpgradeOptionDto(
 
 public record RecruitableUnitDto(
     string UnitId,
-    string UnitName
+    string UnitName,
+    string? IconPath
 );

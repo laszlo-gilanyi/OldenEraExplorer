@@ -11,7 +11,7 @@ import SortableColumnHeader, { type SortDirection } from '@/components/display/S
 import type { SpellListItemDto, SpellDetailDto, SkillReferenceDto } from '@/api/types';
 import ProgressiveIcon from '@/components/display/ProgressiveIcon';
 import RichText from '@/components/display/RichText';
-import DetailContainer from '@/components/display/DetailContainer';
+import DetailContainer, { CARD_WIDTH, FULL_WIDTH_CARD } from '@/components/display/DetailContainer';
 import { cn } from '@/lib/utils';
 
 /**
@@ -197,8 +197,8 @@ function SpellDetailPanel({
   const schoolColorClass = getSchoolColorClass(spell.school);
 
   return (
-    <DetailContainer className="flex flex-col gap-7">
-        <div className="bg-card border border-border rounded-2xl p-5">
+    <DetailContainer>
+        <div className={cn(FULL_WIDTH_CARD, "bg-card border border-border rounded-2xl p-5")}>
           <div className="flex flex-col md:flex-row items-start gap-4">
             <ProgressiveIcon
               iconPath={spell.icon}
@@ -226,12 +226,11 @@ function SpellDetailPanel({
         </div>
 
         {spell.levels && spell.levels.length > 0 && (
-          <div className="flex flex-col gap-4">
-            {spell.levels.map((level) => (
-              <div
-                key={level.level}
-                className="p-4 bg-card rounded-lg border border-border"
-              >
+          spell.levels.map((level) => (
+            <div
+              key={level.level}
+              className={cn(CARD_WIDTH, "p-4 bg-card rounded-lg border border-border flex flex-col")}
+            >
                 {!spell.isBonusSpell && (
                   <div className="font-semibold text-semantic-gold text-base mb-2">
                     {label('detail_level', level.level)}
@@ -259,7 +258,7 @@ function SpellDetailPanel({
                   />
                 )}
 
-                <div className="mt-3 flex items-center gap-4 text-sm">
+                <div className="mt-auto pt-3 flex items-center gap-4 text-sm">
                   {level.starDustCost != null && (
                     <span className="flex items-center gap-1 text-semantic-gold font-semibold">
                       <img
@@ -279,12 +278,15 @@ function SpellDetailPanel({
                     <strong>{label('spell_mana', level.manaCost)}</strong>
                   </span>
                 </div>
-              </div>
-            ))}
-          </div>
+            </div>
+          ))
         )}
 
-        <UsedBySection entityType="spell" entityId={spell.id} />
+        <UsedBySection
+          entityType="spell"
+          entityId={spell.id}
+          className={FULL_WIDTH_CARD}
+        />
     </DetailContainer>
   );
 }

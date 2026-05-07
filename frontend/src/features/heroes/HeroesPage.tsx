@@ -12,9 +12,14 @@ import FactionBadge from '@/components/display/FactionBadge';
 import ClassBadge from '@/components/display/ClassBadge';
 import RichText from '@/components/display/RichText';
 import SortableColumnHeader, { type SortDirection } from '@/components/display/SortableColumnHeader';
-import DetailContainer from '@/components/display/DetailContainer';
 import UnitHexCard from '@/components/display/UnitHexCard';
 import { cn } from '@/lib/utils';
+
+// 1760px is the breakpoint above which the middle row can hold three cards (narrow) vs two (wide).
+const WIDE_CARD = 'w-[40rem] max-w-full';
+const MIDDLE_NARROW_CARD = 'w-[40rem] min-[1760px]:w-[26rem] max-w-full';
+const WIDE_GRID = 'grid grid-cols-1 min-[1760px]:grid-cols-[repeat(auto-fill,minmax(0,40rem))] gap-5 justify-center justify-items-center content-start';
+const NARROW_GRID = 'grid grid-cols-1 min-[1760px]:grid-cols-[repeat(auto-fill,minmax(0,26rem))] gap-5 justify-center justify-items-center content-start';
 
 function isNonStandardHero(id: string): boolean {
   return id.startsWith('campaign_') || id.startsWith('tutorial_') || id.startsWith('cm_');
@@ -177,10 +182,16 @@ function HeroDetailPanel({
     return null;
   }
 
+  const hasSpells = hero.startingSpells && hero.startingSpells.length > 0;
+  const middleGrid = hasSpells ? NARROW_GRID : WIDE_GRID;
+  const middleCard = hasSpells ? MIDDLE_NARROW_CARD : WIDE_CARD;
+
   return (
-    <DetailContainer className="flex flex-col gap-5 py-10 px-8 md:px-5">
-        <div className={cardClassName}>
-          <div className="flex flex-col gap-4">
+    <div className="h-full overflow-auto">
+      <div className="px-5 py-5 flex flex-col gap-5">
+        <div className={WIDE_GRID}>
+        <div className={cn(WIDE_CARD, cardClassName)}>
+          <div className="flex flex-col gap-4 h-full">
             <h1 className="m-0 p-0 text-center text-2xl font-semibold uppercase tracking-wide text-semantic-gold">
               {hero.name}
             </h1>
@@ -213,7 +224,12 @@ function HeroDetailPanel({
                 textClassName="text-muted-foreground"
               />
             </div>
-            <div className="grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_auto] max-w-full md:max-w-100 mx-auto mt-4 gap-0">
+          </div>
+        </div>
+
+        <div className={cn(WIDE_CARD, cardClassName)}>
+          <div className="flex flex-col gap-4 h-full justify-center">
+            <div className="grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_auto] max-w-full md:max-w-100 mx-auto gap-0">
               {hero.specializationIcon && (
                 <div className="row-span-2 col-start-2 flex items-center justify-center mx-2 md:mx-4">
                   <ProgressiveIcon
@@ -279,7 +295,7 @@ function HeroDetailPanel({
                 {hero.specializationDescription && (
                   <RichText
                     text={hero.specializationDescription}
-                    className="m-0 max-w-87.5 mx-auto text-sm text-muted-foreground leading-relaxed block"
+                    className="m-0 text-sm text-muted-foreground leading-relaxed block"
                   />
                 )}
               </div>
@@ -287,8 +303,11 @@ function HeroDetailPanel({
           </div>
         </div>
 
+        </div>
+
+        <div className={middleGrid}>
         {hero.startingArmy && hero.startingArmy.length > 0 && (
-          <div className={cardClassName}>
+          <div className={cn(middleCard, cardClassName)}>
             <h3 className="m-0 mb-3 text-center text-[1.1rem] font-semibold text-foreground">
               {hero.statLabels?.startingArmy || 'Starting Army'}
             </h3>
@@ -307,9 +326,8 @@ function HeroDetailPanel({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {hero.startingSkills && hero.startingSkills.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-5">
+            <div className={cn(middleCard, "bg-card border border-border rounded-2xl p-5")}>
               <h3 className="m-0 mb-4 text-center text-[1.1rem] font-semibold text-foreground">
                 {hero.statLabels?.startingSkills || 'Starting Skills'}
               </h3>
@@ -338,7 +356,7 @@ function HeroDetailPanel({
           )}
 
           {hero.startingSpells && hero.startingSpells.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-5">
+            <div className={cn(middleCard, "bg-card border border-border rounded-2xl p-5")}>
               <h3 className="m-0 mb-4 text-center text-[1.1rem] font-semibold text-foreground">
                 {hero.statLabels?.startingSpells || 'Starting Spells'}
               </h3>
@@ -365,32 +383,36 @@ function HeroDetailPanel({
               </div>
             </div>
           )}
+
         </div>
 
+        <div className={WIDE_GRID}>
         {hero.description && (
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className={cn(WIDE_CARD, "bg-card border border-border rounded-2xl p-5")}>
             <h3 className="m-0 mb-2 text-center text-[1.1rem] font-semibold text-foreground">
               {hero.statLabels?.biography || 'Biography'}
             </h3>
             <RichText
               text={hero.description}
-              className="m-0 max-w-100 mx-auto text-[0.95rem] text-muted-foreground text-center leading-relaxed block"
+              className="m-0 text-[0.95rem] text-muted-foreground text-center leading-relaxed block"
             />
           </div>
         )}
 
         {hero.motto && (
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className={cn(WIDE_CARD, "bg-card border border-border rounded-2xl p-5")}>
             <h3 className="m-0 mb-2 text-center text-[1.1rem] font-semibold text-foreground">
               {hero.statLabels?.motto || 'Motto'}
             </h3>
             <RichText
               text={hero.motto}
-              className="m-0 max-w-100 mx-auto text-base italic text-muted-foreground text-center leading-normal block"
+              className="m-0 text-base italic text-muted-foreground text-center leading-normal block"
             />
           </div>
         )}
-    </DetailContainer>
+        </div>
+      </div>
+    </div>
   );
 }
 
