@@ -388,10 +388,10 @@ public sealed class GamePathDetector
             if (dirNameLower.Contains("olden") && dirNameLower.Contains("era"))
                 score += 3;
 
-            // +2: Directory name contains variant indicators
+            // -2: Deprioritize demo/playtest/dev installs when a full release is also present.
             if (dirNameLower.Contains("playtest") || dirNameLower.Contains("demo") ||
-                dirNameLower.Contains("early access"))
-                score += 2;
+                dirNameLower.Contains("dev"))
+                score -= 2;
 
             // +2: Executable found
             var exePaths = new[]

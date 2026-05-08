@@ -248,6 +248,21 @@ public class GamePathService : IGamePathService
                 );
             }
 
+            // No-op when path and locale are unchanged: firing PathChanged would unload
+            // currently-loaded data and leave the app in a broken state until a manual reload.
+            if (string.Equals(_gameRoot, normalizedPath, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(_currentLocale, locale, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogDebug("SetPath called with unchanged path and locale; skipping reconfiguration");
+                return new SetPathResult(
+                    Success: true,
+                    Error: null,
+                    GameRoot: _gameRoot,
+                    HeroesOeDataPath: _heroesOeDataPath,
+                    StreamingAssetsPath: _streamingAssetsPath
+                );
+            }
+
             var previousGameRoot = _gameRoot;
 
             // Persist exactly what the caller picked so a manual browse to a *_Data or
