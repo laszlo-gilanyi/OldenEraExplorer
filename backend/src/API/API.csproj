@@ -26,8 +26,9 @@
     <ApplicationIcon>..\..\..\frontend\public\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- Release version is scoped to this project so it doesn't override the vendored AssetRipper
-       projects' versions (which would mismatch deps.json vs DLL metadata in the single-file bundle). -->
+  <!-- Release version scoped to this project so it doesn't override transitive
+       sub-project versions (which would mismatch deps.json vs DLL metadata in
+       the single-file bundle). -->
   <PropertyGroup Condition="'$(AppReleaseVersion)' != ''">
     <Version>$(AppReleaseVersion)</Version>
     <AssemblyVersion>$(AppAssemblyVersion)</AssemblyVersion>

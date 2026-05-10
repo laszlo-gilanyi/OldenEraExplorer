@@ -1,5 +1,6 @@
 #nullable enable
-using AssetRipper.Checksum;
+using System.IO.Hashing;
+using System.Text;
 using AssetExtractor.Models;
 using AssetExtractor.Export.Interfaces;
 using AssetExtractor.Extraction;
@@ -19,10 +20,8 @@ public class NodeHierarchyBuilder : INodeHierarchyBuilder
         _logger = logger ?? NullLogger<NodeHierarchyBuilder>.Instance;
     }
 
-    /// <summary>
-    /// Builds 3-level hierarchy (root/wrapper/inner) with coordinate conversion.
-    /// applyGltfForward: Unity→glTF (90° Y rotation). isometricExtra: +45° for map objects.
-    /// </summary>
+    // applyGltfForward applies the Unity-to-glTF 90 degree Y rotation; isometricExtra
+    // adds another 45 degrees for map objects.
     public Dictionary<string, NodeBuilder> BuildNodeHierarchy(
         SceneBuilder scene,
         UnitData unitData,
@@ -49,7 +48,6 @@ public class NodeHierarchyBuilder : INodeHierarchyBuilder
             string rootName = EnsureUniqueNodeName(rootBaseName, $"go{unitData.RootNode.PathID}", usedNodeNames);
             var rootBuilder = new NodeBuilder(rootName);
 
-            // Units: 90°. MapObj: 90°+look_point OR 90°+45°
             if (unitData.LookPointPosition != null)
             {
                 SetNodeTransformWithLookPointCorrection(rootBuilder, unitData.RootNode.LocalTransform, unitData.LookPointPosition);
@@ -83,7 +81,9 @@ public class NodeHierarchyBuilder : INodeHierarchyBuilder
                 string wrapperName = EnsureUniqueNodeName(unitData.WrapperNode.Name, $"go{unitData.WrapperNode.PathID}", usedNodeNames);
                 var wrapperBuilder = new NodeBuilder(wrapperName);
 
-                // scale_roll: normalize magnitude to ±1 (viewer applies JSON value). PRESERVE negative signs (mirroring).
+                // Normalize scale_roll magnitude to plus/minus one so the viewer can
+                // apply the JSON value cleanly; preserve sign because negative scale
+                // encodes mirroring.
                 var wrapperTransform = unitData.WrapperNode.LocalTransform;
                 if (HierarchyExtractor.IsScaleWrapperNode(unitData.WrapperNode))
                 {
@@ -156,7 +156,7 @@ public class NodeHierarchyBuilder : INodeHierarchyBuilder
 
         foreach (var bone in skeleton.Bones)
         {
-            string uniqueToken = $"b{Crc32Algorithm.HashUTF8(bone.Path):x8}";
+            string uniqueToken = $"b{Crc32.HashToUInt32(Encoding.UTF8.GetBytes(bone.Path)):x8}";
             string boneNodeName = EnsureUniqueNodeName(bone.Name, uniqueToken, usedNodeNames);
             var boneBuilder = new NodeBuilder(boneNodeName);
             SetNodeTransform(boneBuilder, bone.LocalTransform);
@@ -194,7 +194,8 @@ public class NodeHierarchyBuilder : INodeHierarchyBuilder
             }
         }
 
-        // Unity: empty path = Animator's GameObject. Map to inner node for animation curves.
+        // Unity uses an empty path to mean the Animator's own GameObject; route those
+        // bindings to the inner node so animation curves resolve.
         if (!nodeBuilders.ContainsKey(""))
         {
             var innerKey = unitData.InnerNode != null ? GetGameObjectKey(unitData.InnerNode) : null;
@@ -338,10 +339,8 @@ public class NodeHierarchyBuilder : INodeHierarchyBuilder
         node.SetLocalTransform(affine, false);
     }
 
-    /// <summary>
-    /// Aligns model entrance to glTF Z+ (forward) based on look_point.
-    /// Unity look_point = hero position. Entrance faces OPPOSITE direction (180° - lookAngle).
-    /// </summary>
+    // Unity look_point is the hero's position, but the model's entrance faces away from
+    // the hero, so we rotate to (180 minus lookAngle) to align with glTF Z+.
     private void SetNodeTransformWithLookPointCorrection(NodeBuilder node, Models.Transform transform, Models.Vector3 lookPoint)
     {
         var unityRotation = new System.Numerics.Quaternion(

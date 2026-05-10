@@ -26,6 +26,9 @@ ExtractedAssets/
 *.glb
 *.png
 
+# CLI runtime output (cache_manifest.json, extracted versioned dirs)
+backend/src/AssetExtractor.CLI/output/
+
 # Exception: Custom drawn icons (not extracted, need to be versioned)
 !assets/CustomIcons/*.png
 # Exception: App icon (need to be versioned)

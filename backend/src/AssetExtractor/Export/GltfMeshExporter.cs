@@ -57,7 +57,7 @@ public class GltfMeshExporter : IMeshExporter
                 continue;
             }
 
-            // Skip shadow receivers - Unity colors these at runtime, textureless in GLB causes artifacts
+            // Shadow receivers are runtime-colored by Unity; bare in GLB they show as artifacts.
             if (ShouldSkipDefaultMaterialMesh(meshData, unitData))
             {
                 _logger.LogInformation("  Skipping mesh with textureless DefaultMaterial: {MeshName}", meshData.Name);
@@ -110,7 +110,7 @@ public class GltfMeshExporter : IMeshExporter
 
         var vertexCache = BuildVertexCache(meshData);
 
-        // Unity CW → glTF CCW via reversed winding (v2,v1,v0). Also compensates X-axis flip.
+        // Reversed winding (v2,v1,v0) flips Unity CW into glTF CCW and absorbs the X-axis mirror.
         foreach (var subMesh in subMeshes)
         {
             if (subMesh.Triangles.Length == 0) continue;
@@ -136,7 +136,6 @@ public class GltfMeshExporter : IMeshExporter
                         int idx0 = subMesh.Triangles[i], idx1 = subMesh.Triangles[i + 1], idx2 = subMesh.Triangles[i + 2];
                         if (idx0 == idx1 || idx0 == idx2 || idx1 == idx2) continue;
                         if (idx0 >= vertexCache.Length || idx1 >= vertexCache.Length || idx2 >= vertexCache.Length) continue;
-                        // TriangleStrip: alternate winding every triangle
                         if ((i & 1) == 1) prim.AddTriangle(vertexCache[idx0], vertexCache[idx1], vertexCache[idx2]);
                         else prim.AddTriangle(vertexCache[idx2], vertexCache[idx1], vertexCache[idx0]);
                     }
@@ -160,7 +159,7 @@ public class GltfMeshExporter : IMeshExporter
             }
         }
 
-        // Animated map objects: attach to skeleton node (prefer HierarchyPath, fallback to Name)
+        // Prefer HierarchyPath, fall back to Name; animated map objects need a skeleton node target.
         NodeBuilder? targetNode = null;
 
         if (!string.IsNullOrEmpty(meshData.HierarchyPath) && nodeBuilders.TryGetValue(meshData.HierarchyPath, out var nodeByPath))
@@ -207,7 +206,7 @@ public class GltfMeshExporter : IMeshExporter
             ? meshData.SubMeshes
             : new List<SubMeshData> { new() { Triangles = meshData.Triangles, MaterialName = meshData.MaterialName } };
 
-        // Bone transforms with negative scale (reflection) flip winding at runtime. Pre-flip here.
+        // Negative-scale bones flip winding at runtime; pre-flip here so the GLB matches.
         bool hasInvertedWinding = false;
         if (meshData.IsMapObject)
         {
@@ -303,7 +302,6 @@ public class GltfMeshExporter : IMeshExporter
                         int idx1 = subMesh.Triangles[i + 1];
                         int idx2 = subMesh.Triangles[i + 2];
 
-                        // Skip degenerate triangles
                         if (idx0 == idx1 || idx0 == idx2 || idx1 == idx2)
                             continue;
 
@@ -317,7 +315,6 @@ public class GltfMeshExporter : IMeshExporter
                         var v1 = CreateSkinnedVertex(meshData, idx1, boneNodes);
                         var v2 = CreateSkinnedVertex(meshData, idx2, boneNodes);
 
-                        // TriangleStrip: alternate winding every triangle, compensate for inverted scale
                         bool oddTriangle = (i & 1) == 1;
                         if (oddTriangle != hasInvertedWinding)
                             prim.AddTriangle(v0, v1, v2);
@@ -540,7 +537,7 @@ public class GltfMeshExporter : IMeshExporter
         return (position, texCoord, skinning);
     }
 
-    private static System.Numerics.Matrix4x4 ConvertUnityMatrixToNumerics(Matrix4x4 unityMatrix)
+    private static System.Numerics.Matrix4x4 ConvertUnityMatrixToNumerics(Models.Matrix4x4 unityMatrix)
     {
         var v = unityMatrix.Values;
 
@@ -564,7 +561,7 @@ public class GltfMeshExporter : IMeshExporter
         result.M34 = 0;
         result.M44 = 1;
 
-        // Unity left-handed → glTF right-handed: mirror X-axis
+        // X-axis mirror absorbs the Unity LH to glTF RH coordinate handedness flip.
         var mirrorX = new System.Numerics.Matrix4x4(
             -1, 0, 0, 0,
              0, 1, 0, 0,
@@ -640,14 +637,16 @@ public class GltfMeshExporter : IMeshExporter
                 var matNameLower = materialData.Name.ToLowerInvariant();
                 var emissiveNameLower = materialData.EmissiveTextureName.ToLowerInvariant();
 
-                // Variant unit materials (e.g. abyssal_envoy_upg_alt_mt) sometimes inherit a base unit's emissive
-                // whose UVs don't match the variant mesh, producing stripe artifacts. Unit material names mirror
-                // their texture names, so prefix mismatch reliably catches this. Non-unit prefabs use looser naming
-                // (e.g. witchspell_dagger_mt + dagger_emissive) where the filter would produce false positives.
+                // Unit materials inherit base-unit emissives whose UVs don't match the variant
+                // mesh (stripe artifacts on e.g. abyssal_envoy_upg_alt_mt). Their names mirror
+                // their texture names, so a prefix mismatch catches this reliably. Non-unit
+                // prefabs use looser naming (witchspell_dagger_mt + dagger_emissive) where the
+                // filter would produce false positives, hence isUnit.
                 var matBase = matNameLower.EndsWith("_mt") ? matNameLower[..^3] : matNameLower;
                 bool emissiveMismatchesMaterial = isUnit && !emissiveNameLower.StartsWith(matBase);
 
-                // *_transparent textures look like emissives by name but are alpha masks (e.g. olgoi_transparent).
+                // *_transparent textures (e.g. olgoi_transparent) read like emissives by name
+                // but are alpha masks.
                 bool isTransparencyTexture = emissiveNameLower.Contains("_transparent") &&
                                              !emissiveNameLower.Contains("emissive");
 

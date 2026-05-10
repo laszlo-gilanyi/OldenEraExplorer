@@ -1,24 +1,22 @@
 #nullable enable
-using AssetRipper.Export.Modules.Textures;
-using AssetRipper.SourceGenerated.Classes.ClassID_28;  // ITexture2D
+using System.IO.Hashing;
 using AssetExtractor.Models;
 using AssetExtractor.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace AssetExtractor.Export;
 
-/// <summary>
-/// Exports Unity Texture2D to PNG using AssetRipper's TextureConverter.
-/// Thread-safe: locks around GetImageData (shared file stream reads not thread-safe).
-/// </summary>
 public class TextureExporter
 {
     private readonly ILogger<TextureExporter> _logger;
     private readonly string _outputPath;
     private readonly ManifestManager _manifestService;
 
-    // GetImageData reads shared file streams (not thread-safe). Lock serializes reads, parallelizes encoding/disk I/O.
+    // Vendor texture-data fetch reads shared file streams that are not thread-safe.
+    // Encoding and disk I/O still run in parallel; only the raw read is serialized.
     internal static readonly object TextureConversionLock = new();
 
     public TextureExporter(
@@ -74,73 +72,101 @@ public class TextureExporter
 
     private static string ComputeHash(byte[] data)
     {
-        var hash = System.IO.Hashing.XxHash64.HashToUInt64(data);
+        var hash = XxHash64.HashToUInt64(data);
         return hash.ToString("x16");
     }
 
-    public string? ExportTexture(ITexture2D texture, string relativePath, string version)
+    // Streams PNG bytes directly to disk while hashing inline; the encoded image is
+    // never buffered in memory. UnityTexture.DecodeRgba8 already returns top-down pixels.
+    public string? ExportTexture(UnityReader.UnityTexture texture, string relativePath, string version)
     {
         using (_logger.BeginScope("Texture: {TexturePath}", relativePath))
         {
-            if (texture == null)
-            {
-                _logger.LogWarning("Cannot export texture: null reference");
-                return null;
-            }
-
             try
             {
-                var name = texture.Name ?? "UnknownTexture";
-                int width = texture.Width_C28;
-                int height = texture.Height_C28;
+                var name = texture.Name;
+                var width = texture.Width;
+                var height = texture.Height;
+                _logger.LogInformation("Exporting texture (new reader): {TextureName} ({Width}x{Height})", name, width, height);
 
-                _logger.LogInformation("Exporting texture: {TextureName} ({Width}x{Height})", name, width, height);
+                var rgba8 = texture.DecodeRgba8();
+                using var bitmap = Image.LoadPixelData<Rgba32>(rgba8, width, height);
 
-                byte[] pngData;
+                var versionOutputPath = _manifestService.GetVersionOutputPath(version);
+                var fullPath = Path.Combine(versionOutputPath, relativePath + ".png");
+                EnsureDirectory(fullPath);
 
-                // Lock covers GetImageData + PNG encoding. Disk I/O outside lock (parallelism).
-                lock (TextureConversionLock)
-                {
-                    // TextureConverter handles all formats, applies FlipY for correct orientation
-                    if (!TextureConverter.TryConvertToBitmap(texture, out var bitmap))
-                    {
-                        _logger.LogWarning("Failed to convert texture '{TextureName}' to bitmap", name);
-                        return null;
-                    }
+                using var fileStream = File.Create(fullPath);
+                using var hashingStream = new HashingStream(fileStream);
+                bitmap.SaveAsPng(hashingStream);
+                hashingStream.Flush();
 
-                    using var ms = new MemoryStream();
-                    bitmap.SaveAsPng(ms);
-                    pngData = ms.ToArray();
-                }
-                var textureData = new TextureData
-                {
-                    Name = name,
-                    Width = width,
-                    Height = height,
-                    ImageData = pngData,
-                    Format = "PNG"
-                };
+                var hash = hashingStream.GetHashHex();
+                var byteCount = hashingStream.BytesWritten;
+                _manifestService.AddOrUpdateVariant(
+                    relativePath, version, hash, byteCount, "Texture2D", ".png");
 
-                return ExportTexture(textureData, relativePath, version);
+                _logger.LogInformation("Exported texture: {FullPath}", fullPath);
+                return fullPath;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to export texture");
+                _logger.LogError(ex, "Failed to export texture (new reader) at '{RelativePath}'", relativePath);
                 return null;
             }
         }
+    }
+
+    private static void EnsureDirectory(string fullPath)
+    {
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            Directory.CreateDirectory(directory);
     }
 
     private void WriteTextureFile(string fullPath, byte[] data)
     {
-        var directory = Path.GetDirectoryName(fullPath);
-
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
+        EnsureDirectory(fullPath);
         File.WriteAllBytes(fullPath, data);
     }
+}
 
+// Pass-through write stream that feeds every byte into XxHash64 before forwarding,
+// letting encode-write-hash run as a single pass without buffering.
+internal sealed class HashingStream : Stream
+{
+    private readonly Stream _inner;
+    private readonly XxHash64 _hash = new();
+    private long _bytesWritten;
+
+    public HashingStream(Stream inner) { _inner = inner; }
+
+    public long BytesWritten => _bytesWritten;
+    public string GetHashHex() => _hash.GetCurrentHashAsUInt64().ToString("x16");
+
+    public override bool CanRead => false;
+    public override bool CanSeek => false;
+    public override bool CanWrite => true;
+    public override long Length => _bytesWritten;
+    public override long Position { get => _bytesWritten; set => throw new NotSupportedException(); }
+
+    public override void Flush() => _inner.Flush();
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        _hash.Append(new ReadOnlySpan<byte>(buffer, offset, count));
+        _inner.Write(buffer, offset, count);
+        _bytesWritten += count;
+    }
+
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        _hash.Append(buffer);
+        _inner.Write(buffer);
+        _bytesWritten += buffer.Length;
+    }
+
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
 }

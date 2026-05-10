@@ -5,17 +5,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AssetExtractor.Utilities;
 
-/// <summary>
-/// Handles building skeleton data from Unity hierarchy nodes.
-/// Stateless utility class - all methods take inputs as parameters.
-/// </summary>
 public static class SkeletonBuilder
 {
-    /// <summary>
-    /// Find skeleton roots from inner node using skin joint paths.
-    /// Unity animation paths are relative to the Animator GameObject.
-    /// Therefore, skeleton roots are the first segment of bone paths (direct children under the Animator).
-    /// </summary>
+    // Unity animation paths are relative to the Animator GameObject, so skeleton roots
+    // are the first segment of each bone path (direct children of the Animator).
     public static List<HierarchyNode> FindSkeletonRoots(
         HierarchyNode inner,
         List<string> skinJointPaths,
@@ -56,7 +49,6 @@ public static class SkeletonBuilder
                 continue;
             }
 
-            // Prefer the match with children (bones), if multiple exist
             var best = matches
                 .OrderByDescending(m => m.Children.Count)
                 .First();
@@ -67,9 +59,7 @@ public static class SkeletonBuilder
         return roots;
     }
 
-    /// <summary>
-    /// Find skeleton root (child of inner named "Root") - legacy fallback
-    /// </summary>
+    // Legacy fallback: child of inner named "Root".
     public static HierarchyNode? FindSkeletonRoot(HierarchyNode inner)
     {
         foreach (var child in inner.Children)
@@ -81,9 +71,6 @@ public static class SkeletonBuilder
         return null;
     }
 
-    /// <summary>
-    /// Build skeleton data from a single skeleton root using SMR bone order, then add remaining hierarchy bones
-    /// </summary>
     public static SkeletonData BuildSkeletonData(
         HierarchyNode skeletonRoot,
         List<string> skinJointPaths,
@@ -93,10 +80,8 @@ public static class SkeletonBuilder
         return BuildSkeletonData(new List<HierarchyNode> { skeletonRoot }, skinJointPaths, isVFXNode, logger);
     }
 
-    /// <summary>
-    /// Build skeleton data from multiple skeleton roots (horse + rider + weapon, etc).
-    /// Paths are relative to the Animator GameObject (Unity AnimationClip binding paths).
-    /// </summary>
+    // Multi-root supports composite rigs (horse + rider + weapon). Paths are relative
+    // to the Animator GameObject, matching Unity AnimationClip binding paths.
     public static SkeletonData BuildSkeletonData(
         List<HierarchyNode> skeletonRoots,
         List<string> skinJointPaths,
@@ -113,7 +98,6 @@ public static class SkeletonBuilder
             RootBone = skeletonRoots[0]
         };
 
-        // Build a lookup table from path to HierarchyNode for ALL roots
         var nodeByPath = new Dictionary<string, HierarchyNode>(StringComparer.Ordinal);
         foreach (var root in skeletonRoots)
         {
@@ -128,10 +112,10 @@ public static class SkeletonBuilder
             "Skin joint paths count: {SkinJointPathCount}",
             skinJointPaths.Count);
 
-        // Track which paths have been added as bones
         var addedPaths = new HashSet<string>(StringComparer.Ordinal);
 
-        // STEP 0: Add skeleton root bones FIRST (ensures parent paths exist for e.g. Root/Hips)
+        // Roots first so subsequent bones can resolve their parent path (e.g. Root/Hips
+        // requires Root to already be present).
         foreach (var root in skeletonRoots)
         {
             if (addedPaths.Contains(root.Name))
@@ -146,8 +130,8 @@ public static class SkeletonBuilder
                 Index = skeleton.Bones.Count,
                 ParentIndex = -1,
                 LocalTransform = root.LocalTransform,
-                WorldMatrix = Matrix4x4.Identity,
-                InverseBindMatrix = Matrix4x4.Identity
+                WorldMatrix = Models.Matrix4x4.Identity,
+                InverseBindMatrix = Models.Matrix4x4.Identity
             };
 
             skeleton.Bones.Add(rootBoneData);
@@ -158,7 +142,7 @@ public static class SkeletonBuilder
                 root.Name);
         }
 
-        // STEP 1: Build bones in SMR order (bones used by meshes for skinning)
+        // SMR bone order matters for skinning, so we must add bones used by meshes first.
         for (int i = 0; i < skinJointPaths.Count; i++)
         {
             string path = skinJointPaths[i];
@@ -171,9 +155,10 @@ public static class SkeletonBuilder
                 continue;
             }
 
+            // Unity bones can be shared across meshes; deduplicate.
             if (addedPaths.Contains(path))
             {
-                continue; // Deduplicate paths (Unity bones can be shared across meshes)
+                continue;
             }
 
             if (!nodeByPath.TryGetValue(path, out var node))
@@ -184,7 +169,8 @@ public static class SkeletonBuilder
                 continue;
             }
 
-            // Find parent index by looking up parent path (may be fixed later in NormalizeSkeletonParentIndices)
+            // SMR bone order isn't topologically sorted, so the parent may not exist yet;
+            // NormalizeSkeletonParentIndices fixes any -1 entries afterwards.
             int parentIndex = -1;
             string parentPath = GetParentPath(path);
             if (!string.IsNullOrEmpty(parentPath))
@@ -199,8 +185,8 @@ public static class SkeletonBuilder
                 Index = skeleton.Bones.Count,
                 ParentIndex = parentIndex,
                 LocalTransform = node.LocalTransform,
-                WorldMatrix = Matrix4x4.Identity,
-                InverseBindMatrix = Matrix4x4.Identity
+                WorldMatrix = Models.Matrix4x4.Identity,
+                InverseBindMatrix = Models.Matrix4x4.Identity
             };
 
             skeleton.Bones.Add(boneData);
@@ -212,22 +198,18 @@ public static class SkeletonBuilder
             "Added {BoneCount} bones from SMR in order",
             skeleton.Bones.Count);
 
-        // STEP 2: Add remaining bones from hierarchy (leaf bones, intermediate bones not in SMR)
         foreach (var root in skeletonRoots)
         {
             AddRemainingBones(root, "", skeleton, nodeByPath, addedPaths, isVFXNode, logger);
         }
 
-        // Ensure ParentIndex values reflect the actual hierarchy (SMR bone order is not guaranteed to be topologically sorted)
         NormalizeSkeletonParentIndices(skeleton, logger);
 
         return skeleton;
     }
 
-    /// <summary>
-    /// Normalize skeleton ParentIndex and Index based on bone.Path.
-    /// SMR bone order is important for skinning, but parent links must match the transform hierarchy.
-    /// </summary>
+    // SMR bone order is preserved for skinning, but parent links must match the transform
+    // hierarchy regardless of insertion order, so fix them up after the fact.
     public static void NormalizeSkeletonParentIndices(SkeletonData skeleton, ILogger? logger = null)
     {
         var indexByPath = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -278,9 +260,6 @@ public static class SkeletonBuilder
         }
     }
 
-    /// <summary>
-    /// Recursively add bones from hierarchy that aren't in the SMR bone list
-    /// </summary>
     public static void AddRemainingBones(
         HierarchyNode node,
         string parentPath,
@@ -292,10 +271,8 @@ public static class SkeletonBuilder
     {
         string path = string.IsNullOrEmpty(parentPath) ? node.Name : $"{parentPath}/{node.Name}";
 
-        // If this bone hasn't been added yet, add it
         if (!addedPaths.Contains(path))
         {
-            // Find parent index
             int parentIndex = -1;
             if (!string.IsNullOrEmpty(parentPath))
             {
@@ -309,8 +286,8 @@ public static class SkeletonBuilder
                 Index = skeleton.Bones.Count,
                 ParentIndex = parentIndex,
                 LocalTransform = node.LocalTransform,
-                WorldMatrix = Matrix4x4.Identity,
-                InverseBindMatrix = Matrix4x4.Identity
+                WorldMatrix = Models.Matrix4x4.Identity,
+                InverseBindMatrix = Models.Matrix4x4.Identity
             };
 
             skeleton.Bones.Add(boneData);
@@ -322,7 +299,6 @@ public static class SkeletonBuilder
                 path);
         }
 
-        // Recurse to children (excluding VFX nodes)
         foreach (var child in node.Children)
         {
             if (!isVFXNode(child.Name))
@@ -332,9 +308,6 @@ public static class SkeletonBuilder
         }
     }
 
-    /// <summary>
-    /// Build lookup table from path to HierarchyNode
-    /// </summary>
     private static void BuildNodeLookup(HierarchyNode node, string parentPath, Dictionary<string, HierarchyNode> lookup, Func<string, bool> isVFXNode)
     {
         string path = string.IsNullOrEmpty(parentPath) ? node.Name : $"{parentPath}/{node.Name}";
@@ -349,9 +322,6 @@ public static class SkeletonBuilder
         }
     }
 
-    /// <summary>
-    /// Get parent path from a full path
-    /// </summary>
     private static string GetParentPath(string path)
     {
         int lastSlash = path.LastIndexOf('/');

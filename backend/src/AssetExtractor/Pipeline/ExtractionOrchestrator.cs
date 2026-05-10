@@ -12,11 +12,8 @@ using AssetExtractorService = AssetExtractor.Extraction.AssetExtractor;
 
 namespace AssetExtractor.Pipeline;
 
-/// <summary>
-/// Coordinates the entire asset extraction pipeline: path resolution, cache management,
-/// parallel extraction of textures/GLBs, and multi-version promotion.
-/// Subprocess entry point: spawned by API for cancellable extraction.
-/// </summary>
+// Subprocess entry point spawned by the API for cancellable extraction. Coordinates
+// path resolution, cache management, parallel texture/GLB extraction, and promotion.
 public class ExtractionOrchestrator
 {
     private readonly ILogger<ExtractionOrchestrator> _logger;
@@ -33,7 +30,7 @@ public class ExtractionOrchestrator
     {
         _logger = logger ?? NullLogger<ExtractionOrchestrator>.Instance;
         _loggerFactory = loggerFactory;
-        _outputPath = Path.Combine(Directory.GetCurrentDirectory(), "output");
+        _outputPath = Path.Combine(AppContext.BaseDirectory, "output");
     }
 
     public ExtractionOrchestrator(string outputPath, ILogger<ExtractionOrchestrator>? logger = null, ILoggerFactory? loggerFactory = null)
@@ -74,9 +71,7 @@ public class ExtractionOrchestrator
         }
     }
 
-    /// <summary>
-    /// API broadcasts extraction progress to clients via SignalR.
-    /// </summary>
+    // API broadcasts to SignalR clients via this hook.
     public Action<ExtractionProgress>? OnProgress { get; set; }
 
     public string InitializeVersionManagement(string gamePath)
@@ -96,10 +91,8 @@ public class ExtractionOrchestrator
         return _currentVersion;
     }
 
-    /// <summary>
-    /// Priority: manual path → saved settings → auto-detection.
-    /// Manual paths aren't persisted (CLI subprocess pattern - API manages persistence).
-    /// </summary>
+    // Resolution order: manual path, saved settings, auto-detection. Manual paths are
+    // not persisted here; the API owns persistence in the subprocess pattern.
     public string? ResolveGamePath(string? manualPath)
     {
         var settings = new SettingsService();
@@ -167,7 +160,6 @@ public class ExtractionOrchestrator
 
             using var extractor = new AssetExtractorService(gamePath, CreateLogger<AssetExtractorService>(), _loggerFactory);
             var glbExporter = new GlbExporter(_outputPath, DeduplicationService, ManifestService);
-            var textureExporter = new TextureExporter(_outputPath, ManifestService);
 
             var prefabData = extractor.ExtractPrefab(name);
 
@@ -248,7 +240,6 @@ public class ExtractionOrchestrator
                 return batchResult;
             }
 
-            // Check cache before extraction
             var version = ManifestManager.DetectGameVersion(gamePath);
             if (!force && ManifestService.IsVersionExtracted(version))
             {
@@ -258,7 +249,6 @@ public class ExtractionOrchestrator
                 return batchResult;
             }
 
-            // Initialize version management
             InitializeVersionManagement(gamePath);
             _logger.LogInformation("Version: {Version}", version);
 
@@ -617,7 +607,7 @@ public class ExtractionOrchestrator
             _logger.LogInformation(
                 "Starting standalone texture extraction for version: {Version}",
                 version);
-            using var textureExtractor = new StandaloneTextureExtractor(gamePath, _outputPath, extractor.GameBundle, CreateLogger<StandaloneTextureExtractor>(), _loggerFactory);
+            using var textureExtractor = new StandaloneTextureExtractor(gamePath, _outputPath, CreateLogger<StandaloneTextureExtractor>(), _loggerFactory);
             textureExtractor.OnProgress = OnProgress;
             textureExtractor.ExtractTexturesVersioned(version, ManifestService);
             texturesStopwatch.Stop();
@@ -858,18 +848,6 @@ public class ExtractionOrchestrator
 
             var glbPath = glbExporter.Export(prefabData, relativePath, version);
             result.OutputPath = glbPath ?? Path.Combine(_outputPath, relativePath + ".glb");
-
-            var textures = extractor.ExtractTextures(name);
-
-            foreach (var (textureName, texture) in textures)
-            {
-                var texturePath = GenerateTexturePath(textureName, includeExtension: false);
-                var exportedPath = textureExporter.ExportTexture(texture, texturePath, version);
-                if (exportedPath != null)
-                {
-                    result.TexturePaths.Add(exportedPath);
-                }
-            }
 
             foreach (var textureData in prefabData.Textures)
             {

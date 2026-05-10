@@ -18,6 +18,9 @@ public class HierarchyNode
     public long PathID { get; set; }
     public string SourceFile { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    // Populated at build time so the hierarchy filter does not have to round-trip
+    // back to the provider when checking if a node anchors an animator.
+    public bool HasAnimator { get; set; }
     public Transform LocalTransform { get; set; } = new();
     public Transform WorldTransform { get; set; } = new();
     public HierarchyNode? Parent { get; set; }
@@ -119,9 +122,7 @@ public class MeshData
     public string Name { get; set; } = string.Empty;
     public string HierarchyPath { get; set; } = string.Empty;
     public Transform LocalTransform { get; set; } = new();
-    /// <summary>
-    /// Computed from full parent hierarchy. Used for GameObjects where hierarchy flattening is needed.
-    /// </summary>
+    // Pre-flattened from the full parent hierarchy.
     public Transform WorldTransform { get; set; } = new();
     public int[] Triangles { get; set; } = Array.Empty<int>();
     public List<SubMeshData> SubMeshes { get; set; } = new();
@@ -134,16 +135,12 @@ public class MeshData
     public int[] BoneIndices { get; set; } = Array.Empty<int>();
     public Matrix4x4[] BindPoses { get; set; } = Array.Empty<Matrix4x4>();
     public string MaterialName { get; set; } = string.Empty;
-    /// <summary>
-    /// Bakes negative scale into mesh vertices and flips winding order.
-    /// Each component is -1 if that axis has negative scale, 1 otherwise.
-    /// </summary>
+    // Per-axis sign (-1 if that axis has negative scale, 1 otherwise); applied to bake
+    // negative scale into vertices and flip winding order.
     public Vector3 AccumulatedScale { get; set; } = Vector3.One;
 
-    /// <summary>
-    /// Map objects need determinant-based winding flip when transform has negative determinant.
-    /// Units don't need this because their meshes are authored differently.
-    /// </summary>
+    // Map objects need a determinant-based winding flip when their transform has a negative
+    // determinant; units' meshes are authored differently and do not.
     public bool IsMapObject { get; set; } = false;
 }
 
@@ -242,19 +239,13 @@ public class MaterialData
     public float Metallic { get; set; } = 0.0f;
     public float Roughness { get; set; } = 0.5f;
     public Vector4 EmissiveColor { get; set; } = new Vector4(0, 0, 0, 0);
-    /// <summary>
-    /// Default true for backwards compatibility. Set to false when Unity's _EmissionEnabled property is 0.
-    /// </summary>
+    // False when Unity's _EmissionEnabled is 0; default true for back-compat.
     public bool EmissionEnabled { get; set; } = true;
-    /// <summary>
-    /// From Unity's _EmissionMinPower property.
-    /// </summary>
+    // Sourced from Unity's _EmissionMinPower property.
     public float EmissionStrength { get; set; } = 1.0f;
     public int AlphaMode { get; set; } = 0; // 0=Opaque, 1=Cutout, 2=Fade, 3=Transparent
     public float AlphaCutoff { get; set; } = 0.5f;
-    /// <summary>
-    /// Default false (backface culling enabled). Set to true only when shader explicitly uses Cull Off.
-    /// </summary>
+    // True only when the shader explicitly uses Cull Off; default culls backfaces.
     public bool IsDoubleSided { get; set; } = false;
 }
 

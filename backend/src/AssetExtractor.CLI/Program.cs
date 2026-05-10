@@ -27,7 +27,6 @@ sealed class CleanFormatter : ConsoleFormatter
         var message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception);
         if (message == null) return;
 
-        // Build scope prefix
         var scopes = new List<string>();
         scopeProvider?.ForEachScope((scope, state) =>
         {
@@ -44,7 +43,6 @@ sealed class CleanFormatter : ConsoleFormatter
             }
         }, (object?)null);
 
-        // Add log level prefix for Warning/Error
         string levelPrefix = logEntry.LogLevel switch
         {
             LogLevel.Warning => $"{YELLOW}[WARNING]{RESET} ",
@@ -53,10 +51,8 @@ sealed class CleanFormatter : ConsoleFormatter
             _ => ""  // No prefix for Info/Debug
         };
 
-        // Colorize message based on content
         string coloredMessage = ColorizeMessage(message);
 
-        // Write final output
         if (scopes.Count > 0 && !string.IsNullOrEmpty(scopes[0]))
         {
             textWriter.WriteLine($"{levelPrefix}[{scopes[0]}] {coloredMessage}");
@@ -71,23 +67,18 @@ sealed class CleanFormatter : ConsoleFormatter
     {
         string lower = message.ToLowerInvariant();
 
-        // Animation-related (magenta)
         if (lower.Contains("animation") || lower.Contains("animator") || lower.Contains("clip") || lower.Contains("controller"))
             return $"{MAGENTA}{message}{RESET}";
 
-        // Mesh-related (green)
         if (lower.Contains("mesh") || lower.Contains("skinned") || lower.Contains("rigid"))
             return $"{GREEN}{message}{RESET}";
 
-        // Bone/Skeleton-related (cyan)
         if (lower.Contains("bone") || lower.Contains("skeleton") || lower.Contains("skin") || lower.Contains("joint"))
             return $"{CYAN}{message}{RESET}";
 
-        // Texture/Material-related (blue)
         if (lower.Contains("texture") || lower.Contains("cubemap") || lower.Contains("material"))
             return $"{BLUE}{message}{RESET}";
 
-        // Default - no color
         return message;
     }
 }
@@ -133,6 +124,9 @@ class Program
             LoggingConfig.IsVerboseMode = config.IsVerbose;
 
             ProgressBar.JsonOutputMode = config.JsonProgress;
+
+            // Wire UnityReader's vendor diagnostics into our logging pipeline once at startup.
+            UnityReader.UnityScene.LoggerFactory = loggerFactory;
 
             var orchestratorLogger = loggerFactory.CreateLogger<ExtractionOrchestrator>();
             var orchestrator = config.OutputPath != null

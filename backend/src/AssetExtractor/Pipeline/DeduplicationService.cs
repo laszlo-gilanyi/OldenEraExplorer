@@ -4,22 +4,12 @@ using System.IO.Hashing;
 
 namespace AssetExtractor.Pipeline;
 
-/// <summary>
-/// Provides deduplication utilities using XXHash64 for fast, collision-resistant hashing.
-/// Thread-safe for use in parallel extraction scenarios.
-/// </summary>
+// XXHash64-based deduplication, safe for parallel extraction. Returns 16-char lowercase
+// hex digests.
 public class DeduplicationService
 {
-    /// <summary>
-    /// Atomic path reservation and conflict detection during parallel extraction.
-    /// </summary>
     private readonly ConcurrentDictionary<string, string> _savedFiles = new();
 
-    /// <summary>
-    /// Compute XXHash64 hash of byte data.
-    /// </summary>
-    /// <param name="data">Raw byte data to hash.</param>
-    /// <returns>16-character lowercase hex hash string.</returns>
     public static string ComputeHash(byte[] data)
     {
         if (data == null || data.Length == 0)
@@ -31,13 +21,6 @@ public class DeduplicationService
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
-    /// <summary>
-    /// Compute XXHash64 hash of a portion of byte data without copying.
-    /// </summary>
-    /// <param name="data">Raw byte data to hash.</param>
-    /// <param name="offset">Starting offset in the array.</param>
-    /// <param name="length">Number of bytes to hash.</param>
-    /// <returns>16-character lowercase hex hash string.</returns>
     public static string ComputeHash(byte[] data, int offset, int length)
     {
         if (data == null || length == 0)
@@ -49,11 +32,6 @@ public class DeduplicationService
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
-    /// <summary>
-    /// Compute XXHash64 hash of a file.
-    /// </summary>
-    /// <param name="filePath">Path to the file to hash.</param>
-    /// <returns>16-character lowercase hex hash string.</returns>
     public static string ComputeFileHash(string filePath)
     {
         if (!File.Exists(filePath))
@@ -62,8 +40,7 @@ public class DeduplicationService
         var xxHash = new XxHash64();
         using var stream = File.OpenRead(filePath);
 
-        // Read in chunks for large files
-        byte[] buffer = new byte[81920]; // 80KB chunks
+        byte[] buffer = new byte[81920];
         int bytesRead;
         while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
         {
@@ -74,16 +51,9 @@ public class DeduplicationService
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
-    /// <summary>
-    /// Atomic path reservation for parallel extraction.
-    /// </summary>
-    /// <param name="targetPath">Desired output path.</param>
-    /// <param name="hash">Hash of the data to be written.</param>
-    /// <param name="actualPath">The actual path to use (may differ if conflict resolution needed).</param>
-    /// <returns>
-    /// PathReservationResult: success, duplicate (same hash already exists),
-    /// or conflict (different hash at same path - need suffix).
-    /// </returns>
+    // Returns Success on first write, Duplicate when the same hash already occupies the
+    // path, or ConflictResolved when actualPath got rerouted to a numeric-suffixed slot
+    // because a different hash held the original path.
     public PathReservationResult TryReservePath(string targetPath, string hash, out string actualPath)
     {
         targetPath = Path.GetFullPath(targetPath);
@@ -104,9 +74,6 @@ public class DeduplicationService
         return PathReservationResult.ConflictResolved;
     }
 
-    /// <summary>
-    /// Find a unique path for a conflicting file using AssetRipper-style suffixes (_0, _1, etc.).
-    /// </summary>
     private string FindConflictPath(string basePath, string hash)
     {
         var dir = Path.GetDirectoryName(basePath) ?? ".";
@@ -125,7 +92,6 @@ public class DeduplicationService
                 return newPath;
             }
 
-            // Path already taken - check if it's the same hash
             if (_savedFiles.TryGetValue(newPath, out var existingHash) && existingHash == hash)
             {
                 return newPath;

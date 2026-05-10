@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-	<PropertyGroup>
-		<IsPackable>false</IsPackable>
-		<OutputPath>..\0Bins\Other\UnityEngine\$(Configuration)\</OutputPath>
-		<IntermediateOutputPath>..\0Bins\obj\UnityEngine\$(Configuration)\</IntermediateOutputPath>
-	</PropertyGroup>
-
-</Project>
