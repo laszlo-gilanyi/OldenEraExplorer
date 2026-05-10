@@ -140,11 +140,15 @@ public class UpdateService
             _logger.LogInformation("Download complete. Extracting...");
             InstallProgress = new UpdateProgress("installing", "Installing update...");
 
-            ZipFile.ExtractToDirectory(zipPath, tempDir);
+            // Subdirectory keeps update.zip outside the copy source so the helper's robocopy/cp
+            // does not carry it into the app directory.
+            var extractDir = Path.Combine(tempDir, "extracted");
+            Directory.CreateDirectory(extractDir);
+            ZipFile.ExtractToDirectory(zipPath, extractDir);
 
             var binaryName = GetBinaryName();
-            var newBinary = Directory.GetFiles(tempDir, binaryName, SearchOption.AllDirectories)
-                .FirstOrDefault(p => !string.Equals(p, zipPath, StringComparison.OrdinalIgnoreCase));
+            var newBinary = Directory.GetFiles(extractDir, binaryName, SearchOption.AllDirectories)
+                .FirstOrDefault();
 
             if (newBinary == null)
             {

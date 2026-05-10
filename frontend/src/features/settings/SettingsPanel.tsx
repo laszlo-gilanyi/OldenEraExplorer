@@ -69,6 +69,40 @@ export function SettingsPanel() {
     }
   }, [installProgress?.stage]);
 
+  // Keyed on isInstalling rather than installProgress.stage === 'installing': the 1s
+  // update-progress poll routinely misses the brief installing window between download
+  // completion and Environment.Exit, so the stage-based condition would often never fire.
+  useEffect(() => {
+    if (!isInstalling) return;
+
+    let cancelled = false;
+    let sawDown = false;
+    let timer: number | null = null;
+
+    const tick = async () => {
+      try {
+        const res = await fetch('/api/game/status', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        if (sawDown && !cancelled) {
+          window.location.reload();
+          return;
+        }
+      } catch {
+        sawDown = true;
+      }
+      if (!cancelled) {
+        timer = window.setTimeout(tick, 1000);
+      }
+    };
+
+    timer = window.setTimeout(tick, 1000);
+
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [isInstalling]);
+
   const detectMutation = useGameDetect();
   const setPathMutation = useSetGamePath();
   const loadDataMutation = useLoadGameData();

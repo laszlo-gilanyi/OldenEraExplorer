@@ -31,10 +31,10 @@ public sealed class BuildingDetailsService
         ["gold"] = 1,
         ["wood"] = 2,
         ["ore"] = 3,
-        ["gems"] = 4,
-        ["crystal"] = 5,
+        ["gemstones"] = 4,
+        ["crystals"] = 5,
         ["mercury"] = 6,
-        ["alchemical_dust"] = 7,
+        ["dust"] = 7,
         ["graal"] = 8
     };
 
