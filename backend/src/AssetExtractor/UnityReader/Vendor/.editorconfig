@@ -1,0 +1,31 @@
+# Vendored third-party sources are not nullable-aware and follow upstream
+# conventions. Suppress nullability + dead-code warnings here only; our own
+# code (under Api/, Animation/, Texture/) keeps the strict project-level
+# Nullable=enable analysis.
+#
+# This file is scoped to UnityAssetReader/Vendor/** only.
+root = true
+
+[*.cs]
+# Nullability warnings - vendor code predates nullable reference types.
+dotnet_diagnostic.CS8600.severity = none
+dotnet_diagnostic.CS8601.severity = none
+dotnet_diagnostic.CS8602.severity = none
+dotnet_diagnostic.CS8603.severity = none
+dotnet_diagnostic.CS8604.severity = none
+dotnet_diagnostic.CS8618.severity = none
+dotnet_diagnostic.CS8625.severity = none
+dotnet_diagnostic.CS8629.severity = none
+dotnet_diagnostic.CS8632.severity = none
+dotnet_diagnostic.CS8765.severity = none
+dotnet_diagnostic.CS8767.severity = none
+dotnet_diagnostic.CS8981.severity = none
+
+# Unused / unreachable code warnings - common in vendor parsing classes.
+dotnet_diagnostic.CS0067.severity = none
+dotnet_diagnostic.CS0162.severity = none
+dotnet_diagnostic.CS0168.severity = none
+dotnet_diagnostic.CS0169.severity = none
+dotnet_diagnostic.CS0219.severity = none
+dotnet_diagnostic.CS0414.severity = none
+dotnet_diagnostic.CS0649.severity = none

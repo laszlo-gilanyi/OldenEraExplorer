@@ -1,0 +1,34 @@
+﻿using System.Collections.Generic;
+
+namespace AssetStudio
+{
+    internal class AnimationClipOverride
+    {
+        public PPtr<AnimationClip> m_OriginalClip;
+        public PPtr<AnimationClip> m_OverrideClip;
+
+        public AnimationClipOverride(ObjectReader reader)
+        {
+            m_OriginalClip = new PPtr<AnimationClip>(reader);
+            m_OverrideClip = new PPtr<AnimationClip>(reader);
+        }
+    }
+
+    internal sealed class AnimatorOverrideController : RuntimeAnimatorController
+    {
+        public PPtr<RuntimeAnimatorController> m_Controller;
+        public List<AnimationClipOverride> m_Clips;
+
+        public AnimatorOverrideController(ObjectReader reader) : base(reader)
+        {
+            m_Controller = new PPtr<RuntimeAnimatorController>(reader);
+
+            int numOverrides = reader.ReadInt32();
+            m_Clips = new List<AnimationClipOverride>();
+            for (var i = 0; i < numOverrides; i++)
+            {
+                m_Clips.Add(new AnimationClipOverride(reader));
+            }
+        }
+    }
+}
