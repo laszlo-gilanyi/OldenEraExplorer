@@ -13,13 +13,12 @@ This document covers development setup, build instructions, and contribution gui
 ```
 ├── backend/         # .NET API server and game data processing
 │   └── src/
-│       ├── Domain/           # Core entities
-│       ├── Localization/     # Text resolution and scripting
-│       ├── GameData/         # Game data loading and indexing
-│       ├── AssetExtractor/   # Asset extraction library
-│       │   └── AssetRipper/  # Vendored AssetRipper
-│       ├── AssetExtractor.CLI/  # CLI for subprocess extraction
-│       └── API/              # Web API
+│       ├── Domain/             # Core entities
+│       ├── Localization/       # Text resolution and scripting
+│       ├── GameData/           # Game data loading and indexing
+│       ├── AssetExtractor/     # Asset extraction pipeline; the Unity reader lives under UnityReader/
+│       ├── AssetExtractor.CLI/ # CLI for subprocess extraction
+│       └── API/                # Web API
 ├── frontend/        # React + Vite web interface
 ├── scripts/         # Build and release scripts
 └── docs/            # Technical documentation

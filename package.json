@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "A localhost web application for browsing Heroes of Might and Magic: Olden Era game data",
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "engines": {
     "node": ">=22.0.0",
-    "npm": ">=11.0.0"
+    "npm": ">=10.0.0"
   },
   "workspaces": [
     "frontend"

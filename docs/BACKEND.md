@@ -10,8 +10,7 @@ backend/
 │   ├── Domain/                  # Pure domain entities (10 entity types)
 │   ├── Localization/            # Text resolution and scripting system
 │   ├── GameData/                # Game data loading and indexing
-│   ├── AssetExtractor/          # Unity asset extraction library
-│   │   └── AssetRipper/         # Vendored AssetRipper (52 projects)
+│   ├── AssetExtractor/          # Asset extraction pipeline; the Unity reader lives under UnityReader/
 │   ├── AssetExtractor.CLI/      # CLI executable for subprocess extraction
 │   └── API/                     # Web API and hosting
 └── Backend.slnx                 # Modern XML solution file
@@ -95,7 +94,7 @@ Localization/
 └── Resources/
     └── Overlays/                # Multi-language fallback files
         ├── english.json
-        └── <lang>.json          # 13 additional languages
+        └── <lang>.json          # additional languages
 ```
 
 **Key Features:**
@@ -215,86 +214,67 @@ Assemble complete entity information:
 
 **Location:** `/backend/src/AssetExtractor`
 
-**Purpose:** Extract images and 3D models from Unity asset bundles.
+**Purpose:** Extract images and 3D models from Unity asset bundles, then encode to PNG / GLB. The Unity SerializedFile / AssetBundle reader lives under `UnityReader/`.
 
 **Structure:**
 
 ```
 AssetExtractor/
-├── AssetRipper/                 # Vendored library (52 projects)
-│   ├── Source/
-│   │   ├── AssetRipper.Assets/
-│   │   ├── AssetRipper.IO.Files/
-│   │   ├── AssetRipper.Import/
-│   │   └── ... (49 more projects)
-│   └── AssetRipper.slnx
+├── UnityReader/                          # In-house Unity asset reader (namespace UnityReader)
+│   ├── Api/                              # Surface used by Extraction/ and Export/ (UnityScene, Mesh, Material, GameObject, Animator, ...)
+│   ├── Internal/                         # AnimationClipProcessor, PathChecksumCache, MicrosoftLoggerAdapter
+│   ├── Texture/                          # Managed BC1/BC3/BC7 + RGB family decoders
+│   ├── Vendor/AssetStudio/               # Vendored AssetStudioMod core
+│   └── Vendor/AssetRipperTextureDecoder/ # Vendored AssetRipper.TextureDecoder
 │
 ├── Extraction/                  # Asset extraction services
-│   ├── AssetExtractor.cs        # Main extractor (38.4KB)
-│   ├── AssetLoader.cs           # Unity asset loading with resource path queries
+│   ├── AssetExtractor.cs        # Main extractor
+│   ├── AssetLoader.cs           # Unity scene loading + resource-path queries
 │   ├── MaterialExtractor.cs     # Material processing with texture fallback
-│   ├── MeshDataExtractor.cs     # Mesh extraction (31.8KB)
-│   ├── StandaloneTextureExtractor.cs  # Texture extraction (33.9KB)
-│   ├── AnimationDataExtractor.cs  # Animation data (19.8KB)
-│   ├── HierarchyExtractor.cs    # GameObject hierarchy (12.5KB)
-│   ├── BoneDataExtractor.cs     # Skeleton extraction (7.6KB)
-│   └── ThreadSafeTextureCache.cs  # Texture caching (6.2KB)
+│   ├── MeshDataExtractor.cs     # Mesh extraction
+│   ├── StandaloneTextureExtractor.cs  # Texture extraction
+│   ├── AnimationDataExtractor.cs  # Animation data
+│   ├── HierarchyExtractor.cs    # GameObject hierarchy
+│   ├── BoneDataExtractor.cs     # Skeleton extraction
+│   ├── ThreadSafeTextureCache.cs  # Texture caching
+│   └── ShaderProperties.cs      # Shader property name constants
 │
 ├── Export/                      # GLTF/GLB export
-│   ├── GlbExporter.cs           # GLB format export (22.7KB)
-│   ├── GltfMeshExporter.cs      # Mesh to GLTF (33.9KB)
-│   ├── GltfAnimationExporter.cs # Animation export (19.9KB)
-│   ├── TextureExporter.cs       # Texture export (7.3KB)
-│   ├── NodeHierarchyBuilder.cs  # GLTF node structure (17.5KB)
-│   └── GlbCoordinateConversion.cs  # Coordinate conversion (1KB)
+│   ├── GlbExporter.cs           # GLB format export
+│   ├── GltfMeshExporter.cs      # Mesh to GLTF
+│   ├── GltfAnimationExporter.cs # Animation export
+│   ├── TextureExporter.cs       # Texture export (streams PNG to disk)
+│   ├── NodeHierarchyBuilder.cs  # GLTF node structure
+│   └── GlbCoordinateConversion.cs  # Coordinate conversion
 │
 ├── Pipeline/
-│   ├── ExtractionOrchestrator.cs  # Main orchestrator (1239 lines)
+│   ├── ExtractionOrchestrator.cs  # Main orchestrator
 │   ├── ManifestManager.cs       # Version tracking
 │   ├── DeduplicationService.cs  # File deduplication
 │   └── PromotionService.cs      # Asset promotion
 │
-├── Models/
-│   └── (Data structures)
-│
-├── Providers/
-│   └── (Entity providers)
-│
-├── Progress/
-│   └── (Progress reporting)
-│
-├── Utilities/
-│   └── (Helper functions)
-│
-└── classdata.tpk                # Embedded TPK asset data (1.4MB)
-```
-
-**AssetRipper Integration:**
-
-AssetRipper is **fully vendored** as 52 separate projects. The AssetExtractor project references 8 of them:
-
-```xml
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Assets/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.IO.Files/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Numerics/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.SerializationLogic/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.SourceGenerated.Extensions/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Import/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Processing/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Export.Modules.Textures/..." />
+├── Models/                      # Data structures
+├── Providers/                   # Entity providers
+├── Progress/                    # Progress reporting
+└── Utilities/                   # Helper functions (incl. WrapperHeuristics)
 ```
 
 **Key Dependencies:**
 - `SharpGLTF.Toolkit` - GLTF/GLB export
 - `SixLabors.ImageSharp` - Image processing
-- `BCnEncoder.Net` - Texture encoding
-- AssetRipper NuGet packages (SourceGenerated, Primitives, TextureDecoder, etc.)
+- `BCnEncoder.Net` - Texture encoding (used by `UnityReader/Texture/`)
+- `K4os.Compression.LZ4` - LZ4 decompression for AssetBundle blocks (used by vendored AssetStudioMod core)
 
 **Namespaces:**
+- `AssetExtractor.Extraction`
+- `AssetExtractor.Export`
+- `AssetExtractor.Pipeline`
 - `AssetExtractor.Models`
 - `AssetExtractor.Progress`
 - `AssetExtractor.Providers`
 - `AssetExtractor.Utilities`
+- `UnityReader` (and `UnityReader.Internal`) for the reader surface
+- `AssetStudio*`, `AssetRipper.TextureDecoder*` for the vendored sources (unmodified upstream namespaces)
 
 ---
 
@@ -334,7 +314,7 @@ AssetRipper is **fully vendored** as 52 separate projects. The AssetExtractor pr
 
 **Arguments:**
 - `--game-path <path>` - Manually specify game installation path
-- `--output-path <path>` - Specify output directory (default: ./output)
+- `--output-path <path>` - Specify output directory (default: `output/` next to the CLI executable)
 - `--force, -f` - Force re-extraction even if version is cached
 - `--json-progress` - Output progress as JSON lines (for automation)
 - `--verbose` - Enable verbose logging (DEBUG level)
@@ -595,10 +575,10 @@ Builds for win-x64 and linux-x64. Outputs zip packages to `dist/`. Each contains
 - NotificationIcon.NET 1.2.8
 
 **AssetExtractor:**
-- SharpGLTF.Toolkit 1.0.5
-- SixLabors.ImageSharp 3.1.12
-- BCnEncoder.Net 2.2.1
-- AssetRipper packages
+- SharpGLTF.Toolkit
+- SixLabors.ImageSharp
+- BCnEncoder.Net (used by `UnityReader/Texture/`)
+- K4os.Compression.LZ4 (used by the vendored AssetStudioMod core)
 
 See [NOTICE.md](../NOTICE.md) for full license information.
 

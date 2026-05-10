@@ -10,8 +10,7 @@ backend/
 │   ├── Domain/                  # Pure domain entities (10 entity types)
 │   ├── Localization/            # Text resolution and scripting system
 │   ├── GameData/                # Game data loading and indexing
-│   ├── AssetExtractor/          # Unity asset extraction library
-│   │   └── AssetRipper/         # Vendored AssetRipper (52 projects)
+│   ├── AssetExtractor/          # Asset extraction pipeline; the Unity reader lives under UnityReader/
 │   ├── AssetExtractor.CLI/      # CLI executable for subprocess extraction
 │   └── API/                     # Web API and hosting
 │       ├── Endpoints/           # REST API endpoints (20 files)

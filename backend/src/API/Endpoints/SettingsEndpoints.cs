@@ -236,7 +236,7 @@ public static class SettingsEndpoints
             );
         }
 
-        // This ensures all 14 supported languages are available on first run
+        // This ensures all supported languages are available on first run
         if (locales.Count == 0)
         {
             locales = OverlayService.Instance.AvailableLocales

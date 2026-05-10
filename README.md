@@ -60,7 +60,7 @@ Some values can't be resolved because they depend on some runtime state or missi
 
 ### Multi-language support
 
-All 14 languages the game supports. Full translations for each locale.
+All 16 languages the game supports. Full translations for each locale.
 
 ### Auto game detection
 
@@ -69,7 +69,7 @@ First launch scans your Steam library folders and finds the game automatically. 
 ### Settings
 
 - **Theme** - Light, Dark, or match your system (default: Dark)
-- **Language** - all 14 supported languages
+- **Language** - all 16 supported languages
 - **Placeholder Resolution** - toggle the dynamic text calculation (default: on)
 - **Auto-Extract on Startup** - automatically extract assets when game path is set (default: on)
 - **Game Path** - current install location, switch between detected installs, or browse manually
@@ -129,14 +129,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and build instructi
 
 ## License
 
-GNU General Public License v3.0 - see [LICENSE](LICENSE).
+MIT License - see [LICENSE](LICENSE).
 
 Game assets and data are copyrighted by the developers. This is for personal use with legally owned game files only.
 
 ## Credits
 
 - Built with [.NET](https://dotnet.microsoft.com/), [React](https://react.dev/), [Vite](https://vitejs.dev/), and [React Router](https://reactrouter.com/)
-- Uses [AssetRipper](https://github.com/AssetRipper/AssetRipper) for Unity asset extraction
+- Unity asset reading via in-tree code that vendors a curated subset of [AssetStudioMod](https://github.com/aelurum/AssetStudio) and [AssetRipper.TextureDecoder](https://github.com/AssetRipper/TextureDecoder)
 - 3D rendering powered by [Three.js](https://threejs.org/)
 - Game data © [Heroes of Might and Magic: Olden Era](https://store.steampowered.com/app/3105440/Heroes_of_Might_and_Magic_Olden_Era/), developed by [Unfrozen](https://store.steampowered.com/developer/unfrozen), published by [Hooded Horse](https://store.steampowered.com/publisher/HoodedHorse)
 

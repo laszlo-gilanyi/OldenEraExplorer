@@ -4,9 +4,11 @@ The asset extraction system processes Unity asset bundles from Heroes of Might a
 
 ## Overview
 
-Unity games store assets in proprietary binary formats (`.assets`, `.resS`). This tool uses **AssetRipper** (vendored library) to:
-- Extract **Textures** → PNG images
-- Extract **3D Models** → GLB files (GLTF binary format)
+Unity games store assets in proprietary binary formats (`.assets`, `.resS`). The reader under `backend/src/AssetExtractor/UnityReader/` parses them; the surrounding pipeline then:
+- Extracts **Textures** → PNG images
+- Extracts **3D Models** → GLB files (GLTF binary format)
+
+The reader vendors curated subsets of [AssetStudioMod](https://github.com/aelurum/AssetStudio) and [AssetRipper.TextureDecoder](https://github.com/AssetRipper/TextureDecoder) for the low-level parsing primitives. The animation processor and texture-format glue are clean-room own code.
 
 ## Architecture
 
@@ -14,48 +16,47 @@ Unity games store assets in proprietary binary formats (`.assets`, `.resS`). Thi
 
 ```
 backend/src/
-├── AssetExtractor/              # Library project
-│   ├── AssetRipper/             # Vendored AssetRipper (52 projects)
-│   │   ├── Source/
-│   │   │   ├── AssetRipper.Assets/
-│   │   │   ├── AssetRipper.IO.Files/
-│   │   │   ├── AssetRipper.Import/
-│   │   │   └── ... (49 more projects)
-│   │   └── AssetRipper.slnx
+├── AssetExtractor/              # Pipeline library + Unity reader
+│   ├── UnityReader/             # In-house Unity SerializedFile / AssetBundle reader
+│   │   ├── Api/                 # Surface used by Extraction/ and Export/ (UnityScene, Mesh, Material, ...)
+│   │   ├── Internal/            # AnimationClipProcessor, PathChecksumCache, MicrosoftLoggerAdapter
+│   │   ├── Texture/             # Managed BC1/BC3/BC7 + RGB family decoders
+│   │   ├── Vendor/AssetStudio/  # Vendored AssetStudioMod core
+│   │   └── Vendor/AssetRipperTextureDecoder/  # Vendored AssetRipper.TextureDecoder
 │   │
 │   ├── Extraction/              # Asset extraction
-│   │   ├── AssetExtractor.cs    # Main extractor (38.4KB)
-│   │   ├── AssetLoader.cs       # Unity asset loading with resource path queries (23.9KB)
-│   │   ├── MaterialExtractor.cs # Material processing with texture fallback (33.4KB)
-│   │   ├── MeshDataExtractor.cs # Mesh extraction (32.0KB)
-│   │   ├── StandaloneTextureExtractor.cs  # Texture extraction (33.9KB)
-│   │   ├── AnimationDataExtractor.cs  # Animation data (19.8KB)
-│   │   ├── HierarchyExtractor.cs  # GameObject hierarchy (12.5KB)
-│   │   ├── BoneDataExtractor.cs # Skeleton extraction (7.6KB)
-│   │   └── ThreadSafeTextureCache.cs  # Texture caching (6.2KB)
+│   │   ├── AssetExtractor.cs
+│   │   ├── AssetLoader.cs       # Unity scene loading + resource-path queries
+│   │   ├── MaterialExtractor.cs
+│   │   ├── MeshDataExtractor.cs
+│   │   ├── StandaloneTextureExtractor.cs
+│   │   ├── AnimationDataExtractor.cs
+│   │   ├── HierarchyExtractor.cs
+│   │   ├── BoneDataExtractor.cs
+│   │   ├── ThreadSafeTextureCache.cs
+│   │   └── ShaderProperties.cs
 │   │
 │   ├── Export/                  # GLTF/GLB export
-│   │   ├── GlbExporter.cs       # GLB format export (22.7KB)
-│   │   ├── GltfMeshExporter.cs  # Mesh to GLTF (33.9KB)
-│   │   ├── GltfAnimationExporter.cs  # Animation export (19.9KB)
-│   │   ├── TextureExporter.cs   # Texture export (7.3KB)
-│   │   ├── NodeHierarchyBuilder.cs  # GLTF node structure (17.5KB)
-│   │   └── GlbCoordinateConversion.cs  # Coordinate conversion (1KB)
+│   │   ├── GlbExporter.cs
+│   │   ├── GltfMeshExporter.cs
+│   │   ├── GltfAnimationExporter.cs
+│   │   ├── TextureExporter.cs   # Streams PNG to disk + inline hash
+│   │   ├── NodeHierarchyBuilder.cs
+│   │   └── GlbCoordinateConversion.cs
 │   │
 │   ├── Pipeline/
-│   │   ├── ExtractionOrchestrator.cs  # Main orchestrator (1238 lines)
-│   │   ├── ManifestManager.cs   # Version tracking
-│   │   ├── DeduplicationService.cs  # File deduplication
-│   │   └── PromotionService.cs  # Asset promotion
+│   │   ├── ExtractionOrchestrator.cs
+│   │   ├── ManifestManager.cs
+│   │   ├── DeduplicationService.cs
+│   │   └── PromotionService.cs
 │   │
 │   ├── Models/
 │   ├── Providers/
 │   ├── Progress/
-│   ├── Utilities/
-│   └── classdata.tpk            # Embedded TPK asset data (1.4MB)
+│   └── Utilities/
 │
 └── AssetExtractor.CLI/          # CLI executable
-    ├── Program.cs               # Main CLI entry (584 lines)
+    ├── Program.cs               # Main CLI entry
     ├── CliConfig.cs             # Argument parsing
     └── AssetExtractor.CLI.csproj
 ```
@@ -81,41 +82,25 @@ API Process                     CLI Process
 
 ---
 
-## AssetRipper Integration
+## Unity Reader
 
-### Vendored Code Location
+Lives under `backend/src/AssetExtractor/UnityReader/`. Top-level namespace: `UnityReader`.
 
-AssetRipper is **fully vendored** at:
-```
-/backend/src/AssetExtractor/AssetRipper/
-```
+**Public surface (`Api/`):** `UnityScene`, `GameObject`, `Transform`, `Mesh`, `Material`, `Shader`, `MeshRenderer`, `SkinnedMeshRenderer`, `MeshFilter`, `Animator`, `AnimatorController`, `AnimatorOverrideController`, `AnimationClip`, `MeshGeometry`, `BoneCurves`, `Vector3Curve`, `QuaternionCurve`, `UnityTexture`.
 
-**Structure:**
-- `AssetRipper/Source/` - 52 C# projects
-- `AssetRipper/AssetRipper.slnx` - Separate solution
+**Vendored sources:**
+- `Vendor/AssetStudio/` - curated AssetStudioMod subset (SerializedFile reader, BundleFile reader, vertex/index parsing, texture-format enum, animation-clip primitives).
+- `Vendor/AssetRipperTextureDecoder/` - managed BC1/BC3/BC7 decoders.
 
-**Referenced Projects (8 out of 52):**
-```xml
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Assets/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.IO.Files/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Numerics/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.SerializationLogic/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.SourceGenerated.Extensions/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Import/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Processing/..." />
-<ProjectReference Include="AssetRipper/Source/AssetRipper.Export.Modules.Textures/..." />
-```
+**Clean-room own code (`Internal/`):**
+- `AnimationClipProcessor` - decodes streamed/dense/constant clip data into per-bone `BoneCurves`.
+- `PathChecksumCache` - reverse-lookup from CRC32 path-hash to slash-separated transform path, per-Animator.
 
-**Also uses NuGet packages:**
-- `AssetRipper.SourceGenerated v1.3.9`
-- `AssetRipper.Primitives v3.2.0`
-- `AssetRipper.TextureDecoder v2.5.0`
-- `AssetRipper.Tpk v1.1.0`
-
-**Additional Dependencies:**
-- `SharpGLTF.Toolkit` - GLTF/GLB export
-- `SixLabors.ImageSharp` - Image processing
-- `BCnEncoder.Net` - Texture encoding
+**Relevant NuGet dependencies:**
+- `K4os.Compression.LZ4` - LZ4 for AssetBundle blocks
+- `BCnEncoder.Net` - BC1/BC3/BC7 managed decode
+- `SharpGLTF.Toolkit` - GLB export
+- `SixLabors.ImageSharp` - PNG encode + image processing
 
 ---
 
@@ -151,7 +136,7 @@ AssetRipper is **fully vendored** at:
 ### Arguments
 
 - `--game-path <path>` - Manual game path override
-- `--output-path <path>` - Output directory (default: `./output`)
+- `--output-path <path>` - Output directory (default: `output/` next to the CLI executable)
 - `--force, -f` - Force re-extraction (ignore cache)
 - `--json-progress` - JSON line output for subprocess integration
 - `--verbose` - DEBUG level logging
@@ -225,9 +210,9 @@ ManifestManager → cache_manifest.json (tracking)
 ### Texture Extraction
 
 **Process:**
-1. Load asset bundles using AssetRipper
-2. Find all `ITexture2D` objects
-3. Convert to PNG format
+1. Load asset files via `UnityScene.Load(...)`
+2. Enumerate every supported `Texture2D`
+3. Decode to RGBA8, encode to PNG
 4. Save with versioned path: `Assets-{version}/Assets/Resources/icons/{category}/{name}.png`
 5. Record in manifest
 
@@ -456,7 +441,7 @@ if (config.JsonProgress)
     ProgressBar.JsonOutputMode = true;
 }
 
-// Run extraction
+// Run extraction (UnityScene.LoggerFactory must be configured before this point)
 var orchestrator = new ExtractionOrchestrator(config.OutputPath, logger, loggerFactory);
 var result = orchestrator.ExtractEverything(config.GamePath, config.Force);
 
@@ -641,7 +626,7 @@ Extracting units...
 
 - GameBundle loaded ONCE (reused across phases)
 - Asset caching in AssetLoader (prefabs, pathIds, resource paths)
-- Texture conversion lock (GetImageData not thread-safe)
+- Texture decode lock (vendor file-stream reads not thread-safe)
 - Deduplication prevents duplicate GLB files
 
 ### Timing
@@ -752,7 +737,6 @@ if (cache.TryGet(textureName, out var cached)) {
 
 **Causes:**
 - Too many parallel tasks
-- Memory leak in AssetRipper
 - Very large asset bundles
 
 **Solutions:**
@@ -788,7 +772,8 @@ if (cache.TryGet(textureName, out var cached)) {
 
 ## Technical References
 
-- [AssetRipper Documentation](https://github.com/AssetRipper/AssetRipper)
+- [AssetStudioMod](https://github.com/aelurum/AssetStudio) - Upstream of vendored Unity reader code
+- [AssetRipper.TextureDecoder](https://github.com/AssetRipper/TextureDecoder) - Upstream of vendored BC1/BC3/BC7 decoder
 - [GLTF Specification](https://www.khronos.org/gltf/)
 - [Unity Asset Bundle Format](https://docs.unity3d.com/Manual/AssetBundlesIntro.html)
 - [SharpGLTF Library](https://github.com/vpenades/SharpGLTF)
