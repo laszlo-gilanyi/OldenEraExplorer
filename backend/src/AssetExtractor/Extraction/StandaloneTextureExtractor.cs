@@ -200,7 +200,14 @@ public class StandaloneTextureExtractor : IDisposable
                 fileName.Contains("rang") ||
                 fileName.StartsWith("property 1=") ||
                 fileName.Contains("sky") ||
-                fileName.Contains("skybox"))
+                fileName.Contains("skybox") ||
+                // Faction laws panel assets used by the UI:
+                // parchment background + curl rolls (Scroll_Center / Scroll_Left / Scroll_Right)
+                fileName.StartsWith("scroll_") ||
+                // law cell frame and pip badges (Frame_Law_Back, Frame_Law_Top,
+                // Frame_LawLevel, Frame_LawLevel_Loced), plus pip dots LevelPoint*
+                fileName.StartsWith("frame_law") ||
+                fileName.StartsWith("levelpoint"))
             {
                 return true;
             }

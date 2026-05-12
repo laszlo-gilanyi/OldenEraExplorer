@@ -437,6 +437,23 @@ export interface FactionLawDetailDto {
   icon: string | null;
   levels: FactionLawLevelDto[] | null;
   statLabels?: FactionLawStatLabelsDto;
+  layout?: FactionLawLineDto[] | null;
+}
+
+export interface FactionLawLineDto {
+  countToUnlock: number;
+  groups: FactionLawGroupDto[];
+}
+
+export interface FactionLawGroupDto {
+  laws: FactionLawLayoutEntryDto[];
+}
+
+export interface FactionLawLayoutEntryDto {
+  id: string;
+  name: string | null;
+  icon: string | null;
+  levelCount: number;
 }
 
 export interface FactionLawStatLabelsDto {

@@ -17,7 +17,24 @@ public record FactionLawDetailDto(
     string? FactionIcon,
     string? Icon,
     IReadOnlyList<FactionLawLevelDto>? Levels,
-    FactionLawStatLabelsDto? StatLabels = null
+    FactionLawStatLabelsDto? StatLabels = null,
+    IReadOnlyList<FactionLawLineDto>? Layout = null
+);
+
+public record FactionLawLineDto(
+    int CountToUnlock,
+    IReadOnlyList<FactionLawGroupDto> Groups
+);
+
+public record FactionLawGroupDto(
+    IReadOnlyList<FactionLawLayoutEntryDto> Laws
+);
+
+public record FactionLawLayoutEntryDto(
+    string Id,
+    string? Name,
+    string? Icon,
+    int LevelCount
 );
 
 public record FactionLawStatLabelsDto(

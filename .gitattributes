@@ -30,4 +30,4 @@
 *.bat text eol=crlf
 
 # Mark vendored/third-party code to exclude from GitHub language statistics
-backend/src/AssetExtractor/AssetRipper/** linguist-vendored
+backend/src/AssetExtractor/UnityReader/Vendor/** linguist-vendored

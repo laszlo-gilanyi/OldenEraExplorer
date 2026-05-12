@@ -134,7 +134,7 @@ public static class FactionLawsEndpoints
             ));
         }
 
-        var dto = MapToDetail(factionLaw, resolver, langIndex, locale, factionMapper);
+        var dto = MapToDetail(factionLaw, resolver, langIndex, locale, factionMapper, data.FactionLawIndex);
         return Results.Ok(dto);
     }
 
@@ -161,7 +161,8 @@ public static class FactionLawsEndpoints
         ITextResolver resolver,
         Localization.Indexing.LangIndex langIndex,
         string locale,
-        FactionMapper factionMapper)
+        FactionMapper factionMapper,
+        FactionLawIndex factionLawIndex)
     {
         // Base context for faction law
         var baseCtx = new ResolutionContext(locale) { LawId = law.Id };
@@ -195,6 +196,39 @@ public static class FactionLawsEndpoints
             Cost: TryResolveText(resolver, "label_cost", baseCtx) ?? "Cost"
         );
 
+        List<FactionLawLineDto>? layoutDto = null;
+        if (!string.IsNullOrEmpty(law.Faction)
+            && factionLawIndex.Layouts.TryGetValue(law.Faction, out var lines))
+        {
+            layoutDto = new List<FactionLawLineDto>(lines.Count);
+            foreach (var line in lines)
+            {
+                var groupDtos = new List<FactionLawGroupDto>(line.Groups.Count);
+                foreach (var group in line.Groups)
+                {
+                    var entries = new List<FactionLawLayoutEntryDto>(group.LawIds.Count);
+                    foreach (var lawId in group.LawIds)
+                    {
+                        string? entryName = null;
+                        string? entryIcon = null;
+                        int entryLevelCount = 0;
+                        if (factionLawIndex.FactionLaws.TryGetValue(lawId, out var entryRec))
+                        {
+                            var entryCtx = new ResolutionContext(locale) { LawId = entryRec.Id };
+                            entryName = TryResolveText(resolver, entryRec.NameSid, entryCtx)
+                                ?? langIndex.ResolveText(entryRec.NameSid);
+                            if (!string.IsNullOrEmpty(entryRec.Icon))
+                                entryIcon = $"icons/fraction_laws/{entryRec.Icon}";
+                            entryLevelCount = entryRec.ParametersPerLevel.Count;
+                        }
+                        entries.Add(new FactionLawLayoutEntryDto(lawId, entryName, entryIcon, entryLevelCount));
+                    }
+                    groupDtos.Add(new FactionLawGroupDto(entries));
+                }
+                layoutDto.Add(new FactionLawLineDto(line.CountToUnlock, groupDtos));
+            }
+        }
+
         return new FactionLawDetailDto(
             Id: law.Id,
             Name: law.NameSid,
@@ -204,7 +238,8 @@ public static class FactionLawsEndpoints
             FactionIcon: factionMapper.GetFactionIconPath(law.Faction),
             Icon: string.IsNullOrEmpty(law.Icon) ? null : $"icons/fraction_laws/{law.Icon}",
             Levels: levels.Count > 0 ? levels : null,
-            StatLabels: statLabels
+            StatLabels: statLabels,
+            Layout: layoutDto
         );
     }
 }

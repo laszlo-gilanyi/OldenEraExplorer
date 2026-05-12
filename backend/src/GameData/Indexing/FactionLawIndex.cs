@@ -22,16 +22,30 @@ public sealed class FactionLawIndex
         string Faction,
         List<LevelParameters> ParametersPerLevel);
 
+    public sealed record FactionLawGroup(List<string> LawIds);
+
+    public sealed record FactionLawLine(int CountToUnlock, List<FactionLawGroup> Groups);
+
     private readonly Dictionary<string, FactionLawRecord> _factionLaws = new();
     public IReadOnlyDictionary<string, FactionLawRecord> FactionLaws => _factionLaws;
+
+    private readonly Dictionary<string, List<FactionLawLine>> _layouts = new(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyDictionary<string, List<FactionLawLine>> Layouts => _layouts;
 
     public void Scan(string streamingAssetsRoot)
     {
         _factionLaws.Clear();
+        _layouts.Clear();
         var zipPath = Path.Combine(streamingAssetsRoot, "Core.zip");
         if (!File.Exists(zipPath)) return;
 
         using var zip = ZipFile.OpenRead(zipPath);
+        ScanLaws(zip);
+        ScanLayouts(zip);
+    }
+
+    private void ScanLaws(ZipArchive zip)
+    {
         var entries = zip.Entries
             .Where(e => e.FullName.StartsWith("DB/fractions_laws/fractions_laws_table_", StringComparison.OrdinalIgnoreCase)
                 && e.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
@@ -110,6 +124,77 @@ public sealed class FactionLawIndex
             catch
             {
                 // Continue processing other entries - don't let one bad file stop the scan
+            }
+        }
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex FractionFilePattern = new(
+        @"^DB/fractions/\d+_([a-z]+)\.json$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    private void ScanLayouts(ZipArchive zip)
+    {
+        foreach (var entry in zip.Entries)
+        {
+            if (entry.Length == 0) continue;
+            var match = FractionFilePattern.Match(entry.FullName);
+            if (!match.Success) continue;
+
+            try
+            {
+                var faction = match.Groups[1].Value.ToLowerInvariant();
+
+                using var stream = entry.Open();
+                using var reader = new StreamReader(stream, Encoding.UTF8);
+                using var doc = JsonDocument.Parse(reader.ReadToEnd());
+
+                if (!doc.RootElement.TryGetProperty("array", out var array)) continue;
+
+                foreach (var el in array.EnumerateArray())
+                {
+                    if (!el.TryGetProperty("fractionLawsLines", out var linesArr)
+                        || linesArr.ValueKind != JsonValueKind.Array)
+                        continue;
+
+                    var lines = new List<FactionLawLine>();
+                    foreach (var lineEl in linesArr.EnumerateArray())
+                    {
+                        int countToUnlock = lineEl.TryGetProperty("countToUnlock", out var cP)
+                            && cP.ValueKind == JsonValueKind.Number ? cP.GetInt32() : 0;
+
+                        var groups = new List<FactionLawGroup>();
+                        if (lineEl.TryGetProperty("groups", out var groupsArr)
+                            && groupsArr.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var groupEl in groupsArr.EnumerateArray())
+                            {
+                                var lawIds = new List<string>();
+                                if (groupEl.TryGetProperty("laws", out var lawsArr)
+                                    && lawsArr.ValueKind == JsonValueKind.Array)
+                                {
+                                    foreach (var lawEl in lawsArr.EnumerateArray())
+                                    {
+                                        var lid = lawEl.GetString();
+                                        if (!string.IsNullOrWhiteSpace(lid))
+                                            lawIds.Add(lid);
+                                    }
+                                }
+                                groups.Add(new FactionLawGroup(lawIds));
+                            }
+                        }
+
+                        lines.Add(new FactionLawLine(countToUnlock, groups));
+                    }
+
+                    if (lines.Count > 0)
+                        _layouts[faction] = lines;
+
+                    break; // single faction per file
+                }
+            }
+            catch
+            {
+                // Continue on bad file
             }
         }
     }

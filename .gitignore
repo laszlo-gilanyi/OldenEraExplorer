@@ -1,11 +1,7 @@
 # .NET / C#
 bin/
 obj/
-*.user
-*.suo
 *.cache
-.vs/
-*.DotSettings.user
 
 # Frontend / Node
 node_modules/
@@ -38,17 +34,11 @@ backend/src/AssetExtractor.CLI/output/
 backend/src/API/wwwroot/
 
 # IDE
-.idea/
 .vscode/
-*.swp
-*.swo
-*~
 
-# OS
-.DS_Store
+# OS (Windows contributors only, no macOS)
 Thumbs.db
 
 # Logs
 *.log
 logs/
-.aider*
