@@ -1,4 +1,5 @@
 #nullable enable
+using System.Text.RegularExpressions;
 using AssetExtractor.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -158,9 +159,8 @@ public class UnitListProvider : IPrefabListProvider
 
         var lowerName = name.ToLowerInvariant();
 
-        if (lowerName.EndsWith("_map", StringComparison.Ordinal) ||
-            lowerName.EndsWith("_mt", StringComparison.Ordinal) ||
-            lowerName.EndsWith("_mat", StringComparison.Ordinal))
+        // Skip map/material variants
+        if (Regex.IsMatch(lowerName, @"_(map|mt|mat)(_\d+)?$"))
         {
             return false;
         }
