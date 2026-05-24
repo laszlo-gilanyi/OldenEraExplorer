@@ -7,6 +7,7 @@ import {
 } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -23,9 +24,40 @@ export interface ModelViewerHandle {
   takeScreenshot: () => string | null;
   resetCamera: () => void;
   setCameraPreset: (preset: CameraPreset) => void;
+  getCameraState: () => CameraSyncState | null;
+  applyCameraState: (state: CameraSyncState) => void;
+  exportGlb: () => Promise<ArrayBuffer | null>;
 }
 
 export type CameraPreset = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' | 'isometric';
+
+export interface CameraSyncState {
+  position: [number, number, number];
+  target: [number, number, number];
+  zoom: number;
+  // Identifies the viewer that produced this state so each viewer can ignore echoes of its own updates.
+  sourceId?: string;
+}
+
+export interface TextureSlot {
+  id: string;
+  name: string;
+  materialNames: string[];
+  channel?: TextureChannel;
+  baseSlotId?: string;
+  optional?: boolean;
+  // The GLB-embedded image name backing this slot (no extension). Undefined for optional/synthetic
+  // slots that have no source texture.
+  sourceTextureName?: string;
+}
+
+type TextureChannel = 'map' | 'emissiveMap';
+
+interface TextureSlotTarget {
+  materialUuid: string;
+  channel: TextureChannel;
+  sourceTexture: THREE.Texture;
+}
 
 interface BoneVertexMapping {
   skinnedMesh: THREE.SkinnedMesh;
@@ -45,6 +77,20 @@ interface ModelViewerProps {
   statsContainer?: HTMLElement | null;
   unitScale?: number | null;
   faction?: string | null;
+  // Single legacy texture override applied to the first base-color slot. Prefer customTextureUrls.
+  customTextureUrl?: string | null;
+  // Per-slot texture overrides keyed by TextureSlot.id (returned via onTextureSlotsReady).
+  customTextureUrls?: Record<string, string | null | undefined>;
+  // Fired after the model is loaded with the list of upload-targetable texture slots.
+  onTextureSlotsReady?: (slots: TextureSlot[]) => void;
+  // When false, the viewer does not write back to the global Zustand store (used by the secondary
+  // viewer in compare mode so it does not fight the primary for materials/scene/animations state).
+  syncStore?: boolean;
+  // Stable identifier tagged on emitted camera state to break sync feedback loops between viewers.
+  cameraSyncId?: string;
+  // Inbound camera state from a peer viewer. Ignored when its sourceId matches this viewer's id.
+  cameraSyncState?: CameraSyncState | null;
+  onCameraSyncStateChange?: (state: CameraSyncState) => void;
 }
 
 class ThreeViewer {
@@ -66,6 +112,9 @@ class ThreeViewer {
   private defaultCameraTarget: THREE.Vector3 | null = null;
   private defaultCameraDistance: number = 5;
   private mixer: THREE.AnimationMixer | null = null;
+  // Animation clips kept alongside the model so a later GLB export can include them. Cleared together
+  // with the content in clear()/clearModel().
+  private animationClips: THREE.AnimationClip[] = [];
   private actions: Map<string, THREE.AnimationAction> = new Map();
   private platformMixer: THREE.AnimationMixer | null = null;
   private platformActions: Map<string, THREE.AnimationAction> = new Map();
@@ -89,6 +138,27 @@ class ThreeViewer {
   private skyBackgroundPosition = 'center center';
 
   private materialRegistry: Map<string, THREE.Material> = new Map();
+  // Pre-computed targets per slot id so user texture uploads can be routed to the right material+channel.
+  private textureSlotTargets: Map<string, TextureSlotTarget[]> = new Map();
+  // Cache of loaded user textures, keyed by slot id. Surviving across compare toggles means the
+  // primary canvas does not need to reload from blob URLs every time the user enters or exits
+  // compare with the same custom textures already in place.
+  private customTexturePool: Map<string, { url: string; texture: THREE.Texture }> = new Map();
+  // Race guard: a stale TextureLoader resolution from a previous invocation must not overwrite a newer one.
+  private customTextureLoadVersion = 0;
+  private originalMaterialStates: Map<
+    string,
+    {
+      map: THREE.Texture | null;
+      emissiveMap: THREE.Texture | null;
+      emissive: THREE.Color | null;
+      emissiveIntensity: number | null;
+      alphaTest: number;
+      transparent: boolean;
+      depthWrite: boolean;
+      side: THREE.Side;
+    }
+  > = new Map();
   private backgroundColor = new THREE.Color('#191919');
 
   constructor(container: HTMLElement, statsContainer?: HTMLElement | null) {
@@ -239,6 +309,7 @@ class ThreeViewer {
     let animationStates: AnimationState[] = [];
     if (clips.length > 0) {
       this.mixer = new THREE.AnimationMixer(modelScene);
+      this.animationClips = clips;
 
       // Find default animation (prefer "idle")
       const lowerNames = clips.map((clip) => clip.name.toLowerCase());
@@ -317,7 +388,85 @@ class ThreeViewer {
     onAnimationsReady?.(animationStates);
 
     const materials: MaterialInfo[] = [];
+    const textureSlots: TextureSlot[] = [];
     const seenMaterials = new Set<string>();
+    // Group materials that share a source texture under a single slot so users only upload once.
+    const baseSlotByTextureUuid = new Map<string, TextureSlot>();
+    const emissionSlotByBaseSlotId = new Map<string, TextureSlot>();
+    let emissionSlotCount = 0;
+
+    this.textureSlotTargets.clear();
+
+    const addTextureSlotTarget = (
+      slot: TextureSlot,
+      material: THREE.Material,
+      channel: TextureChannel,
+      sourceTexture: THREE.Texture,
+    ) => {
+      const materialName = material.name?.trim() || 'Unnamed Material';
+      if (!slot.materialNames.includes(materialName)) {
+        slot.materialNames.push(materialName);
+      }
+      const currentTargets = this.textureSlotTargets.get(slot.id) ?? [];
+      currentTargets.push({ materialUuid: material.uuid, channel, sourceTexture });
+      this.textureSlotTargets.set(slot.id, currentTargets);
+    };
+
+    const getBaseColorSlot = (material: THREE.Material, texture: THREE.Texture): TextureSlot => {
+      let slot = baseSlotByTextureUuid.get(texture.uuid);
+      if (!slot) {
+        const slotNumber = textureSlots.length + 1;
+        const textureName = texture.name?.trim();
+        const materialName = material.name?.trim();
+        slot = {
+          id: `baseColor:${baseSlotByTextureUuid.size}`,
+          name: textureName
+            ? `${textureName} Diffuse`
+            : materialName
+              ? `${materialName} Diffuse`
+              : `Diffuse ${slotNumber}`,
+          materialNames: [],
+          channel: 'map',
+          sourceTextureName: textureName || undefined,
+        };
+        baseSlotByTextureUuid.set(texture.uuid, slot);
+        textureSlots.push(slot);
+      }
+      return slot;
+    };
+
+    // Optional emission slots are pre-registered as targets but not surfaced in textureSlots.
+    // The UI synthesizes matching virtual slots with the same id pattern when the user toggles them on.
+    const getOptionalEmissionSlot = (baseSlot: TextureSlot): TextureSlot => {
+      const baseName = baseSlot.name.replace(/\s*Diffuse$/i, '').trim();
+      return {
+        id: `optionalEmissive:${baseSlot.id}`,
+        name: baseName ? `${baseName} Emission` : 'Emission',
+        materialNames: [...baseSlot.materialNames],
+        channel: 'emissiveMap',
+        baseSlotId: baseSlot.id,
+        optional: true,
+      };
+    };
+
+    const getEmissionSlot = (baseSlot: TextureSlot, emissiveTexture: THREE.Texture): TextureSlot => {
+      let slot = emissionSlotByBaseSlotId.get(baseSlot.id);
+      if (!slot) {
+        const baseName = baseSlot.name.replace(/\s*Diffuse$/i, '').trim();
+        const textureName = emissiveTexture.name?.trim();
+        slot = {
+          id: `emissive:${emissionSlotCount++}`,
+          name: baseName ? `${baseName} Emission` : 'Emission',
+          materialNames: [],
+          channel: 'emissiveMap',
+          baseSlotId: baseSlot.id,
+          sourceTextureName: textureName || undefined,
+        };
+        emissionSlotByBaseSlotId.set(baseSlot.id, slot);
+        textureSlots.push(slot);
+      }
+      return slot;
+    };
 
     modelScene.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
@@ -325,6 +474,36 @@ class ThreeViewer {
 
         mats.forEach((mat) => {
           this.materialRegistry.set(mat.uuid, mat);
+
+          if (this.hasTextureMap(mat) && mat.map) {
+            const baseSlot = getBaseColorSlot(mat, mat.map);
+            addTextureSlotTarget(baseSlot, mat, 'map', mat.map);
+            // Pre-register an optional emission target on the base texture so a user-supplied glow map
+            // can be applied even to materials that ship with no emissiveMap.
+            addTextureSlotTarget(getOptionalEmissionSlot(baseSlot), mat, 'emissiveMap', mat.map);
+
+            if (this.hasEmissiveTextureMap(mat) && mat.emissiveMap) {
+              const emissionSlot = getEmissionSlot(baseSlot, mat.emissiveMap);
+              addTextureSlotTarget(emissionSlot, mat, 'emissiveMap', mat.emissiveMap);
+            }
+          } else if (this.hasEmissiveTextureMap(mat) && mat.emissiveMap) {
+            const slotNumber = textureSlots.length + 1;
+            const textureName = mat.emissiveMap.name?.trim();
+            const materialName = mat.name?.trim();
+            const slot: TextureSlot = {
+              id: `emissive:${emissionSlotCount++}`,
+              name: textureName
+                ? `${textureName} Emission`
+                : materialName
+                  ? `${materialName} Emission`
+                  : `Emission ${slotNumber}`,
+              materialNames: [],
+              channel: 'emissiveMap',
+              sourceTextureName: textureName || undefined,
+            };
+            textureSlots.push(slot);
+            addTextureSlotTarget(slot, mat, 'emissiveMap', mat.emissiveMap);
+          }
 
           if (!seenMaterials.has(mat.uuid)) {
             seenMaterials.add(mat.uuid);
@@ -355,7 +534,7 @@ class ThreeViewer {
       }
     });
 
-    return { materials, sceneGraph: this.buildSceneGraph(modelScene) };
+    return { materials, sceneGraph: this.buildSceneGraph(modelScene), textureSlots };
   }
 
   private buildSceneGraph(obj: THREE.Object3D): SceneNode {
@@ -389,7 +568,230 @@ class ThreeViewer {
     return node;
   }
 
+  private hasTextureMap(
+    material: THREE.Material,
+  ): material is THREE.Material & { map: THREE.Texture | null } {
+    return 'map' in material;
+  }
+
+  private hasEmissiveTextureMap(
+    material: THREE.Material,
+  ): material is THREE.Material & {
+    emissiveMap: THREE.Texture | null;
+    emissive?: THREE.Color;
+    emissiveIntensity?: number;
+  } {
+    return 'emissiveMap' in material;
+  }
+
+  private saveOriginalMaterialState(material: THREE.Material) {
+    if (this.originalMaterialStates.has(material.uuid)) return;
+
+    const emissiveMaterial = this.hasEmissiveTextureMap(material) ? material : null;
+    const emissive =
+      emissiveMaterial?.emissive instanceof THREE.Color ? emissiveMaterial.emissive.clone() : null;
+
+    this.originalMaterialStates.set(material.uuid, {
+      map: this.hasTextureMap(material) ? material.map ?? null : null,
+      emissiveMap: emissiveMaterial ? emissiveMaterial.emissiveMap ?? null : null,
+      emissive,
+      emissiveIntensity:
+        typeof emissiveMaterial?.emissiveIntensity === 'number'
+          ? emissiveMaterial.emissiveIntensity
+          : null,
+      alphaTest: material.alphaTest,
+      transparent: material.transparent,
+      depthWrite: material.depthWrite,
+      side: material.side,
+    });
+  }
+
+  // Mirror the sampler / transform parameters of the texture this one is replacing, so the
+  // uploaded image lines up under the same UVs as the original.
+  private configureUploadedTexture(
+    texture: THREE.Texture,
+    sourceTexture: THREE.Texture,
+    channel: TextureChannel,
+  ) {
+    texture.colorSpace =
+      channel === 'emissiveMap'
+        ? THREE.SRGBColorSpace
+        : sourceTexture.colorSpace || THREE.SRGBColorSpace;
+    texture.flipY = true;
+
+    texture.wrapS = sourceTexture.wrapS;
+    texture.wrapT = sourceTexture.wrapT;
+
+    texture.offset.copy(sourceTexture.offset);
+    texture.repeat.copy(sourceTexture.repeat);
+    texture.center.copy(sourceTexture.center);
+    texture.rotation = sourceTexture.rotation;
+
+    texture.matrixAutoUpdate = sourceTexture.matrixAutoUpdate;
+    if (!sourceTexture.matrixAutoUpdate) {
+      texture.matrix.copy(sourceTexture.matrix);
+    }
+
+    texture.generateMipmaps = sourceTexture.generateMipmaps;
+    texture.minFilter = sourceTexture.minFilter;
+    texture.magFilter = sourceTexture.magFilter;
+    texture.anisotropy = sourceTexture.anisotropy;
+
+    texture.needsUpdate = true;
+  }
+
+  private applyTextureToMaterial(
+    material: THREE.Material,
+    channel: TextureChannel,
+    texture: THREE.Texture,
+  ) {
+    if (channel === 'map') {
+      if (!this.hasTextureMap(material)) return;
+      material.map = texture;
+      material.needsUpdate = true;
+      return;
+    }
+
+    if (!this.hasEmissiveTextureMap(material)) return;
+
+    material.emissiveMap = texture;
+
+    // PBR materials only sample the emissiveMap when emissive color is non-black. Promote it to
+    // white so a user-supplied glow map actually shows; the original color is restored on clear.
+    if (material.emissive instanceof THREE.Color) {
+      const isBlack =
+        material.emissive.r === 0 && material.emissive.g === 0 && material.emissive.b === 0;
+      if (isBlack) {
+        material.emissive.setRGB(1, 1, 1);
+      }
+    }
+
+    if (typeof material.emissiveIntensity === 'number' && material.emissiveIntensity <= 0) {
+      material.emissiveIntensity = 1;
+    }
+
+    material.needsUpdate = true;
+  }
+
+  private restoreOriginalMaterialStates() {
+    this.materialRegistry.forEach((material) => {
+      const state = this.originalMaterialStates.get(material.uuid);
+      if (!state) return;
+
+      if (this.hasTextureMap(material)) {
+        material.map = state.map;
+      }
+
+      if (this.hasEmissiveTextureMap(material)) {
+        material.emissiveMap = state.emissiveMap;
+        if (state.emissive && material.emissive instanceof THREE.Color) {
+          material.emissive.copy(state.emissive);
+        }
+        if (state.emissiveIntensity !== null && typeof material.emissiveIntensity === 'number') {
+          material.emissiveIntensity = state.emissiveIntensity;
+        }
+      }
+
+      material.alphaTest = state.alphaTest;
+      material.transparent = state.transparent;
+      material.depthWrite = state.depthWrite;
+      material.side = state.side;
+      material.needsUpdate = true;
+    });
+
+    this.originalMaterialStates.clear();
+  }
+
+  private disposeCustomTexturePool() {
+    this.customTexturePool.forEach((entry) => entry.texture.dispose());
+    this.customTexturePool.clear();
+  }
+
+  async setCustomTextureUrls(urls: Record<string, string | null | undefined> = {}) {
+    const version = ++this.customTextureLoadVersion;
+    const entries = Object.entries(urls).filter(
+      (entry): entry is [string, string] => Boolean(entry[1]),
+    );
+
+    if (entries.length === 0) {
+      // Strip customs from materials but keep the pool intact. A subsequent call with the same
+      // URLs (typical compare on -> compare off) can then reuse the cached THREE.Texture
+      // instances instead of going through TextureLoader again.
+      this.restoreOriginalMaterialStates();
+      return;
+    }
+
+    // Evict cached entries whose slot has been removed since the last apply (e.g., a per-slot
+    // reset). Entries whose URL changed get evicted further down before the fresh load.
+    const wantedSlots = new Set(entries.map(([slotId]) => slotId));
+    this.customTexturePool.forEach((entry, slotId) => {
+      if (!wantedSlots.has(slotId)) {
+        entry.texture.dispose();
+        this.customTexturePool.delete(slotId);
+      }
+    });
+
+    const loader = new THREE.TextureLoader();
+    const slotEntries = await Promise.all(
+      entries.map(async ([slotId, url]) => {
+        const cached = this.customTexturePool.get(slotId);
+        if (cached?.url === url) {
+          return { slotId, url, texture: cached.texture, fromCache: true };
+        }
+        if (cached) cached.texture.dispose();
+        const texture = await loader.loadAsync(url);
+        return { slotId, url, texture, fromCache: false };
+      }),
+    );
+
+    if (this.disposed || version !== this.customTextureLoadVersion) {
+      // A newer call has superseded ours. Drop any textures we freshly loaded; cached textures
+      // belong to the pool and stay there for the newer call to reuse.
+      slotEntries.forEach((entry) => {
+        if (!entry.fromCache) entry.texture.dispose();
+      });
+      return;
+    }
+
+    // Publish newly-loaded textures to the pool (cache hits are already there).
+    slotEntries.forEach(({ slotId, url, texture, fromCache }) => {
+      if (!fromCache) this.customTexturePool.set(slotId, { url, texture });
+    });
+
+    this.restoreOriginalMaterialStates();
+
+    const configuredSlots = new Set<string>();
+    slotEntries.forEach(({ slotId, texture: replacementTexture }) => {
+      const targets = this.textureSlotTargets.get(slotId);
+      if (!targets?.length) return;
+
+      targets.forEach((target) => {
+        const material = this.materialRegistry.get(target.materialUuid);
+        if (!material) return;
+
+        this.saveOriginalMaterialState(material);
+
+        if (!configuredSlots.has(slotId)) {
+          this.configureUploadedTexture(replacementTexture, target.sourceTexture, target.channel);
+          configuredSlots.add(slotId);
+        }
+
+        this.applyTextureToMaterial(material, target.channel, replacementTexture);
+      });
+    });
+  }
+
+  // Back-compat shim for callers that only target the first base-color slot.
+  async setCustomTextureUrl(url: string | null) {
+    await this.setCustomTextureUrls(url ? { 'baseColor:0': url } : {});
+  }
+
   private clear() {
+    // Restore before disposing materials so we do not leave a now-disposed custom texture
+    // referenced by the material slot on the way out.
+    this.restoreOriginalMaterialStates();
+    this.disposeCustomTexturePool();
+
     if (this.content) {
       this.scene.remove(this.content);
 
@@ -431,9 +833,11 @@ class ThreeViewer {
       this.mixer = null;
     }
     this.actions.clear();
+    this.animationClips = [];
 
     // Clear material registry
     this.materialRegistry.clear();
+    this.textureSlotTargets.clear();
 
     // Clear platform
     if (this.platformScene) {
@@ -451,6 +855,9 @@ class ThreeViewer {
   // Clear only the model content, keeping the platform intact
   // Used when switching models in Game Preview mode
   private clearModel() {
+    this.restoreOriginalMaterialStates();
+    this.disposeCustomTexturePool();
+
     // Dispose of content but keep platform
     if (this.content) {
       this.scene.remove(this.content);
@@ -479,9 +886,11 @@ class ThreeViewer {
       this.mixer = null;
     }
     this.actions.clear();
+    this.animationClips = [];
 
     // Clear material registry
     this.materialRegistry.clear();
+    this.textureSlotTargets.clear();
 
     // Keep platform! Don't clear platformScene, platformSize
 
@@ -898,9 +1307,12 @@ class ThreeViewer {
     globalWireframe: boolean,
     pointSize: number
   ) {
-    // Update model materials from registry
+    // The compare-mode secondary viewer loads its own copy of the GLB so its material UUIDs differ
+    // from the primary's - fall back to matching by name so store-level edits propagate to both viewers.
     this.materialRegistry.forEach((material, uuid) => {
-      const info = materials.find((m) => m.uuid === uuid);
+      const info =
+        materials.find((m) => m.uuid === uuid) ??
+        materials.find((m) => m.name === material.name);
       if (!info) return;
 
       if ('wireframe' in material) {
@@ -1731,6 +2143,49 @@ class ThreeViewer {
     return this.platformScene;
   }
 
+  getCameraSyncState(sourceId?: string): CameraSyncState {
+    return {
+      position: this.camera.position.toArray() as [number, number, number],
+      target: this.controls.target.toArray() as [number, number, number],
+      zoom: this.camera.zoom,
+      sourceId,
+    };
+  }
+
+  applyCameraSyncState(state: CameraSyncState) {
+    this.camera.position.fromArray(state.position);
+    this.camera.zoom = state.zoom;
+    this.camera.updateProjectionMatrix();
+    this.controls.target.fromArray(state.target);
+    this.controls.update();
+  }
+
+  onCameraChange(callback: () => void) {
+    this.controls.addEventListener('change', callback);
+    return () => {
+      this.controls.removeEventListener('change', callback);
+    };
+  }
+
+  // The platform / grid / lights / skeleton helpers live in groups other than this.content, so
+  // they are naturally excluded from the export. Animations are not part of the scene graph and
+  // must be passed in explicitly.
+  async exportGlb(): Promise<ArrayBuffer | null> {
+    if (!this.content) return null;
+    const exporter = new GLTFExporter();
+    return new Promise<ArrayBuffer | null>((resolve, reject) => {
+      exporter.parse(
+        this.content!,
+        (result) => {
+          if (result instanceof ArrayBuffer) resolve(result);
+          else reject(new Error('GLTFExporter returned a non-binary result; expected ArrayBuffer'));
+        },
+        (error) => reject(error),
+        { binary: true, animations: this.animationClips },
+      );
+    });
+  }
+
   dispose() {
     this.disposed = true;
 
@@ -1800,9 +2255,33 @@ class ThreeViewer {
 }
 
 const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
-  function ModelViewer({ glbUrl, onModelLoaded, statsContainer, unitScale, faction }, ref) {
+  function ModelViewer(
+    {
+      glbUrl,
+      onModelLoaded,
+      statsContainer,
+      unitScale,
+      faction,
+      customTextureUrl,
+      customTextureUrls,
+      onTextureSlotsReady,
+      syncStore = true,
+      cameraSyncId = 'viewer',
+      cameraSyncState,
+      onCameraSyncStateChange,
+    },
+    ref,
+  ) {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewerRef = useRef<ThreeViewer | null>(null);
+    // Set while we are programmatically applying an inbound camera state, so the resulting
+    // controls.change event does not bounce right back out and create a sync loop.
+    const applyingCameraSyncRef = useRef(false);
+    // Held in a ref so the load-model effect can fire a one-shot seed without listing this prop
+    // in its dependency array; otherwise ViewerPage's `compareMode ? handler : undefined` toggle
+    // would identity-flip on every Compare on/off and force a full GLB re-fetch.
+    const onCameraSyncStateChangeRef = useRef(onCameraSyncStateChange);
+    onCameraSyncStateChangeRef.current = onCameraSyncStateChange;
     const [viewerReady, setViewerReady] = useState(false);
     const [loading, setLoading] = useState(true);
     const [layoutReady, setLayoutReady] = useState(false);
@@ -1854,7 +2333,10 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
       takeScreenshot: () => viewerRef.current?.takeScreenshot() ?? null,
       resetCamera: () => viewerRef.current?.resetCamera(),
       setCameraPreset: (preset: CameraPreset) => viewerRef.current?.setCameraPreset(preset),
-    }), []);
+      getCameraState: () => viewerRef.current?.getCameraSyncState(cameraSyncId) ?? null,
+      applyCameraState: (state: CameraSyncState) => viewerRef.current?.applyCameraSyncState(state),
+      exportGlb: () => viewerRef.current?.exportGlb() ?? Promise.resolve(null),
+    }), [cameraSyncId]);
 
     // Initialize viewer
     useEffect(() => {
@@ -1870,6 +2352,50 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
         setViewerReady(false);
       };
     }, [statsContainer]);
+
+    // Emit camera state changes (debounced to one per frame) so a peer viewer can mirror them.
+    useEffect(() => {
+      if (!viewerReady || !onCameraSyncStateChange) return;
+      const viewer = viewerRef.current;
+      if (!viewer) return;
+
+      let rafId: number | null = null;
+
+      const emitCameraState = () => {
+        if (applyingCameraSyncRef.current) return;
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          onCameraSyncStateChange(viewer.getCameraSyncState(cameraSyncId));
+        });
+      };
+
+      const cleanup = viewer.onCameraChange(emitCameraState);
+      emitCameraState();
+
+      return () => {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        cleanup();
+      };
+    }, [viewerReady, cameraSyncId, onCameraSyncStateChange]);
+
+    // Apply inbound camera state from a peer viewer. Ignore echoes that originated from this viewer.
+    useEffect(() => {
+      const viewer = viewerRef.current;
+      if (!viewer || !cameraSyncState || cameraSyncState.sourceId === cameraSyncId) return;
+
+      applyingCameraSyncRef.current = true;
+      viewer.applyCameraSyncState(cameraSyncState);
+
+      const rafId = requestAnimationFrame(() => {
+        applyingCameraSyncRef.current = false;
+      });
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        applyingCameraSyncRef.current = false;
+      };
+    }, [cameraSyncState, cameraSyncId]);
 
     // Load model when URL changes
     useEffect(() => {
@@ -1909,21 +2435,32 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
           // Set content and get materials/scene graph
           // Skip camera setup in game-preview mode (camera is based on platform, not model)
           const skipCameraSetup = displayMode === 'game-preview';
-          const { materials: extractedMaterials, sceneGraph } = viewer.setContent(
+          const { materials: extractedMaterials, sceneGraph, textureSlots } = viewer.setContent(
             scene,
             animations,
-            (animStates) => {
-              setAnimations(animStates);
-            },
+            syncStore
+              ? (animStates) => {
+                  setAnimations(animStates);
+                }
+              : undefined,
             skipCameraSetup
           );
 
-          setMaterials(extractedMaterials);
-          setSceneGraph(sceneGraph);
+          // Compare-mode secondary viewer must not write to the shared store, otherwise the two
+          // viewers fight each other over materials/scene/animations.
+          if (syncStore) {
+            setMaterials(extractedMaterials);
+            setSceneGraph(sceneGraph);
+            onTextureSlotsReady?.(textureSlots);
+            onModelLoaded?.();
+          }
 
           setLoading(false);
           setLayoutReady(displayMode !== 'game-preview');
-          onModelLoaded?.();
+
+          // Seed the peer with our current camera state once the model is in place. Read through
+          // a ref so the load effect does not list this callback in its deps.
+          onCameraSyncStateChangeRef.current?.(viewer.getCameraSyncState(cameraSyncId));
         } catch (err) {
           if (!canceled) {
             setError(err instanceof Error ? err.message : 'Unknown error');
@@ -1940,7 +2477,39 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
           URL.revokeObjectURL(blobUrl);
         }
       };
-    }, [viewerReady, glbUrl, displayMode, onModelLoaded, setAnimations, setMaterials, setSceneGraph]);
+      // onCameraSyncStateChange intentionally omitted - it is read via a ref so the load effect
+      // does not re-fetch the GLB every time ViewerPage toggles compareMode.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      viewerReady,
+      glbUrl,
+      displayMode,
+      onModelLoaded,
+      onTextureSlotsReady,
+      setAnimations,
+      setMaterials,
+      setSceneGraph,
+      syncStore,
+      cameraSyncId,
+    ]);
+
+    // Apply custom textures whenever the URL map changes (after the model has finished loading).
+    useEffect(() => {
+      const viewer = viewerRef.current;
+      if (!viewer || loading) return;
+
+      let canceled = false;
+      const nextUrls =
+        customTextureUrls ?? (customTextureUrl ? { 'baseColor:0': customTextureUrl } : {});
+
+      viewer.setCustomTextureUrls(nextUrls).catch((err) => {
+        if (!canceled) console.warn('Failed to apply custom texture:', err);
+      });
+
+      return () => {
+        canceled = true;
+      };
+    }, [customTextureUrl, customTextureUrls, loading]);
 
     // Reset layoutReady when displayMode changes
     useEffect(() => {
@@ -2057,8 +2626,9 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
     useEffect(() => {
       const viewer = viewerRef.current;
       if (!viewer || !viewerReady || displayMode !== 'game-preview') {
-        // Clear platform scene graph when not in game-preview mode or viewer not ready
-        if (displayMode !== 'game-preview') {
+        // Clear platform scene graph when not in game-preview mode or viewer not ready.
+        // Only the store-owning viewer touches the shared store.
+        if (displayMode !== 'game-preview' && syncStore) {
           setPlatformSceneGraph(null);
         }
         return;
@@ -2082,7 +2652,7 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
 
           const { sceneGraph } = await viewer.loadPlatform(platformBlobUrl);
           if (!canceled) {
-            setPlatformSceneGraph(sceneGraph);
+            if (syncStore) setPlatformSceneGraph(sceneGraph);
             // Apply current animation settings to platform
             viewer.syncPlatformAnimations(loopMode);
             viewer.setPlaybackSpeed(playbackSpeed);
@@ -2096,14 +2666,14 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(
 
       return () => {
         canceled = true;
-        setPlatformSceneGraph(null);
+        if (syncStore) setPlatformSceneGraph(null);
         if (platformBlobUrl) {
           URL.revokeObjectURL(platformBlobUrl);
         }
       };
       // loopMode and playbackSpeed are intentionally excluded - they're synced by separate effects
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewerReady, displayMode, setPlatformSceneGraph]);
+    }, [viewerReady, displayMode, setPlatformSceneGraph, syncStore]);
 
     // Position platform under model (only after BOTH model AND platform are fully loaded)
     useEffect(() => {
