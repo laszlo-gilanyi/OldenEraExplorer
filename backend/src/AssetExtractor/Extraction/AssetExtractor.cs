@@ -45,8 +45,7 @@ public class AssetExtractor : IDisposable, IGameObjectProvider
     public UnityReader.GameObject? FindGameObjectByPathId(string sourceFile, long pathId) => _assetLoader.FindGameObjectByPathId(sourceFile, pathId);
     public UnityReader.GameObject? FindPrefabByName(string prefabName) => _assetLoader.FindPrefabByName(prefabName);
     public List<string> ListAllPrefabNames() => _assetLoader.ListAllPrefabNames();
-    public void DebugPrefabHierarchy(string prefabName) => _assetLoader.DebugPrefabHierarchy(prefabName);
-    public void AnalyzeAssetStructure(string searchTerm) => _assetLoader.AnalyzeAssetStructure(searchTerm);
+    public void Debug(string nameOrTerm) => _assetLoader.Debug(nameOrTerm);
 
     public UnitData ExtractUnit(string unitName)
     {

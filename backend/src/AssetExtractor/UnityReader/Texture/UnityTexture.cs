@@ -20,6 +20,9 @@ public sealed class UnityTexture
 
     public long PathId => _vendor.m_PathID;
 
+    public string SourceFile =>
+        System.IO.Path.GetFileName(_vendor.assetsFile?.fileName ?? string.Empty);
+
     // ResourceManager-registered path or null if the texture is not bound to a runtime
     // resource slot. The OEE pipeline uses this to place textures under
     // Assets/Resources/{category}/... instead of a flat Texture2D/ folder.

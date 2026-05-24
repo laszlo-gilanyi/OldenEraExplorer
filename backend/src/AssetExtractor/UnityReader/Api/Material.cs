@@ -24,6 +24,9 @@ public sealed class Material
     public string Name => _vendor.m_Name ?? string.Empty;
     public long PathId => _vendor.m_PathID;
 
+    public string SourceFile =>
+        System.IO.Path.GetFileName(_vendor.assetsFile?.fileName ?? string.Empty);
+
     // Empty on Unity 5.0 - 2021.2.17, which use the space-separated LegacyShaderKeywords instead.
     public IReadOnlyList<string> ValidKeywords => _vendor.m_ValidKeywords;
 

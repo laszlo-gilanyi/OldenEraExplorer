@@ -878,7 +878,7 @@ public class ExtractionOrchestrator
         return result;
     }
 
-    public void DebugPrefab(string prefabName, string? manualGamePath = null)
+    public void Debug(string nameOrTerm, string? manualGamePath = null)
     {
         var gamePath = ResolveGamePath(manualGamePath);
         if (gamePath == null)
@@ -888,20 +888,7 @@ public class ExtractionOrchestrator
         }
 
         using var extractor = new AssetExtractorService(gamePath, CreateLogger<AssetExtractorService>(), _loggerFactory);
-        extractor.DebugPrefabHierarchy(prefabName);
-    }
-
-    public void AnalyzeAssets(string searchTerm, string? manualGamePath = null)
-    {
-        var gamePath = ResolveGamePath(manualGamePath);
-        if (gamePath == null)
-        {
-            _logger.LogError("Could not resolve game path");
-            return;
-        }
-
-        using var extractor = new AssetExtractorService(gamePath, CreateLogger<AssetExtractorService>(), _loggerFactory);
-        extractor.AnalyzeAssetStructure(searchTerm);
+        extractor.Debug(nameOrTerm);
     }
 
     private BatchExtractionResult ExtractPrefabBatch(

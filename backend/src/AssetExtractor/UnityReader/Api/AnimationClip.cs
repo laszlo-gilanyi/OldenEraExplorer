@@ -10,6 +10,10 @@ public sealed class AnimationClip
 
     public string Name => _vendor.m_Name ?? string.Empty;
     public long PathId => _vendor.m_PathID;
+
+    public string SourceFile =>
+        System.IO.Path.GetFileName(_vendor.assetsFile?.fileName ?? string.Empty);
+
     public float SampleRate => _vendor.m_SampleRate;
     public bool IsLegacy => _vendor.m_Legacy;
     public bool HasMuscleClip => _vendor.m_MuscleClip != null;

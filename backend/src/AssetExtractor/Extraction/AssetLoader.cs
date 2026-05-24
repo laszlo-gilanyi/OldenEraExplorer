@@ -31,14 +31,10 @@ public sealed class AssetLoader : IDisposable
         _logger.LogInformation("Found {AssetFileCount} asset files to load", assetFiles.Count);
 
         Console.WriteLine($"Loading game assets ({assetFiles.Count} files)...");
-        using (var spinner = new SpinnerDisplay("Loading"))
-        {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            _unityScene = UnityReader.UnityScene.Load(assetFiles);
-            sw.Stop();
-            spinner.Complete($"Loaded in {sw.ElapsedMilliseconds / 1000.0:F1}s");
-        }
-        Console.WriteLine();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        _unityScene = UnityReader.UnityScene.Load(assetFiles);
+        sw.Stop();
+        Console.WriteLine($"Loaded in {sw.ElapsedMilliseconds / 1000.0:F1}s");
 
         BuildCaches();
         _logger.LogInformation("PathID cache: {Count}", _pathIdCache.Count);
@@ -243,8 +239,288 @@ public sealed class AssetLoader : IDisposable
 
     public List<string> ListAllPrefabNames() => _prefabCache.Keys.OrderBy(k => k).ToList();
 
-    public void DebugPrefabHierarchy(string prefabName) { /* no-op post-cleanup */ }
-    public void AnalyzeAssetStructure(string searchTerm) { /* no-op post-cleanup */ }
+    private void PrintHierarchyRecursive(UnityReader.GameObject gameObject, UnityReader.Transform transform, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+
+        var components = new List<string>();
+        if (gameObject.TryGetComponent<UnityReader.SkinnedMeshRenderer>(out _)) components.Add("SkinnedMeshRenderer");
+        if (gameObject.TryGetComponent<UnityReader.MeshRenderer>(out _)) components.Add("MeshRenderer");
+        if (gameObject.TryGetComponent<UnityReader.MeshFilter>(out _)) components.Add("MeshFilter");
+        if (gameObject.TryGetComponent<UnityReader.Animator>(out _)) components.Add("Animator");
+
+        var componentStr = components.Count > 0 ? $" [{string.Join(", ", components)}]" : "";
+
+        var scale = transform.LocalScale;
+        var rot = transform.LocalRotation;
+        var transformStr = "";
+
+        if (Math.Abs(scale.X - 1) > 0.001f || Math.Abs(scale.Y - 1) > 0.001f || Math.Abs(scale.Z - 1) > 0.001f)
+            transformStr += $" S({scale.X:F2},{scale.Y:F2},{scale.Z:F2})";
+
+        if (Math.Abs(rot.X) > 0.001f || Math.Abs(rot.Y) > 0.001f || Math.Abs(rot.Z) > 0.001f || Math.Abs(rot.W - 1) > 0.001f)
+            transformStr += $" R({rot.X:F2},{rot.Y:F2},{rot.Z:F2},{rot.W:F2})";
+
+        _logger.LogInformation("{Indent}- {Name}{Components}{Transform}", indent, gameObject.Name, componentStr, transformStr);
+
+        foreach (var childTransform in transform.Children)
+        {
+            if (childTransform == null) continue;
+            var childGo = childTransform.GameObject;
+            if (childGo == null) continue;
+            PrintHierarchyRecursive(childGo, childTransform, depth + 1);
+        }
+    }
+
+    public void Debug(string nameOrTerm)
+    {
+        if (nameOrTerm.StartsWith("#"))
+        {
+            _logger.LogWarning("Direct PathID lookup not supported. Use a name or search term.");
+            return;
+        }
+
+        UnityReader.GameObject? prefab = null;
+        string? foundBy = null;
+
+        if (nameOrTerm.Contains('/'))
+        {
+            prefab = FindPrefabByResourcePath(nameOrTerm);
+            if (prefab != null) foundBy = "resource path";
+        }
+        if (prefab == null)
+        {
+            prefab = FindPrefabByNameWithResourcePaths(nameOrTerm);
+            if (prefab != null) foundBy = "resource name cache";
+        }
+        if (prefab == null)
+        {
+            prefab = FindPrefabByName(nameOrTerm);
+            if (prefab != null) foundBy = "name cache";
+        }
+
+        if (prefab != null)
+        {
+            _logger.LogInformation($"Found '{prefab.Name}' via {foundBy} (PathID: {prefab.PathId})");
+            InspectPrefab(prefab);
+        }
+        else
+        {
+            _logger.LogInformation($"No prefab match for '{nameOrTerm}'. Searching across asset types.");
+            SearchAcrossTypes(nameOrTerm);
+        }
+    }
+
+    private void InspectPrefab(UnityReader.GameObject prefab)
+    {
+        _logger.LogInformation($"=== {prefab.Name} ===");
+        _logger.LogInformation($"PathID:        {prefab.PathId}");
+        _logger.LogInformation($"Source file:   {prefab.SourceFile}");
+        if (!string.IsNullOrEmpty(prefab.ResourcePath))
+            _logger.LogInformation($"Resource path: {prefab.ResourcePath}");
+        _logger.LogInformation($"Active:        {prefab.IsActive}");
+
+        var rootTransform = prefab.Transform;
+        if (rootTransform == null)
+        {
+            _logger.LogError("No transform on root.");
+            return;
+        }
+
+        var allNodes = new List<(UnityReader.GameObject Go, UnityReader.Transform Tr)>();
+        CollectHierarchyNodes(prefab, rootTransform, allNodes);
+
+        PrintRenderersSection(allNodes);
+        PrintAnimatorsSection(allNodes);
+
+        _logger.LogInformation("");
+        _logger.LogInformation("Hierarchy:");
+        PrintHierarchyRecursive(prefab, rootTransform, 0);
+    }
+
+    private static void CollectHierarchyNodes(
+        UnityReader.GameObject go,
+        UnityReader.Transform tr,
+        List<(UnityReader.GameObject, UnityReader.Transform)> result)
+    {
+        result.Add((go, tr));
+        foreach (var child in tr.Children)
+        {
+            if (child == null) continue;
+            var childGo = child.GameObject;
+            if (childGo == null) continue;
+            CollectHierarchyNodes(childGo, child, result);
+        }
+    }
+
+    private void PrintRenderersSection(List<(UnityReader.GameObject Go, UnityReader.Transform Tr)> allNodes)
+    {
+        var renderers = new List<(UnityReader.GameObject Node, UnityReader.SkinnedMeshRenderer? Smr, UnityReader.MeshRenderer? Mr, UnityReader.MeshFilter? Mf)>();
+        foreach (var (go, _) in allNodes)
+        {
+            go.TryGetComponent<UnityReader.SkinnedMeshRenderer>(out var smr);
+            go.TryGetComponent<UnityReader.MeshRenderer>(out var mr);
+            go.TryGetComponent<UnityReader.MeshFilter>(out var mf);
+            if (smr != null || mr != null)
+                renderers.Add((go, smr, mr, mf));
+        }
+
+        _logger.LogInformation("");
+        _logger.LogInformation($"Renderers ({renderers.Count}):");
+        if (renderers.Count == 0)
+        {
+            _logger.LogInformation("  (none)");
+            return;
+        }
+
+        foreach (var (node, smr, mr, mf) in renderers)
+        {
+            if (smr != null)
+            {
+                var mesh = smr.Mesh;
+                _logger.LogInformation($"  - {node.Name} (SkinnedMeshRenderer)  enabled={smr.IsEnabled}");
+                if (mesh != null)
+                    _logger.LogInformation($"      Mesh: {mesh.Name}  vertices={mesh.VertexCount}  submeshes={mesh.SubMeshCount}  bones={smr.Bones.Count}  bindPoses={mesh.BindPoseCount}");
+                else
+                    _logger.LogInformation("      Mesh: (missing)");
+                PrintMaterialList(smr.Materials);
+            }
+            else if (mr != null)
+            {
+                _logger.LogInformation($"  - {node.Name} (MeshRenderer)  enabled={mr.IsEnabled}");
+                var mesh = mf?.Mesh;
+                if (mesh != null)
+                    _logger.LogInformation($"      Mesh: {mesh.Name}  vertices={mesh.VertexCount}  submeshes={mesh.SubMeshCount}");
+                else
+                    _logger.LogInformation("      Mesh: (no MeshFilter)");
+                PrintMaterialList(mr.Materials);
+            }
+        }
+    }
+
+    private void PrintMaterialList(IReadOnlyList<UnityReader.Material?> materials)
+    {
+        if (materials.Count == 0)
+        {
+            _logger.LogInformation("      Materials: (none)");
+            return;
+        }
+        _logger.LogInformation($"      Materials ({materials.Count}):");
+        foreach (var m in materials)
+        {
+            if (m == null) { _logger.LogInformation("        - (missing)"); continue; }
+            var shader = m.Shader?.Name ?? "(unresolved)";
+            _logger.LogInformation($"        - {m.Name}  shader: {shader}");
+        }
+    }
+
+    private void PrintAnimatorsSection(List<(UnityReader.GameObject Go, UnityReader.Transform Tr)> allNodes)
+    {
+        var animators = new List<(UnityReader.GameObject Node, UnityReader.Animator Anim)>();
+        foreach (var (go, _) in allNodes)
+        {
+            if (go.TryGetComponent<UnityReader.Animator>(out var anim))
+                animators.Add((go, anim));
+        }
+
+        _logger.LogInformation("");
+        _logger.LogInformation($"Animators ({animators.Count}):");
+        if (animators.Count == 0)
+        {
+            _logger.LogInformation("  (none)");
+            return;
+        }
+
+        foreach (var (node, anim) in animators)
+        {
+            _logger.LogInformation($"  - {node.Name}");
+            _logger.LogInformation($"      Controller: {anim.Controller?.Name ?? "(none)"}");
+            var clips = anim.AnimationClips;
+            _logger.LogInformation($"      Clips ({clips.Count}):");
+            foreach (var clip in clips)
+            {
+                if (clip == null) { _logger.LogInformation("        - (missing)"); continue; }
+                _logger.LogInformation($"        - {clip.Name}  {clip.Length:F2}s @ {clip.SampleRate:F0} FPS");
+            }
+        }
+    }
+
+    private void SearchAcrossTypes(string searchTerm)
+    {
+        var textures = new List<UnityReader.UnityTexture>();
+        var gameObjects = new List<UnityReader.GameObject>();
+        var meshes = new List<UnityReader.Mesh>();
+        var materials = new List<UnityReader.Material>();
+        var animClips = new List<UnityReader.AnimationClip>();
+
+        foreach (var t in _unityScene.EnumerateTexture2Ds())
+            if (!string.IsNullOrEmpty(t.Name) && t.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                textures.Add(t);
+        foreach (var g in _unityScene.EnumerateGameObjects())
+            if (!string.IsNullOrEmpty(g.Name) && g.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                gameObjects.Add(g);
+        foreach (var m in _unityScene.EnumerateMeshes())
+            if (!string.IsNullOrEmpty(m.Name) && m.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                meshes.Add(m);
+        foreach (var m in _unityScene.EnumerateMaterials())
+            if (!string.IsNullOrEmpty(m.Name) && m.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                materials.Add(m);
+        foreach (var c in _unityScene.EnumerateAnimationClips())
+            if (!string.IsNullOrEmpty(c.Name) && c.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                animClips.Add(c);
+
+        _logger.LogInformation($"=== Search results for '{searchTerm}' ===");
+
+        _logger.LogInformation("");
+        _logger.LogInformation($"Texture2D ({textures.Count}):");
+        if (textures.Count == 0) _logger.LogInformation("  (no matches)");
+        foreach (var t in textures)
+        {
+            var rp = string.IsNullOrEmpty(t.ResourcePath) ? "" : $"  resource: {t.ResourcePath}";
+            _logger.LogInformation($"  - {t.Name}  {t.Width}x{t.Height} {t.Format}  PathID: {t.PathId}  file: {t.SourceFile}{rp}");
+        }
+
+        _logger.LogInformation("");
+        _logger.LogInformation($"GameObject ({gameObjects.Count}):");
+        if (gameObjects.Count == 0) _logger.LogInformation("  (no matches)");
+        foreach (var g in gameObjects)
+        {
+            var rp = string.IsNullOrEmpty(g.ResourcePath) ? "" : $"  resource: {g.ResourcePath}";
+            var active = g.IsActive ? "" : "  (inactive)";
+            _logger.LogInformation($"  - {g.Name}  PathID: {g.PathId}  file: {g.SourceFile}{rp}{active}");
+        }
+
+        _logger.LogInformation("");
+        _logger.LogInformation($"Mesh ({meshes.Count}):");
+        if (meshes.Count == 0) _logger.LogInformation("  (no matches)");
+        foreach (var m in meshes)
+        {
+            var skin = m.HasSkinning ? "  skinned" : "";
+            _logger.LogInformation($"  - {m.Name}  vertices={m.VertexCount}  submeshes={m.SubMeshCount}{skin}  PathID: {m.PathId}  file: {m.SourceFile}");
+        }
+
+        _logger.LogInformation("");
+        _logger.LogInformation($"Material ({materials.Count}):");
+        if (materials.Count == 0) _logger.LogInformation("  (no matches)");
+        foreach (var m in materials)
+        {
+            var shader = m.Shader?.Name ?? "(unresolved)";
+            _logger.LogInformation($"  - {m.Name}  shader: {shader}  PathID: {m.PathId}  file: {m.SourceFile}");
+        }
+
+        _logger.LogInformation("");
+        _logger.LogInformation($"AnimationClip ({animClips.Count}):");
+        if (animClips.Count == 0) _logger.LogInformation("  (no matches)");
+        foreach (var c in animClips)
+        {
+            var legacy = c.IsLegacy ? "  legacy" : "";
+            _logger.LogInformation($"  - {c.Name}  {c.Length:F2}s @ {c.SampleRate:F0} FPS{legacy}  PathID: {c.PathId}  file: {c.SourceFile}");
+        }
+
+        var total = textures.Count + gameObjects.Count + meshes.Count + materials.Count + animClips.Count;
+        _logger.LogInformation("");
+        _logger.LogInformation($"Total: {total} matches ({textures.Count} Texture2D, {gameObjects.Count} GameObject, {meshes.Count} Mesh, {materials.Count} Material, {animClips.Count} AnimationClip)");
+    }
 
     public List<(string Name, UnityReader.UnityTexture Texture)> SearchTextures(string namePattern)
     {

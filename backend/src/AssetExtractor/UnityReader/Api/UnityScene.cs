@@ -47,6 +47,7 @@ public sealed class UnityScene : IDisposable
 
     public string UnityVersion { get; }
     public int FileCount => _files.Count;
+    public IReadOnlyList<string> FileNames { get; }
     public long ObjectCount { get; }
     public IReadOnlyDictionary<int, int> ClassCounts { get; }
     public IReadOnlyList<string> UnsupportedTextureFormats { get; }
@@ -105,6 +106,7 @@ public sealed class UnityScene : IDisposable
         ObjectCount = objectCount;
         ClassCounts = counts;
         UnsupportedTextureFormats = unsupportedFormatNames.ToArray();
+        FileNames = _files.Select(f => System.IO.Path.GetFileName(f.fileName ?? string.Empty)).ToArray();
     }
 
     // Hard-coded readers, no classdata.tpk / TypeTree fallback. Adjacent referenced files

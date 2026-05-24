@@ -111,10 +111,28 @@ class Program
                 });
                 builder.AddConsole(options => options.FormatterName = "clean");
 
-                builder.SetMinimumLevel(config.IsVerbose ? LogLevel.Debug : LogLevel.Warning);
+                // The debug command emits findings at Information. Without raising the floor
+                // they would be silent at the default Warning level.
+                LogLevel minLevel = config.IsVerbose
+                    ? LogLevel.Debug
+                    : config.Command == "debug"
+                        ? LogLevel.Information
+                        : LogLevel.Warning;
+                builder.SetMinimumLevel(minLevel);
 
                 builder.AddFilter("Microsoft", LogLevel.Warning);
                 builder.AddFilter("System", LogLevel.Warning);
+
+                // Vendor parser warnings ("Cannot process empty mesh" etc.) are bundle-wide
+                // and unrelated to the debug command's prefab focus, so they are suppressed
+                // there. extract-* keeps Warning because vendor warnings can flag real
+                // export problems in that context.
+                LogLevel vendorLevel = config.IsVerbose
+                    ? LogLevel.Trace
+                    : config.Command == "debug"
+                        ? LogLevel.Error
+                        : LogLevel.Warning;
+                builder.AddFilter("UnityReader.Vendor", vendorLevel);
             });
 
             var serviceProvider = services.BuildServiceProvider();
@@ -151,8 +169,7 @@ class Program
                 "list-all-prefabs" => HandleListAllPrefabs(orchestrator, config.GamePath, config.Arguments),
                 "list-resource-paths" => HandleListResourcePaths(orchestrator, config.GamePath, config.Arguments),
 
-                "debug-prefab" => HandleDebugPrefab(orchestrator, config.Arguments, config.GamePath),
-                "analyze-assets" => HandleAnalyzeAssets(orchestrator, config.Arguments, config.GamePath),
+                "debug" => HandleDebug(orchestrator, config.Arguments, config.GamePath),
 
                 "extract" => HandleExtractGlb(orchestrator, config.Arguments, config.GamePath),
                 "extract-gameobject" => HandleExtractGlb(orchestrator, config.Arguments, config.GamePath),
@@ -447,31 +464,17 @@ class Program
         return 0;
     }
 
-    static int HandleDebugPrefab(ExtractionOrchestrator orchestrator, List<string> args, string? manualPath)
+    static int HandleDebug(ExtractionOrchestrator orchestrator, List<string> args, string? manualPath)
     {
         if (args.Count < 2)
         {
             Console.WriteLine("Error: Insufficient arguments");
-            Console.WriteLine("Usage: debug-prefab <name> [--game-path <path>]");
+            Console.WriteLine("Usage: debug <name-or-term> [--game-path <path>]");
             return 1;
         }
 
-        string prefabName = args[1];
-        orchestrator.DebugPrefab(prefabName, manualPath);
-        return 0;
-    }
-
-    static int HandleAnalyzeAssets(ExtractionOrchestrator orchestrator, List<string> args, string? manualPath)
-    {
-        if (args.Count < 2)
-        {
-            Console.WriteLine("Error: Insufficient arguments");
-            Console.WriteLine("Usage: analyze-assets <search-term> [--game-path <path>]");
-            return 1;
-        }
-
-        string searchTerm = args[1];
-        orchestrator.AnalyzeAssets(searchTerm, manualPath);
+        string nameOrTerm = args[1];
+        orchestrator.Debug(nameOrTerm, manualPath);
         return 0;
     }
 
@@ -510,8 +513,8 @@ class Program
         Console.WriteLine("  list-all-prefabs [filter]        List all prefabs (optionally filter by name)");
         Console.WriteLine();
         Console.WriteLine("Debug/Analysis Commands:");
-        Console.WriteLine("  debug-prefab <name>              Show hierarchy structure of a prefab");
-        Console.WriteLine("  analyze-assets <search>          Search assets by name");
+        Console.WriteLine("  debug <name-or-term>             Inspect a prefab (renderers, animators, hierarchy)");
+        Console.WriteLine("                                   or search assets by name if no prefab matches");
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --game-path <path>               Manually specify game installation path");
