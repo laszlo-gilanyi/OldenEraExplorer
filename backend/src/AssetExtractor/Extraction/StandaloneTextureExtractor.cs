@@ -1,4 +1,5 @@
 #nullable enable
+using System.Text.RegularExpressions;
 using AssetExtractor.Models;
 using AssetExtractor.Export;
 using AssetExtractor.Pipeline;
@@ -10,6 +11,24 @@ namespace AssetExtractor.Extraction;
 
 public class StandaloneTextureExtractor : IDisposable
 {
+    // Remove a name from here if any page starts referencing it.
+    private static readonly Regex IconsEngineInternalPrefix = new Regex(
+        @"^(arenas|background_buildings|buffs|campaignicons|dialogue|dialogue_unit_portraits|general_icons|guide_icons|observer|rank|rank_insara|rewards_icons|skins)/",
+        RegexOptions.Compiled);
+
+    // Names that resolve to the flat Texture2D/ dump via TexturePathResolver fallback.
+    // Add here when a new literal reference appears in a frontend or backend source.
+    private static readonly Regex Texture2DKeepPattern = new Regex(
+        @"^(" +
+            @"icon_difficulty_\d+" +
+            @"|Icon_Stats_Mana" +
+            @"|Icon_LawsPoint|Frame_Law_Back|LevelPoint \(1\)" +
+            @"|Frame_LawLevel(_Loced)? \(1\)" +
+            @"|Scroll_(Center|Left|Right)" +
+            @"|Button_(Item_Delete|LevelUp)" +
+        @")$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     private readonly ILogger<StandaloneTextureExtractor> _logger;
     private readonly ILoggerFactory? _loggerFactory;
     private readonly string _assetPath;
@@ -133,21 +152,7 @@ public class StandaloneTextureExtractor : IDisposable
             // Direct icons/foo.png entries (no subdirectory) were not part of the baseline.
             if (!after.Contains('/')) return false;
 
-            // Engine-internal subdirs (debug, observer, deprecated rank sets, skins) that
-            // the historical baseline did not export.
-            if (after.StartsWith("background_buildings/", StringComparison.Ordinal) ||
-                after.StartsWith("buffs/", StringComparison.Ordinal) ||
-                after.StartsWith("campaignicons/", StringComparison.Ordinal) ||
-                after.StartsWith("general_icons/", StringComparison.Ordinal) ||
-                after.StartsWith("guide_icons/", StringComparison.Ordinal) ||
-                after.StartsWith("observer/", StringComparison.Ordinal) ||
-                after.StartsWith("rank/", StringComparison.Ordinal) ||
-                after.StartsWith("rank_insara/", StringComparison.Ordinal) ||
-                after.StartsWith("rewards_icons/", StringComparison.Ordinal) ||
-                after.StartsWith("skins/", StringComparison.Ordinal))
-            {
-                return false;
-            }
+            if (IconsEngineInternalPrefix.IsMatch(after)) return false;
 
             return true;
         }
@@ -189,30 +194,8 @@ public class StandaloneTextureExtractor : IDisposable
 
         if (lower.StartsWith("assets/texture2d/", StringComparison.Ordinal))
         {
-            string fileName = Path.GetFileNameWithoutExtension(relativePath).ToLowerInvariant();
-
-            // Hand-checked outlier: the only baseline texture that doesn't match
-            // the substring/prefix patterns below.
-            if (fileName == "city_background_unithire 3") return true;
-
-            if (fileName.Contains("button") ||
-                fileName.Contains("icon") ||
-                fileName.Contains("rang") ||
-                fileName.StartsWith("property 1=") ||
-                fileName.Contains("sky") ||
-                fileName.Contains("skybox") ||
-                // Faction laws panel assets used by the UI:
-                // parchment background + curl rolls (Scroll_Center / Scroll_Left / Scroll_Right)
-                fileName.StartsWith("scroll_") ||
-                // law cell frame and pip badges (Frame_Law_Back, Frame_Law_Top,
-                // Frame_LawLevel, Frame_LawLevel_Loced), plus pip dots LevelPoint*
-                fileName.StartsWith("frame_law") ||
-                fileName.StartsWith("levelpoint"))
-            {
-                return true;
-            }
-
-            return false;
+            string fileName = Path.GetFileNameWithoutExtension(relativePath);
+            return Texture2DKeepPattern.IsMatch(fileName);
         }
 
         return false;

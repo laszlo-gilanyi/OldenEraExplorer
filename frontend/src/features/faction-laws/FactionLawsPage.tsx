@@ -282,7 +282,6 @@ function FactionLawCell({
 }) {
   const assetUrl = useAssetUrl();
   const frameBackUrl = assetUrl('Frame_Law_Back.png');
-  const pipUrl = assetUrl('LevelPoint (1).png');
   return (
     <div className="relative w-full h-full" style={{ containerType: 'inline-size' }}>
       <button
@@ -328,9 +327,9 @@ function FactionLawCell({
           style={{ top: '-4cqw', gap: '2cqw' }}
         >
           {Array.from({ length: entry.levelCount }).map((_, i) => (
-            <img
+            <ProgressiveIcon
               key={i}
-              src={pipUrl}
+              iconPath="LevelPoint (1)"
               alt=""
               style={{ width: '15cqw', height: '15cqw' }}
             />
@@ -372,10 +371,9 @@ function FactionLawRowDivider({
   rowIndex: number;
   countToUnlock: number;
 }) {
-  const assetUrl = useAssetUrl();
   const isFirst = rowIndex === 0;
   const cfg = isFirst ? layout.divider.firstRow : layout.divider.otherRows;
-  const imageName = isFirst ? 'Frame_LawLevel (1).png' : 'Frame_LawLevel_Loced (1).png';
+  const imageName = isFirst ? 'Frame_LawLevel (1)' : 'Frame_LawLevel_Loced (1)';
 
   return (
     <div
@@ -389,7 +387,7 @@ function FactionLawRowDivider({
       }}
     >
       <div className="relative">
-        <img src={assetUrl(imageName)} alt="" className="w-full block" />
+        <ProgressiveIcon iconPath={imageName} alt="" className="w-full block" style={{ width: '100%', height: 'auto' }} />
         <span
           className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold leading-none"
           style={{
@@ -410,8 +408,8 @@ function FactionLawRowDivider({
             }}
           >
             <span>{countToUnlock}</span>
-            <img
-              src={assetUrl('Icon_LawsPoint.png')}
+            <ProgressiveIcon
+              iconPath="Icon_LawsPoint"
               alt=""
               style={{ width: '1.2em', height: '1.2em' }}
             />
@@ -435,9 +433,6 @@ function FactionLawScrollPanel({
 }) {
   const assetUrl = useAssetUrl();
   const scale = usePanelScale();
-  const factionCrest = faction
-    ? assetUrl(`icons/fraction_laws_main_icons/scroll_faction_${faction}.png`)
-    : null;
 
   return (
     <div
@@ -458,8 +453,8 @@ function FactionLawScrollPanel({
           containerType: 'inline-size',
         }}
       >
-        <img
-          src={assetUrl('Scroll_Left.png')}
+        <ProgressiveIcon
+          iconPath="Scroll_Left"
           alt=""
           className="absolute pointer-events-none"
           style={{
@@ -469,8 +464,8 @@ function FactionLawScrollPanel({
             height: layout.scrollEnds.height,
           }}
         />
-        <img
-          src={assetUrl('Scroll_Right.png')}
+        <ProgressiveIcon
+          iconPath="Scroll_Right"
           alt=""
           className="absolute pointer-events-none"
           style={{
@@ -481,9 +476,9 @@ function FactionLawScrollPanel({
           }}
         />
 
-        {factionCrest && (
-          <img
-            src={factionCrest}
+        {faction && (
+          <ProgressiveIcon
+            iconPath={`icons/fraction_laws_main_icons/scroll_faction_${faction}`}
             alt=""
             className="absolute pointer-events-none"
             style={{

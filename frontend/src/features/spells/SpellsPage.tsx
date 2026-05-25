@@ -261,20 +261,12 @@ function SpellDetailPanel({
                 <div className="mt-auto pt-3 flex items-center gap-4 text-sm">
                   {level.starDustCost != null && (
                     <span className="flex items-center gap-1 text-semantic-gold font-semibold">
-                      <img
-                        src="/api/assets/png/Assets/Resources/icons/resources/stardust.png"
-                        alt="astrology"
-                        className="w-8 h-8"
-                      />
+                      <ProgressiveIcon iconPath="icons/resources/stardust" alt="astrology" size={32} />
                       <strong>{level.starDustCost}</strong>
                     </span>
                   )}
                   <span className="flex items-center gap-1 text-semantic-blue font-semibold">
-                    <img
-                      src="/api/assets/png/Assets/Texture2D/Icon_Stats_Mana.png"
-                      alt="mana"
-                      className="w-8 h-8"
-                    />
+                    <ProgressiveIcon iconPath="Icon_Stats_Mana" alt="mana" size={32} />
                     <strong>{label('spell_mana', level.manaCost)}</strong>
                   </span>
                 </div>
