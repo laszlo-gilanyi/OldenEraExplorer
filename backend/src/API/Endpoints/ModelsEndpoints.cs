@@ -141,6 +141,10 @@ public static class ModelsEndpoints
         var langForOrphans = dataService.IsLoaded && dataService.Data is not null
             ? dataService.Data.Lang
             : null;
+        var resolverForOrphans = dataService.IsLoaded && dataService.Data is not null
+            ? dataService.Data.ResolverFacade
+            : null;
+        var localeForOrphans = gamePathService.CurrentLocale;
 
         if (Directory.Exists(extractedDir))
         {
@@ -218,6 +222,16 @@ public static class ModelsEndpoints
 
             foreach (var (orphanId, (path, faction, glbFileName)) in orphanGlbs)
             {
+                // Orphans skip the main list's localization pass, so resolve the name here too;
+                // GetLocalizedUnitName echoes the SID back when there's no translation for it.
+                var orphanName = glbFileName;
+                if (langForOrphans is not null && resolverForOrphans is not null)
+                {
+                    var resolved = GetLocalizedUnitName(resolverForOrphans, langForOrphans, glbFileName, localeForOrphans);
+                    if (!string.IsNullOrWhiteSpace(resolved) && resolved != $"{glbFileName}_name")
+                        orphanName = resolved;
+                }
+
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var searchTerm = search.Trim();
@@ -231,6 +245,7 @@ public static class ModelsEndpoints
                         var factionDisplay = factionMapper.MapFactionDisplay(faction);
 
                         if (!glbFileName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) &&
+                            !orphanName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) &&
                             !faction.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) &&
                             (factionDisplay == null || !factionDisplay.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
                             continue;
@@ -241,7 +256,7 @@ public static class ModelsEndpoints
 
                 items.Add(new UnitListItemDto(
                     orphanId,
-                    glbFileName,
+                    orphanName,
                     faction,
                     factionMapper.MapFactionDisplay(faction),
                     null,

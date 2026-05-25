@@ -1,4 +1,5 @@
 using Localization.Indexing;
+using Localization.Services;
 
 namespace GameData.Services;
 
@@ -76,6 +77,11 @@ public class FactionMapper
 
         if (!string.IsNullOrWhiteSpace(sid))
         {
+            // neutral_name exists only in overlays, not the game lang files
+            var overlay = OverlayService.Instance.TryResolveFromOverlay(sid, _langIndex.Locale);
+            if (!string.IsNullOrWhiteSpace(overlay))
+                return overlay;
+
             var result = _langIndex.ResolveText(sid);
             if (!string.IsNullOrWhiteSpace(result) && result != sid)
                 return result;

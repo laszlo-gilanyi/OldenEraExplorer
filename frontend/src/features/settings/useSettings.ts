@@ -66,8 +66,7 @@ export function useUpdateSettings() {
           await queryClient.refetchQueries({ queryKey: ['subclass'] });
           await queryClient.refetchQueries({ queryKey: ['map-objects'] });
           await queryClient.refetchQueries({ queryKey: ['map-object'] });
-          await queryClient.refetchQueries({ queryKey: ['modSessionEntities'] });
-          await queryClient.refetchQueries({ queryKey: ['modSessionEntity'] });
+          await queryClient.refetchQueries({ queryKey: ['models'] });
           await queryClient.refetchQueries({ queryKey: ['labels'] });
           await queryClient.refetchQueries({ queryKey: ['game', 'status'] });
         } catch (error) {
